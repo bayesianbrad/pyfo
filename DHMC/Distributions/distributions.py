@@ -2,115 +2,181 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 from Utils.core import ContinuousRandomVariable, DiscreteRandomVariable, VariableCast
-# TO DO : comment seeds when running program for real.
-# torch.manual_seed(1234) # For testing only
-# np.random.seed(1234)
 
-# Note to user: Only the Laplace pdf is implemented as that is that is needed for this
-# current project. The code is written for the pdfs but not
 # ---------------------------------------------------------------------
 # CONTINUOUS DISTRIBUTIONS
 # ---------------------------------------------------------------------
 
-
-class Laplace(ContinuousRandomVariable):
-    '''
-    Laplace random variable
-
-    Methods
-    -------
-    sample X ~ Laplace(location, scale)
-    logpdf
-
-    Attributes
-    ----------
-    location - Type torch.autograd.Variable, torch.Tensor, nparray
-               Size \mathbb{R}^{1 x N}
-    scale    - Type torch.autograd.Variable, torch.Tensor, nparray
-               Size \mathbb{R}^{1 x N}
-    '''
-    def __init__(self, location, scale):
-        self.location = VariableCast(location)
-        self.scale    = VariableCast(scale)
-    def sample(self):
-        # https: // en.wikipedia.org / wiki / Laplace_distribution
-        uniforms = torch.Tensor(self.location.size()).uniform_() - 0.5
-        uniforms = VariableCast(uniforms)
-        return self.location - self._scale * torch.sign(uniforms) * \
-                                torch.log(1 - 2 * torch.abs(uniforms))
-
-    def logpdf(self, value):
-        return -torch.div(torch.abs(value - self._location),self._scale) - torch.log(2 * self._scale)
-
 class Normal(ContinuousRandomVariable):
-    """Normal random variable
-    Returns  a normal distribution object class with mean - mean
-    and standard deviation - std.
-
-    Methods
-    --------
-    sample   - Returns a sample X ~ N(mean,std) as a Variable.
-    pdf
-    logpdf   -
-
-    Attributes
-    ----------
-    mean     - Type: torch.autograd.Variable, torch.Tensor, nparray
-               Size: \mathbb{R}^{1 x N}
-    std      - Type: torch.autograd.Variable, torch.Tensor, nparray
-               Size: \mathbb{R}^{1 x N}
-
-    """
+    """1d Normal random variable"""
     def __init__(self, mean, std):
+        """Initialize this distribution with mean, variance.
+
+        input:
+            mean:
+            std:  standard deviation
+        """
+
         self.mean = VariableCast(mean)
-        self.std  = VariableCast(std)
+        if len(mean.data.shape) == 1:
+            self.mean = mean.unsqueeze(1)
+        self.std = VariableCast(std)
 
 
     def sample(self, num_samples = 1):
-        # x ~ N(0,1)
-        self.unifomNorm = Variable(torch.randn(1,num_samples))
-        return self.unifomNorm * (self.std) + self.mean
+        x = torch.randn(1)
+        sample = Variable(x * self.std.data + self.mean.data, requires_grad = True)
+        return sample #.detach()
+
 
     def logpdf(self, value):
+        mean = self.mean
+        var = self.std ** 2
         value = VariableCast(value)
+        if len(value.data.shape) == 1:
+            value = value.unsqueeze(1)
+        if isinstance(mean, torch.IntTensor):
+            mean = mean.type(torch.FloatTensor)
         # pdf: 1 / torch.sqrt(2 * var * np.pi) * torch.exp(-0.5 * torch.pow(value - mean, 2) / var)
-        return (-0.5 *  torch.pow(value - self.mean, 2) / self.std**2) -  torch.log(self.std)
+        return (-0.5 * torch.pow(value - mean, 2) / var - 0.5 * torch.log(2 * var * np.pi))
+
 
 class MultivariateNormal(ContinuousRandomVariable):
-   """Normal random variable"""
-   def __init__(self, mean, cov):
-       """Initialize this distribution with mean, cov.
+    """Normal random variable"""
+    def __init__(self, mean, cov):
+        """Initialize this distribution with mean, cov.
 
-       input:
-           mean: n by 1
-           cov: covariance matrix, n by n
-       """
-       self.mean = VariableCast(mean)
-       self.cov = VariableCast(cov)
-       assert self.mean.data.size()[0] == self.cov.data.size()[0] #, "ERROR! mean and cov have different size!")
-       self.dim = self.mean.data.size()[0]
-       self.chol_std = VariableCast(torch.potrf(self.cov.data).t())  # lower triangle
-       self.chol_std_inv = torch.inverse(self.chol_std)
+        input:
+            mean: n by 1
+            cov: covariance matrix, n by n
+        """
+        self.mean = VariableCast(mean)
+        self.cov = VariableCast(cov)
+        assert self.mean.data.size()[0] == self.cov.data.size()[0] #, "ERROR! mean and cov have different size!")
+        self.dim = self.mean.data.size()[0]
+        self.chol_std = VariableCast(torch.t(torch.potrf(self.cov.data)))  # lower triangle
+        self.chol_std_inv = torch.inverse(self.chol_std)
 
-   def sample(self, num_samples=1):
-       zs = torch.randn(self.dim, 1)
-       # print("zs", zs)
-       # samples = Variable( self.mean.data + torch.matmul(self.chol_std.data, zs), requires_grad = True)
-       return self.mean.data + torch.matmul(self.chol_std.data, zs)
+    def sample(self, num_samples=1 ):
+        zs = torch.randn(self.dim, 1)
+        # print("zs", zs)
+        samples = Variable( self.mean.data + torch.matmul(self.chol_std.data, zs), requires_grad = True)
+        return samples
 
-   def logpdf(self, value):
-       """
-       value : obs value, should be n by 1
-       :return: scalar, log pdf value
-       """
-       value = VariableCast(value)
-       cov_det = self.chol_std.diag().prod() ** 2
-       log_norm_constant = 0.5 * self.dim * torch.log(torch.Tensor([2 * np.pi])) \
-                           + 0.5*torch.log(cov_det.data)
-       right = torch.matmul( self.chol_std_inv, value - self.mean)
-       # print(value, self.mean, value - self.mean)
-       log_p = - Variable(log_norm_constant) - 0.5 * torch.matmul(torch.t(right), right)
-       return log_p
+    def logpdf(self, value):
+        """
+        value : obs value, should be n by 1
+        :return: scalar, log pdf value
+        """
+        value = VariableCast(value)
+        cov_det = self.chol_std.diag().prod() ** 2
+        log_norm_constant = 0.5 * self.dim * torch.log(torch.Tensor([2 * np.pi])) \
+                            + 0.5*torch.log(cov_det.data)
+        right = torch.matmul( self.chol_std_inv, value - self.mean)
+        # print(value, self.mean, value - self.mean)
+        log_p = - Variable(log_norm_constant) - 0.5 * torch.matmul(torch.t(right), right)
+        return log_p
+
+
+
+# class Laplace(ContinuousRandomVariable):
+#     '''
+#     Laplace random variable
+#
+#     Methods
+#     -------
+#     sample X ~ Laplace(location, scale)
+#     logpdf
+#
+#     Attributes
+#     ----------
+#     location - Type torch.autograd.Variable, torch.Tensor, nparray
+#                Size \mathbb{R}^{1 x N}
+#     scale    - Type torch.autograd.Variable, torch.Tensor, nparray
+#                Size \mathbb{R}^{1 x N}
+#     '''
+#     def __init__(self, location, scale):
+#         self.location = VariableCast(location)
+#         self.scale    = VariableCast(scale)
+#     def sample(self):
+#         # https: // en.wikipedia.org / wiki / Laplace_distribution
+#         uniforms = torch.Tensor(self.location.size()).uniform_() - 0.5
+#         uniforms = VariableCast(uniforms)
+#         return self.location - self._scale * torch.sign(uniforms) * \
+#                                 torch.log(1 - 2 * torch.abs(uniforms))
+#
+#     def logpdf(self, value):
+#         return -torch.div(torch.abs(value - self._location),self._scale) - torch.log(2 * self._scale)
+#
+# class Normal(ContinuousRandomVariable):
+#     """Normal random variable
+#     Returns  a normal distribution object class with mean - mean
+#     and standard deviation - std.
+#
+#     Methods
+#     --------
+#     sample   - Returns a sample X ~ N(mean,std) as a Variable.
+#     pdf
+#     logpdf   -
+#
+#     Attributes
+#     ----------
+#     mean     - Type: torch.autograd.Variable, torch.Tensor, nparray
+#                Size: \mathbb{R}^{1 x N}
+#     std      - Type: torch.autograd.Variable, torch.Tensor, nparray
+#                Size: \mathbb{R}^{1 x N}
+#
+#     """
+#     def __init__(self, mean, std):
+#         self.mean = VariableCast(mean)
+#         self.std  = VariableCast(std)
+#
+#
+#     def sample(self, num_samples = 1):
+#         # x ~ N(0,1)
+#         self.unifomNorm = Variable(torch.randn(1,num_samples))
+#         return self.unifomNorm * (self.std) + self.mean
+#
+#     def logpdf(self, value):
+#         value = VariableCast(value)
+#         # pdf: 1 / torch.sqrt(2 * var * np.pi) * torch.exp(-0.5 * torch.pow(value - mean, 2) / var)
+#         return (-0.5 *  torch.pow(value - self.mean, 2) / self.std**2) -  torch.log(self.std)
+#
+# class MultivariateNormal(ContinuousRandomVariable):
+#    """Normal random variable"""
+#    def __init__(self, mean, cov):
+#        """Initialize this distribution with mean, cov.
+#
+#        input:
+#            mean: n by 1
+#            cov: covariance matrix, n by n
+#        """
+#        self.mean = VariableCast(mean)
+#        self.cov = VariableCast(cov)
+#        assert self.mean.data.size()[0] == self.cov.data.size()[0] #, "ERROR! mean and cov have different size!")
+#        self.dim = self.mean.data.size()[0]
+#        self.chol_std = VariableCast(torch.potrf(self.cov.data).t())  # lower triangle
+#        self.chol_std_inv = torch.inverse(self.chol_std)
+#
+#    def sample(self, num_samples=1):
+#        zs = torch.randn(self.dim, 1)
+#        # print("zs", zs)
+#        # samples = Variable( self.mean.data + torch.matmul(self.chol_std.data, zs), requires_grad = True)
+#        return self.mean.data + torch.matmul(self.chol_std.data, zs)
+#
+#    def logpdf(self, value):
+#        """
+#        value : obs value, should be n by 1
+#        :return: scalar, log pdf value
+#        """
+#        value = VariableCast(value)
+#        cov_det = self.chol_std.diag().prod() ** 2
+#        log_norm_constant = 0.5 * self.dim * torch.log(torch.Tensor([2 * np.pi])) \
+#                            + 0.5*torch.log(cov_det.data)
+#        right = torch.matmul( self.chol_std_inv, value - self.mean)
+#        # print(value, self.mean, value - self.mean)
+#        log_p = - Variable(log_norm_constant) - 0.5 * torch.matmul(torch.t(right), right)
+#        return log_p
 
 # class MultivariateNormal(ContinuousRandomVariable):
 #     """MultivariateIndependentNormal simple class
@@ -185,62 +251,181 @@ class MultivariateNormal(ContinuousRandomVariable):
 # DISCRETE DISTRIBUTIONS
 # ---------------------------------------------------------------------
 class Categorical(DiscreteRandomVariable):
-    """
-    Categorical over 0,...,N-1 with arbitrary probabilities, 1-dimensional rv, long type.
-    """
-    def __init__(self, p, p_min=1E-6):
-        p =     VariableCast(p)
-        self._p = torch.clamp(p, p_min)
-    def sample(self):
-        return self._p.multinomial(1, True)
+    """categorical Normal random variable"""
 
-    def logpmf(self, value):
-        return torch.log(self._p.gather(1, value)).squeeze()
-
-class Bernoulli(DiscreteRandomVariable):
-    """bernoulli random variable
-
-    Methods
-    --------
-    sample   - returns a sample X ~ Bern(0,1) as a Variable
-    pdf
-    logpdf   -
-
-    Attributes
-    ----------
-    probabilty    - Type: torch.autograd.Variable, torch.Tensor, nparray
-                    Size: \mathbb{R}^{1 x N}
-
-
-    """
-
-    def __init__(self, probability):
-        """Initialize this distribution with probability.
+    def __init__(self, p):
+        """Initialize this distribution with p =[p0, p1, ..., pn].
 
         input:
-        probability - Type: Float tensor
+            mean:
+            std:  standard deviation
+
+        output:
+            integer in [1, ..., n]
         """
-        self.probability = VariableCast(probability)
 
-    def sample(self, max = 1):
-        ''' Generate random samples from a Bernoulli dist for given tensor of probabilities'''
-        uniformInt  = torch.Tensor(self.probability.size()).uniform(0,max)
-        sampCond    = uniformInt / max
-        # is greater than p
-        sample     = torch.gt(uniformInt, sampCond).float()
-        return sample
+        self.p = VariableCast(p)
+
+    def sample(self):
+        onedraw = np.random.multinomial(1, self.p.data.numpy())
+        index = np.argwhere(onedraw == 1)[0,0]
+        var = Variable(torch.Tensor([int(index)]) +1 ,requires_grad = True)
+        return var
+
+    def logpdf(self, value):
+        int_value =  int(value.data.numpy())
+        index = int_value -1
+        if 1 <= int_value <= self.p.data.shape[0]:
+            return torch.log(self.p[index])
+        else:
+            return torch.Tensor([-np.inf])
+
+class Categorical_Trans():
+    """categorical Tranformed random variable"""
+
+    def __init__(self, p, method=None):
+        """Initialize this distribution with p =[p0, p1, ..., pn].
+
+        input:
+            mean:
+            std:  standard deviation
+
+        output:
+            integer in [1, ..., n]
+        """
+
+        self.p = VariableCast(p)
+        if method is None:
+            self.method = "standard"
+        else:
+            self.method = method
+
+    def logpdf(self, value):  # logp: 1*1
+        if self.method == "standard":
+
+            value =  VariableCast(value)
+            if len(value.data.shape) == 1:
+                value = value.unsqueeze(1)
+
+            int_value = int(torch.floor(value.data)[0,0])
+            index = int_value - 1
+
+            #returning logp is [-0.93838], wrapped by tensor
+            if 1 <= value.data[0,0] <= self.p.data.shape[0] + 1:
+                logp = torch.log(self.p[index])   # grad does not survive through this embedding
+                if len(logp.data.shape) == 1:
+                    logp = logp.unsqueeze(1)
+                return logp
+            else:
+                return Variable(torch.Tensor([[-np.inf]]))
+        else:
+            raise ValueError("implement categorical transformed method")
+            return 0
 
 
-    def logpmf(self, value, epsilon=1e-10):
-        assert (value.size() == self._probability.size())
-        value       = VariableCast(value)
-        test        = value * torch.log(self.probability + epsilon) +\
-                      (1 - value) * torch.log(1 - self.probability + epsilon)
-        print(test)
-        # return torch.sum(
-        #         value * torch.log(self.probability + epsilon) +
-        #         (1 - value) * torch.log(1 - self.probability + epsilon))
+class Binomial_Trans(DiscreteRandomVariable):
+    """ binomial distribution, into contnuous space
+       discrete distribution does not support grad for now
+    """
 
+    def __init__(self, n, p, method=None):
+        """Initialize this distribution with
+        :parameter
+         n; N_0, non-negative integar
+         p: [0, 1]
+
+        output:
+            integer in [0, 1, ..., n]
+        """
+
+        self.p = VariableCast(p)
+        self.n = VariableCast(n)
+        if method is not None:
+            self.method = method
+        else:
+            self.method = "standard"
+
+    def logpdf(self, k):  # logp: 1*1
+        k = VariableCast(k)
+        n = self.n
+        p = self.p
+        if len(k.data.shape) == 1:
+            k = k.unsqueeze(1)
+        if len(self.n.data.shape) == 1:
+            n = n.unsqueeze(1)
+        if len(self.p.data.shape) == 1:
+            p = p.unsqueeze(1)
+
+        if self.method == "standard":
+            int_k = int(torch.floor(k.data)[0,0])
+            int_n = int(torch.floor(n.data)[0,0])
+            np_p = p.data[0,0]
+
+            #returning logp is [-0.93838], wrapped by tensor
+            if 0 <= int_k <= int_n:
+                logpmf = ss.binom.logpmf(int_k, int_n, np_p)
+                logp = Variable(torch.Tensor([logpmf]))
+                if len(logp.data.shape) == 1:
+                    logp = logp.unsqueeze(1)
+                return logp
+            else:
+                return Variable(torch.Tensor([[-np.inf]]))
+        else:
+            raise ValueError("implement categorical transformed method")
+            return 0
+
+
+class Bernoulli_Trans(DiscreteRandomVariable):
+    """ bernoulli distribution, into contnuous space
+       discrete distribution does not support grad for now
+    """
+
+    def __init__(self, p, method=None):
+        """Initialize this distribution with
+        :parameter
+         p: [0, 1]
+        """
+
+        self.p = VariableCast(p)
+        if len(self.p.data.shape) == 1:
+            self.p = self.p.unsqueeze(1)
+        if method is not None:
+            self.method = method
+        else:
+            self.method = "standard"
+    def sample(self):
+        """
+        :return: x in [0,1], [1, 2]
+        """
+        x = torch.bernoulli(self.p) + Variable(torch.rand(1))
+        if len(x.data.shape) == 1:
+            x = x.unsqueeze(1)
+        return x
+
+    def logpdf(self, x):  # logp: 1*1
+        x = VariableCast(x)
+        p = self.p
+        if len(x.data.shape) == 1:
+            x = x.unsqueeze(1)
+
+        if self.method == "standard":
+
+            #returning logp is 1 by 1
+            if 0 <= x.data[0,0] < 1:
+                logp = torch.log(1-p)
+                if len(logp.data.shape) == 1:
+                    logp = logp.unsqueeze(1)
+                return logp
+            elif 1 <= x.data[0, 0] < 2:
+                logp = torch.log(p)
+                if len(logp.data.shape) == 1:
+                    logp = logp.unsqueeze(1)
+                return logp
+            else:
+                return Variable(torch.Tensor([[-np.inf]]))
+        else:
+            raise ValueError("implement categorical transformed method")
+            return 0
 
 
 
