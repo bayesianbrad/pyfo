@@ -1,8 +1,9 @@
 import torch
 import numpy as np
-from torch.autograd import Variable
-from DHMC.Distributions import *
 import math
+from DHMC.distributions import continuous
+from DHMC.distributions import discrete
+from torch.autograd import Variable
 
 class HMC(object):
     """
