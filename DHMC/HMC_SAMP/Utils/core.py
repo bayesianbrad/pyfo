@@ -48,16 +48,16 @@ def VariableCast(value, grad = False):
     else:
         return Variable(torch.Tensor([value]), requires_grad = grad)
 
-    def tensor_to_list(self,values):
-        ''' Converts a tensor to a list
-        values = torch.FloatTensor or Variable'''
-        params = []
-        for value in values:
-            if isinstance(value, Variable):
-                temp = Variable(value.data, requires_grad=True)
-                params.append(temp)
-            else:
-                temp = VariableCast(value)
-                temp = Variable(value.data, requires_grad=True)
-                params.append(value)
-        return params
+def tensor_to_list(self,values):
+    ''' Converts a tensor to a list
+    values = torch.FloatTensor or Variable'''
+    params = []
+    for value in values:
+        if isinstance(value, Variable):
+            temp = Variable(value.data, requires_grad=True)
+            params.append(temp)
+        else:
+            temp = VariableCast(value)
+            temp = Variable(value.data, requires_grad=True)
+            params.append(value)
+    return params
