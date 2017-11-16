@@ -5,7 +5,7 @@ import torch
 from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
-
+from DHMC.utils.core import VariableCast
 
 class LogNormal(Distribution):
     """
@@ -24,8 +24,8 @@ class LogNormal(Distribution):
     reparameterized = True
 
     def __init__(self, mu, sigma, batch_size=None, *args, **kwargs):
-        self.mu = mu
-        self.sigma = sigma
+        self.mu = VariableCast(mu)
+        self.sigma = VariableCast(sigma)
         if mu.size() != sigma.size():
             raise ValueError("Expected mu.size() == sigma.size(), but got {} vs {}".format(mu.size(), sigma.size()))
         if mu.dim() == 1 and batch_size is not None:
@@ -92,3 +92,9 @@ class LogNormal(Distribution):
         """
         return (torch.exp(torch.pow(self.sigma, 2.0)) - Variable(torch.ones(1))) * \
             torch.pow(self.analytic_mean(), 2)
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False

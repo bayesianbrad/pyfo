@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import torch
 from torch.autograd import Variable
-
+from DHMC.utils.core import VariableCast
 from DHMC.distributions.distribution import Distribution
 
 
@@ -24,10 +24,9 @@ class Normal(Distribution):
         Should be positive and the same shape as `mu`.
     """
     reparameterized = True
-
     def __init__(self, mu, sigma, batch_size=None, log_pdf_mask=None, *args, **kwargs):
-        self.mu = mu
-        self.sigma = sigma
+        self.mu = VariableCast(mu)
+        self.sigma = VariableCast(sigma)
         self.log_pdf_mask = log_pdf_mask
         if mu.size() != sigma.size():
             raise ValueError("Expected mu.size() == sigma.size(), but got {} vs {}".format(mu.size(), sigma.size()))
@@ -103,3 +102,9 @@ class Normal(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`
         """
         return torch.pow(self.sigma, 2)
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False

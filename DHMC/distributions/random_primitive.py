@@ -36,6 +36,7 @@ class RandomPrimitive(Distribution):
     def sample(self, *args, **kwargs):
         return self.dist_class(*args, **kwargs).sample()
 
+
     __call__ = sample
 
     def log_pdf(self, x, *args, **kwargs):
@@ -52,3 +53,6 @@ class RandomPrimitive(Distribution):
 
     def analytic_var(self, *args, **kwargs):
         return self.dist_class(*args, **kwargs).analytic_var()
+
+    def is_discrete(self, *args, **kwargs):
+        return self.dist_class(*args, **kwargs).is_discrete()

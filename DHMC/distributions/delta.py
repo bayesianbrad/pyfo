@@ -4,6 +4,7 @@ import torch
 from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
+from DHMC.utils.core import VariableCast
 
 
 class Delta(Distribution):
@@ -19,9 +20,7 @@ class Delta(Distribution):
     enumerable = True
 
     def __init__(self, v, batch_size=None, *args, **kwargs):
-        self.v = v
-        if not isinstance(self.v, Variable):
-            self.v = Variable(self.v)
+        self.v = VariableCast(v)
         if v.dim() == 1 and batch_size is not None:
             self.v = v.expand(v, v.size(0))
         super(Delta, self).__init__(*args, **kwargs)
@@ -76,3 +75,9 @@ class Delta(Distribution):
         :rtype: torch.autograd.Variable.
         """
         return Variable(self.v.data)
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return True

@@ -6,6 +6,7 @@ from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
 from DHMC.distributions.util import get_probs_and_logits, torch_eye, torch_multinomial, torch_zeros_like
+from DHMC.utils.core import VariableCast
 
 
 class Categorical(Distribution):
@@ -39,7 +40,7 @@ class Categorical(Distribution):
         if (ps is None) == (logits is None):
             raise ValueError("Got ps={}, logits={}. Either `ps` or `logits` must be specified, "
                              "but not both.".format(ps, logits))
-        self.ps, self.logits = get_probs_and_logits(ps=ps, logits=logits, is_multidimensional=True)
+        self.ps, self.logits = get_probs_and_logits(ps=VariableCast(ps), logits=VariableCast(logits), is_multidimensional=True)
         # vs is None, Variable(Tensor), or numpy.array
         self.vs = self._process_data(vs)
         self.one_hot = one_hot
@@ -210,3 +211,9 @@ class Categorical(Distribution):
             return Variable(
                 torch.stack([LongTensor([t]).expand(sample_shape)
                              for t in torch.arange(0, *self.event_shape()).long()]))
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return True

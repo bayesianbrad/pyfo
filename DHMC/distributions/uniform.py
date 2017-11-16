@@ -4,7 +4,7 @@ import torch
 from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
-
+from DHMC.utils.core import VariableCast
 
 class Uniform(Distribution):
     """
@@ -17,10 +17,10 @@ class Uniform(Distribution):
     reparameterized = False  # XXX Why is this marked non-differentiable?
 
     def __init__(self, a, b, batch_size=None, *args, **kwargs):
+        self.a = VariableCast(a)
+        self.b = VariableCast(b)
         if a.size() != b.size():
             raise ValueError("Expected a.size() == b.size(), but got {} vs {}".format(a.size(), b.size()))
-        self.a = a
-        self.b = b
         if a.dim() == 1 and batch_size is not None:
             self.a = a.expand(batch_size, a.size(0))
             self.b = b.expand(batch_size, b.size(0))
@@ -86,3 +86,9 @@ class Uniform(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`
         """
         return torch.pow(self.b - self.a, 2) / 12
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return True

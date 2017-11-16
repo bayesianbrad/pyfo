@@ -5,6 +5,7 @@ from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
 from DHMC.distributions.util import get_probs_and_logits
+from DHMC.utils.core import VariableCast
 
 
 class Bernoulli(Distribution):
@@ -34,7 +35,7 @@ class Bernoulli(Distribution):
         if (ps is None) == (logits is None):
             raise ValueError("Got ps={}, logits={}. Either `ps` or `logits` must be specified, "
                              "but not both.".format(ps, logits))
-        self.ps, self.logits = get_probs_and_logits(ps=ps, logits=logits, is_multidimensional=False)
+        self.ps, self.logits = get_probs_and_logits(ps=VariableCast(ps), logits=VariableCast(logits), is_multidimensional=False)
         self.log_pdf_mask = log_pdf_mask
         if self.ps.dim() == 1 and batch_size is not None:
             self.ps = self.ps.expand(batch_size, self.ps.size(0))
@@ -119,3 +120,9 @@ class Bernoulli(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`.
         """
         return self.ps * (1 - self.ps)
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return True

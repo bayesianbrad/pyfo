@@ -8,7 +8,7 @@ import torch
 from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
-
+from DHMC.utils.core import VariableCast
 
 class HalfCauchy(Distribution):
     """
@@ -26,8 +26,8 @@ class HalfCauchy(Distribution):
     """
 
     def __init__(self, mu, gamma, batch_size=None, *args, **kwargs):
-        self.mu = mu
-        self.gamma = gamma
+        self.mu = VariableCast(mu)
+        self.gamma = VariableCast(gamma)
         if mu.size() != gamma.size():
             raise ValueError("Expected mu.size() == gamma.size(), but got {} vs {}".format(mu.size(), gamma.size()))
         if mu.dim() == 1 and batch_size is not None:
@@ -87,3 +87,9 @@ class HalfCauchy(Distribution):
 
     def analytic_var(self):
         raise ValueError("Half Cauchy has no defined variance")
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return True

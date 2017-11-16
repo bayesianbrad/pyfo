@@ -6,6 +6,7 @@ from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
 from DHMC.distributions.util import log_gamma, torch_multinomial
+from DHMC.utils.core import VariableCast
 
 
 class Multinomial(Distribution):
@@ -23,9 +24,9 @@ class Multinomial(Distribution):
     """
 
     def __init__(self, ps, n, batch_size=None, *args, **kwargs):
+        self.ps = VariableCast(ps)
         if ps.dim() not in (1, 2):
             raise ValueError("Parameter `ps` must be either 1 or 2 dimensional.")
-        self.ps = ps
         self.n = n
         if ps.dim() == 1 and batch_size is not None:
             self.ps = ps.expand(batch_size, ps.size(0))
@@ -100,3 +101,9 @@ class Multinomial(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`
         """
         return self.n * self.ps * (1 - self.ps)
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False

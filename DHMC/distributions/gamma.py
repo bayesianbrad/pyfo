@@ -8,25 +8,28 @@ from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
 from DHMC.distributions.util import log_gamma
+from DHMC.utils.core import VariableCast
 
 
 class Gamma(Distribution):
     """
     Gamma distribution parameterized by `alpha` and `beta`.
 
-    This is often used in conjunction with `torch.nn.Softplus` to ensure
+    This is often used in conjunction with `torch.nn.Softplus` to ensure˜
     `alpha` and `beta` parameters are positive.
 
     :param torch.autograd.Variable alpha: Shape parameter. Should be positive.
-    :param torch.autograd.Variable beta: Shape parameter. Should be positive.
+    :param torch.autograd.Variable beta: Scale parameter. Should be positive.
         Shouldb be the same shape as `alpha`.
     """
 
     def __init__(self, alpha, beta, batch_size=None, *args, **kwargs):
-        if alpha.size() != beta.size():
-            raise ValueError("Expected alpha.size() == beta.size(), but got {} vs {}".format(alpha.size(), beta.size()))
+        alpha  = VariableCast(alpha)
+        beta   = VariableCast(beta)
         self.alpha = alpha
         self.beta = beta
+        if alpha.size() != beta.size():
+            raise ValueError("Expected alpha.size() == beta.size(), but got {} vs {}".format(alpha.size(), beta.size()))
         if alpha.dim() == 1 and beta.dim() == 1 and batch_size is not None:
             self.alpha = alpha.expand(batch_size, alpha.size(0))
             self.beta = beta.expand(batch_size, beta.size(0))
@@ -94,3 +97,9 @@ class Gamma(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`
         """
         return self.alpha / torch.pow(self.beta, 2.0)
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False

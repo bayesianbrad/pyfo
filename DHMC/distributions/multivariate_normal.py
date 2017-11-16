@@ -14,10 +14,11 @@ import torch
 from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
+from DHMC.utils.core import VariableCast
 
 
 class MultivariateNormal(Distribution):
-        """
+    """
     Univariate normal (Gaussian) distribution.
 
     A distribution over tensors in which each element is independent and
@@ -35,8 +36,8 @@ class MultivariateNormal(Distribution):
     reparameterized = True
 
     def __init__(self, mu, cov, batch_size=None, log_pdf_mask=None, *args, **kwargs):
-        self.mu = mu
-        self.cov = cov
+        self.mu = VariableCast(mu)
+        self.cov = VariableCast(cov)
         self.log_pdf_mask = log_pdf_mask
         assert self.mean.data.size()[0] == self.cov.size()[0]  # , "ERROR! mean and cov have different size!")
         self.chol_std = torch.t(torch.potrf(self.cov)) # lower triangle
@@ -116,7 +117,11 @@ class MultivariateNormal(Distribution):
         """
         return torch.pow(self.sigma, 2)
 
-
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False
 
 
 
@@ -140,3 +145,5 @@ class MultivariateNormal(Distribution):
         # print(value, self.mean, value - self.mean)
         log_p = - Variable(log_norm_constant) - 0.5 * torch.matmul(torch.t(right), right)
         return log_p
+
+

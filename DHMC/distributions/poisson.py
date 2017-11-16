@@ -6,7 +6,7 @@ from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
 from DHMC.distributions.util import log_gamma
-
+from DHMC.utils.core import VariableCast
 
 class Poisson(Distribution):
     """
@@ -20,7 +20,7 @@ class Poisson(Distribution):
     """
 
     def __init__(self, lam, batch_size=None, *args, **kwargs):
-        self.lam = lam
+        self.lam = VariableCast(lam)
         if lam.dim() == 1 and batch_size is not None:
             self.lam = lam.expand(batch_size, lam.size(0))
         super(Poisson, self).__init__(*args, **kwargs)
@@ -80,3 +80,9 @@ class Poisson(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`
         """
         return self.lam
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return True

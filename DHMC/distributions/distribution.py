@@ -233,4 +233,14 @@ class Distribution(object):
         """
         raise NotImplementedError("Method not implemented by the subclass {}".format(type(self)))
 
+    def is_discrete(self, *args, **kwargs):
+        """
+        This a flag that all distributions have
+
+        :return: Boolean
+        :rtype: Boolean.
+        :raises: NotImplementedError if not implemented in distribution.
+        """
+        raise NotImplementedError("Method not implemented by the subclass {}".format(type(self)))
+
 

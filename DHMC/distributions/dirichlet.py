@@ -7,6 +7,8 @@ from torch.autograd import Variable
 
 from DHMC.distributions.distribution import Distribution
 from DHMC.distributions.util import log_beta
+from DHMC.utils.core import VariableCast
+
 
 
 class Dirichlet(Distribution):
@@ -24,7 +26,7 @@ class Dirichlet(Distribution):
         :type alpha: None or a torch.autograd.Variable of a torch.Tensor of dimension 1 or 2.
         :param int batch_size: DEPRECATED.
         """
-        self.alpha = alpha
+        self.alpha = VariableCast(alpha)
         if alpha.dim() not in (1, 2):
             raise ValueError("Parameter alpha must be either 1 or 2 dimensional.")
         if alpha.dim() == 1 and batch_size is not None:
@@ -106,3 +108,9 @@ class Dirichlet(Distribution):
         """
         sum_alpha = torch.sum(self.alpha)
         return self.alpha * (sum_alpha - self.alpha) / (torch.pow(sum_alpha, 2) * (1 + sum_alpha))
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False
