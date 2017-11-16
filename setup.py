@@ -15,7 +15,7 @@ import sys
 
 DISTNAME = 'pyfo'
 DESCRIPTION = "Python for FOPPL"
-LONG_DESCRIPTION =  open('README.txt').read()
+LONG_DESCRIPTION =  open('README.mdmd').read()
 MAINTAINER = 'Bradley Gram-hansen, Yuan Zhang'
 MAINTAINER_EMAIL = 'bradleygramhansen@gmail.com'
 AUTHOR = 'Bradley Gram-Hansen and Yuan Zhang'
