@@ -13,11 +13,11 @@ using Hamiltonina Monte Carlo::
 
     i.e.
     ```clojure
-(def one-gaussian
-    (foppl-query
-        (let [x (sample (normal 1.0 5.0))]
-            (observe (normal x 2.0) 7.0)
-        x)))
+    (def one-gaussian
+        (foppl-query
+            (let [x (sample (normal 1.0 5.0))]
+                (observe (normal x 2.0) 7.0)
+            x)))
     ```
 
     Then in your python script:
@@ -25,15 +25,13 @@ using Hamiltonina Monte Carlo::
     ```python
     import DHMC
     from DHMC.inference.DHMC as HMC
-
     n_burnin = 1000
     n_sample = 10 ** 4
     stepsize = 0.03
     trajectorystep = [10, 20]
-
     DHMC_object = DHMC(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
     samples = DHMC_object.samples # returns samples of the inferred posterior
-     ```
+    ```
 
 
 
