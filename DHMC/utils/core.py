@@ -9,6 +9,7 @@ License: MIT
 '''
 import torch
 import numpy as np
+from torch.autograd import Variable
 
 def VariableCast(value, grad = False):
     '''casts an input to torch Variable object
@@ -43,3 +44,9 @@ def tensor_to_list(self,values):
             temp = Variable(value.data, requires_grad=True)
             params.append(value)
     return params
+
+def TensorCast(value):
+    if isinstance(value, torch.Tensor):
+        return value
+    else:
+        return torch.Tensor([value])
