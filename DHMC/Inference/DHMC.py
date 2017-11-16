@@ -1,13 +1,27 @@
-import torch
-import numpy as np
 import math
-from DHMC.distributions import continuous
-from DHMC.distributions import discrete
-from torch.autograd import Variable
+
+import numpy as np
+import torch
+
 
 class HMC(object):
     """
-    pass in the ref, calculate logp, grad in the model
+    object: Is the compiled output
+        method: gen_prior_samples()
+        inputs: -
+        returns: Xs - An ordered vector of the continous and discrete parameters
+                     Will be transformed formed into a variable in this script
+        method: gen_pdf(Xs, compute_grad )
+        inputs: Xs - A Variable of the latent parameters
+                compute_grad - boolean
+        :returns log_pdf, grad, prev-log
+
+        method: gen_ordered_vars()
+        inputs: -
+        returns: Xs ordered
+        method:
+
+
     """
     def __init__(self, log_posterior,  n_disc, n_param ,logp_update=None, M=None, scale=None):
         # if scale is None:
