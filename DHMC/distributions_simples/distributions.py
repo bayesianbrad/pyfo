@@ -2,21 +2,7 @@ import numpy as np
 from torch.autograd import Variable
 import torch
 import scipy.stats as ss
-
-
-def VariableCast(value):
-    if isinstance(value, torch.autograd.variable.Variable):
-        return value
-    elif torch.is_tensor(value):
-        return Variable(value)
-    else:
-        return Variable(torch.Tensor([value]), requires_grad = True)
-
-def TensorCast(value):
-    if isinstance(value, torch.Tensor):
-        return value
-    else:
-        return torch.Tensor([value])
+from DHMC.utils.core import VariableCast
 
 
 class Normal():
