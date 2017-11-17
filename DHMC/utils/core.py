@@ -27,9 +27,9 @@ def VariableCast(value, grad = False):
     elif torch.is_tensor(value):
         return Variable(value, requires_grad = grad)
     elif isinstance(value, np.ndarray):
-        return Variable(torch.from_numpy(value), requires_grad = grad)
+        return Variable(torch.from_numpy(value).type(torch.FloatTensor), requires_grad = grad)
     else:
-        return Variable(torch.Tensor([value]), requires_grad = grad)
+        return Variable(torch.Tensor([value]).type(torch.FloatTensor), requires_grad = grad)
 
 def tensor_to_list(self,values):
     ''' Converts a tensor to a list
