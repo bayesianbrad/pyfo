@@ -26,11 +26,11 @@ class Beta(Distribution):
     def __init__(self, alpha, beta, batch_size=None, *args, **kwargs):
         self.alpha = VariableCast(alpha)
         self.beta = VariableCast(beta)
-        if alpha.size() != beta.size():
-            raise ValueError("Expected alpha.size() == beta.size(), but got {} vs {}".format(alpha.size(), beta.size()))
-        if alpha.dim() == 1 and beta.dim() == 1 and batch_size is not None:
-            self.alpha = alpha.expand(batch_size, alpha.size(0))
-            self.beta = beta.expand(batch_size, beta.size(0))
+        if self.alpha.size() != self.beta.size():
+            raise ValueError("Expected alpha.size() == beta.size(), but got {} vs {}".format(self.alpha.size(), self.beta.size()))
+        if self.alpha.dim() == 1 and self.beta.dim() == 1 and batch_size is not None:
+            self.alpha = self.alpha.expand(batch_size, alpha.size(0))
+            self.beta = self.beta.expand(batch_size, beta.size(0))
         super(Beta, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):
