@@ -24,13 +24,13 @@ class LogNormal(Distribution):
     reparameterized = True
 
     def __init__(self, mu, sigma, batch_size=None, *args, **kwargs):
-        self.mu = VariableCast(mu)
-        self.sigma = VariableCast(sigma)
-        if mu.size() != sigma.size():
-            raise ValueError("Expected mu.size() == sigma.size(), but got {} vs {}".format(mu.size(), sigma.size()))
-        if mu.dim() == 1 and batch_size is not None:
-            self.mu = mu.expand(batch_size, mu.size(0))
-            self.sigma = sigma.expand(batch_size, sigma.size(0))
+        self.mu = VariableCast(self.mu)
+        self.sigma = VariableCast(self.sigma)
+        if self.mu.size() != self.sigma.size():
+            raise ValueError("Expected mu.size() == sigma.size(), but got {} vs {}".format(self.mu.size(), self.sigma.size()))
+        if self.mu.dim() == 1 and batch_size is not None:
+            self.mu = self.mu.expand(batch_size, self.mu.size(0))
+            self.sigma = self.sigma.expand(batch_size, self.sigma.size(0))
         super(LogNormal, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):

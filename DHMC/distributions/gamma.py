@@ -24,15 +24,13 @@ class Gamma(Distribution):
     """
 
     def __init__(self, alpha, beta, batch_size=None, *args, **kwargs):
-        alpha  = VariableCast(alpha)
-        beta   = VariableCast(beta)
-        self.alpha = alpha
-        self.beta = beta
-        if alpha.size() != beta.size():
-            raise ValueError("Expected alpha.size() == beta.size(), but got {} vs {}".format(alpha.size(), beta.size()))
-        if alpha.dim() == 1 and beta.dim() == 1 and batch_size is not None:
-            self.alpha = alpha.expand(batch_size, alpha.size(0))
-            self.beta = beta.expand(batch_size, beta.size(0))
+        self.alpha  = VariableCast(alpha)
+        self.beta   = VariableCast(beta)
+        if self.alpha.size() != self.beta.size():
+            raise ValueError("Expected alpha.size() == beta.size(), but got {} vs {}".format(self.alpha.size(), self.beta.size()))
+        if self.alpha.dim() == 1 and self.beta.dim() == 1 and batch_size is not None:
+            self.alpha = self.alpha.expand(batch_size, self.alpha.size(0))
+            self.beta = self.beta.expand(batch_size, self.beta.size(0))
         super(Gamma, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):

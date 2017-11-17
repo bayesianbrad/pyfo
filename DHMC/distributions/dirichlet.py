@@ -27,10 +27,10 @@ class Dirichlet(Distribution):
         :param int batch_size: DEPRECATED.
         """
         self.alpha = VariableCast(alpha)
-        if alpha.dim() not in (1, 2):
+        if self.alpha.dim() not in (1, 2):
             raise ValueError("Parameter alpha must be either 1 or 2 dimensional.")
-        if alpha.dim() == 1 and batch_size is not None:
-            self.alpha = alpha.expand(batch_size, alpha.size(0))
+        if self.alpha.dim() == 1 and batch_size is not None:
+            self.alpha = self.alpha.expand(batch_size, self.alpha.size(0))
         super(Dirichlet, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):

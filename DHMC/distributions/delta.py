@@ -21,8 +21,8 @@ class Delta(Distribution):
 
     def __init__(self, v, batch_size=None, *args, **kwargs):
         self.v = VariableCast(v)
-        if v.dim() == 1 and batch_size is not None:
-            self.v = v.expand(v, v.size(0))
+        if self.v.dim() == 1 and batch_size is not None:
+            self.v = self.v.expand(self.v, self.v.size(0))
         super(Delta, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):

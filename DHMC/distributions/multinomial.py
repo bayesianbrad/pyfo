@@ -25,12 +25,12 @@ class Multinomial(Distribution):
 
     def __init__(self, ps, n, batch_size=None, *args, **kwargs):
         self.ps = VariableCast(ps)
-        if ps.dim() not in (1, 2):
+        if self.ps.dim() not in (1, 2):
             raise ValueError("Parameter `ps` must be either 1 or 2 dimensional.")
-        self.n = n
-        if ps.dim() == 1 and batch_size is not None:
-            self.ps = ps.expand(batch_size, ps.size(0))
-            self.n = n.expand(batch_size, n.size(0))
+        self.n = VariableCast(n)
+        if self.ps.dim() == 1 and batch_size is not None:
+            self.ps = self.ps.expand(batch_size, self.ps.size(0))
+            self.n = self.n.expand(batch_size, self.n.size(0))
         super(Multinomial, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):

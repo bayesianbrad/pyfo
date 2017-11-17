@@ -28,11 +28,11 @@ class HalfCauchy(Distribution):
     def __init__(self, mu, gamma, batch_size=None, *args, **kwargs):
         self.mu = VariableCast(mu)
         self.gamma = VariableCast(gamma)
-        if mu.size() != gamma.size():
-            raise ValueError("Expected mu.size() == gamma.size(), but got {} vs {}".format(mu.size(), gamma.size()))
-        if mu.dim() == 1 and batch_size is not None:
-            self.mu = mu.expand(batch_size, mu.size(0))
-            self.gamma = gamma.expand(batch_size, gamma.size(0))
+        if self.mu.size() != self.gamma.size():
+            raise ValueError("Expected mu.size() == gamma.size(), but got {} vs {}".format(self.mu.size(), self.gamma.size()))
+        if self.mu.dim() == 1 and batch_size is not None:
+            self.mu = self.mu.expand(batch_size, self.mu.size(0))
+            self.gamma = self.gamma.expand(batch_size, self.gamma.size(0))
         super(HalfCauchy, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):

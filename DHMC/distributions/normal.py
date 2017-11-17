@@ -28,11 +28,11 @@ class Normal(Distribution):
         self.mu = VariableCast(mu)
         self.sigma = VariableCast(sigma)
         self.log_pdf_mask = log_pdf_mask
-        if mu.size() != sigma.size():
-            raise ValueError("Expected mu.size() == sigma.size(), but got {} vs {}".format(mu.size(), sigma.size()))
-        if mu.dim() == 1 and batch_size is not None:
-            self.mu = mu.expand(batch_size, mu.size(0))
-            self.sigma = sigma.expand(batch_size, sigma.size(0))
+        if self.mu.size() != sigma.size():
+            raise ValueError("Expected mu.size() == sigma.size(), but got {} vs {}".format(self.mu.size(), self.sigma.size()))
+        if self.mu.dim() == 1 and batch_size is not None:
+            self.mu = self.mu.expand(batch_size, self.mu.size(0))
+            self.sigma = self.sigma.expand(batch_size, self.sigma.size(0))
             if log_pdf_mask is not None and log_pdf_mask.dim() == 1:
                 self.log_pdf_mask = log_pdf_mask.expand(batch_size, log_pdf_mask.size(0))
         super(Normal, self).__init__(*args, **kwargs)

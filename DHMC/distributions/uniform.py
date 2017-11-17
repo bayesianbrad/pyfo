@@ -19,11 +19,11 @@ class Uniform(Distribution):
     def __init__(self, a, b, batch_size=None, *args, **kwargs):
         self.a = VariableCast(a)
         self.b = VariableCast(b)
-        if a.size() != b.size():
-            raise ValueError("Expected a.size() == b.size(), but got {} vs {}".format(a.size(), b.size()))
-        if a.dim() == 1 and batch_size is not None:
-            self.a = a.expand(batch_size, a.size(0))
-            self.b = b.expand(batch_size, b.size(0))
+        if self.a.size() != self.b.size():
+            raise ValueError("Expected a.size() == b.size(), but got {} vs {}".format(self.a.size(), self.b.size()))
+        if self.a.dim() == 1 and batch_size is not None:
+            self.a = self.a.expand(batch_size, a.size(0))
+            self.b = self.b.expand(batch_size, b.size(0))
         super(Uniform, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):

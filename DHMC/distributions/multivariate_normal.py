@@ -42,11 +42,11 @@ class MultivariateNormal(Distribution):
         assert self.mean.data.size()[0] == self.cov.size()[0]  # , "ERROR! mean and cov have different size!")
         self.chol_std = torch.t(torch.potrf(self.cov)) # lower triangle
         self.chol_std_inv = torch.inverse(self.chol_std) # cholesky decompositon
-        if mu.size()[1] != cov.size()[1]:
+        if self.mu.size()[1] != self.cov.size()[1]:
             raise ValueError("Expected mu.size()[1] == sigma.size()[1], but got {} vs {}".format(mu.size()[1], cov.size()[1]))
-        if mu.dim() == 1 and batch_size is not None:
-            self.mu = mu.expand(batch_size, mu.size(0))
-            self.sigma = cov.expand(batch_size, cov.size(0))
+        if self.mu.dim() == 1 and batch_size is not None:
+            self.mu = self.mu.expand(batch_size, mu.size(0))
+            self.sigma = self.cov.expand(batch_size, cov.size(0))
             if log_pdf_mask is not None and log_pdf_mask.dim() == 1:
                 self.log_pdf_mask = log_pdf_mask.expand(batch_size, log_pdf_mask.size(0))
         super(MultivariateNormal, self).__init__(*args, **kwargs)
