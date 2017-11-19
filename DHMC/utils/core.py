@@ -23,13 +23,15 @@ def VariableCast(value, grad = False):
     torch.autograd.variable.Variable object
     '''
     if isinstance(value, Variable):
-        return value
+        return value # Should I check if FloatTensor?
     elif torch.is_tensor(value):
         return Variable(value, requires_grad = grad)
     elif isinstance(value, np.ndarray):
-        return Variable(torch.from_numpy(value).type(torch.FloatTensor), requires_grad = grad)
+        tensor = torch.from_numpy(value).float()
+        print(type(tensor))
+        return Variable(tensor, requires_grad = grad)
     else:
-        return Variable(torch.Tensor([value]).type(torch.FloatTensor), requires_grad = grad)
+        return Variable(torch.FloatTensor([value]), requires_grad = grad)
 
 def tensor_to_list(self,values):
     ''' Converts a tensor to a list
