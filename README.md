@@ -1,5 +1,7 @@
 ===========
+
 Pyfo (Python for FOPPL)
+
 ===========
 
 Pyfo enables one to write a model in the incredibly flexiable first order probabilistic programming framework
@@ -29,12 +31,16 @@ using Hamiltonina Monte Carlo::
     n_sample = 10 ** 4
     stepsize = 0.03
     trajectorystep = [10, 20]
+    # Either this
+    DHMC        = nuts = smp.NUTS(logp, start={'pA': 0.1, 'pB': 0.1})
+    # or this
     DHMC_object = DHMC(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
+
     samples = DHMC_object.samples # returns samples of the inferred posterior
     ```
 
 
 
-
 [^fn1]: Nishimura, Akihiko, David Dunson, and Jianfeng Lu. "Discontinuous Hamiltonian Monte Carlo for sampling discrete parameters." arXiv preprint arXiv:1705.08510 (2017).
+
 [^fn2]: Yuan, Gram-Hansen, Hongsoek, Stanton, Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
