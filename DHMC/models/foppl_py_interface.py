@@ -3,11 +3,9 @@ A pseudo interface for now
 """
 #PYTHON 3  type hints.
 from DHMC.distributions import *
-var_x_map = {x31020 0, [] 1} # need to modify output format
-
 # prior samples
 def gen_prior_samples():
-	dist31055 = Normal(mean=0, std=1)
+	dist31055 = Normal(mu=0, sigma=1)
 	x31020 = dist31055.sample()   #sample
 	x31057 = logical_trans( x31020 > 0)
 	dist31058 = Normal(mean=1, std=1)
@@ -38,9 +36,6 @@ def gen_pdf(Xs, compute_grad = True):
 	if compute_grad:
 		grad = torch.autograd.grad(logp, var_cont)[0] # need to modify format
 	return logp, grad # need to modify output format
-
-def gen_ordered_vars():
-return [x31020,[]] # need to modify output format
 
 def gen_cont_vars():
 return [x31020] # need to modify output format
