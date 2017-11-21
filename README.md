@@ -32,7 +32,8 @@ using Hamiltonina Monte Carlo::
     stepsize = 0.03
     trajectorystep = [10, 20]
     # Either this
-    DHMC        = nuts = smp.NUTS(logp, start={'pA': 0.1, 'pB': 0.1})
+    DHMC    = dhmc.DHMC(logp, start, step_size, n_steps, **kwargs)
+    dhmc.sample(n_samples, n_burnin, n_chains)
     # or this
     DHMC_object = DHMC(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
 
