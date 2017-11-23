@@ -23,7 +23,7 @@ AUTHOR_EMAIL = 'bradley@robots.ox.ac.uk'
 URL = "http://github.com/pyfo"
 LICENSE = 'LICENSE.txt'
 VERSION = "0.1.0"
-PACKAGES = ['DHMC', 'DHMC.tests', 'DHMC.src']
+PACKAGES = ['pyfo', 'pyfo.tests', 'pyfo.src']
 classifiers = ['Development Status :: 1 - Production/UnStable',
                'Programming Language :: Python',
                'Programming Language :: Python :: 3',
