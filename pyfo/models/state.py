@@ -18,10 +18,10 @@ class State(object):
 
     """
 
-    def __init__(self, gen_prior_samples, gen_pdf, gen_cont_vars, gen_disc_vars):
+    def __init__(self, gen_prior_samples, gen_logpdf, gen_cont_vars, gen_disc_vars):
 
         self.state = gen_prior_samples
-        self._gen_pdf = gen_pdf # returns logp
+        self._gen_logpdf = gen_logpdf # returns logp
         # TO DO: Tell Yuan not to only return logp
         self._cont_vars = gen_cont_vars #includes the piecewise variables for now.
         self._disc_vars = gen_disc_vars
@@ -35,19 +35,65 @@ class State(object):
         state = self._gen_pdf
         return state
 
+    @staticmethod
+    def retain_grads(x):
+        for value in x.values():
+            # XXX: can be removed with PyTorch 0.3
+            if value.is_leaf and not value.requires_grad:
+                value.requires_grad = True
+            value.retain_grad()
+    @staticmethod
+    def detach_nodes(x):
+        for key, value in x.items():
+            x[key] = Variable(value.data, requires_grad=True)
+
     def _to_Variable(self):
         """
         converts the vars of the state to floats, by extracting the data.
         :param state
-        :return:
+        :return: return dictionary
+
         """
     def _log_pdf(self, state):
         """
-        This needs convert the state map
+        This needs convert the state map, then run self._gen_pdf
 
         :param
         :return: log_pdf
         """
+
+        self.current_logpdf = self._gen_logpdf(state)
+        return self._gen_logpdf()
+    def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
+        """
+        Implements the 'f_update' in the coordinate wise integrator, to calculate the
+        difference in log probabiities.
+        def f_update(x, dx, j, aux):
+
+            logp_prev = aux
+
+            x_new = x.clone()
+            x_new.data[j] = x_new.data[j] + dx
+
+            logp, _ , _  = f(x_new, False)
+            logp_diff = logp - logp_prev
+            aux_new = logp
+            return logp_diff, aux_new
+
+        :param state: dictionary of parameters
+        :param step_size: torch.autograd.Variable
+        :param log_prev: torch.autograd.Variable contains the value of the log_pdf before the change point
+        :param disc_params: list of discrete params gen_sen keys
+        :param j: permutated index, type int
+        :return: log_diff , aux_new (the updated logp)?
+
+        """
+        # TO DO: Incorporate j parameter into this. See A3 Notes.
+        update_parameter = disc_params[j]
+        state[update_parameter] = state[update_parameter] + step_size
+        logp_diff = self.current_logpdf - log_prev
+        return logp_diff, self.current_logpdf
+
 
     def _state_grad(self):
         """
