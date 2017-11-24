@@ -36,8 +36,8 @@ def gen_pdf(Xs: Dict):
 	return logp
 
 def gen_cont_vars():
-return [x31020] # need to modify output format
+	return [x31020] # need to modify output format
 
 def gen_disc_vars():
-return [[]] # need to modify output format
+	return [[]] # need to modify output format
 
