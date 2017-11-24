@@ -9,7 +9,7 @@ License: MIT
 '''
 import torch
 from torch.autograd import Variable
-from typing import Dict, List, Bool
+from typing import Dict, List, bool
 from pyfo.utils.core import VariableCast
 
 class State(object):
