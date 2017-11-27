@@ -67,3 +67,16 @@ def list_to_tensor(self, params):
     for i in range(len(params)):
         temp[i,:] = params[i]
     return temp
+
+def logical_trans(var):
+    """
+    Returns logical 0 or 1 for given variable.
+    :param var: Is a  1-d torch.Tensor, float or np.array
+    :return: Bool
+    """
+    print("Warning: logoical_trans() has not been tested on tensors of dimension greater than 1")
+    value = VariableCast(var)
+    if value.data[0]:
+        return True
+    else:
+        return False
