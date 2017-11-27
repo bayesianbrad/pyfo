@@ -4,10 +4,12 @@ import numpy as np
 import torch
 import time
 from pyfo.utils.core import VariableCast
+from pyfo.models import state
 from torch.autograd import Variable
 
 #TO DO: As I have reverted M back to the original dimensions, that is (1,10), the code needs to be updated accordingly
 # to reflect this.
+# TO DO: Start changing functions in this code to interact with State.
 
 class HMC(object):
     """
@@ -67,7 +69,18 @@ class HMC(object):
         """
 
         log_p, _, _ = self.log_posterior(x)
-        return -log_p.data[0,0]
+        # return -log_p.data[0,0] This returns an int, below returns a variable.
+        return -log_p.data[0]
+
+    def _hamiltonian(self, x, p):
+        """
+        TO DO and remove hamiltonian function below
+        :param x:
+        :param p:
+        :return:
+        """
+        kinetic_energy = 0.5 * torch.sum(torch.stack([p[name]**2 for name in p]))
+        return kinetic_energy + self.potential_energy(x)
 
     def hamiltonian(self, x, velocity):
         """
