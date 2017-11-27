@@ -80,3 +80,4 @@ def logical_trans(var):
         return True
     else:
         return False
+
