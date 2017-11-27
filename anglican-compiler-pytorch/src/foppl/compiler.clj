@@ -298,7 +298,7 @@
             (let [[var-e var-s]  (tf-primitive expr)   ;final return would always be the dist obj
                   var-string (str/join [str-prog var-s
                                         ; var-n " = " var-e ".sample()   #sample \n"])
-                                         var-n " =  Xs[var_x_map.get('" var-n "')]   # get the x from input arg\n"])
+                                         var-n " =  Xs.get('" var-n "')   # get the x from input arg\n"])
 
                   samples-string (str/join [prior-samples var-s
                                         var-n " = " var-e ".sample()   #sample \n"])
@@ -398,9 +398,16 @@
 (defn get-ordered-vars [foppl-query]
   (concat (get-cont-vars foppl-query) (get-disc-vars foppl-query)))
 
-; output strings
-(defn gen-ordered-vars [foppl-query]
+;;; output into strings
+(defn gen-vars [foppl-query]
   "output variable array of RVs"
+  (str/join ["def gen_vars():\n"
+;;              "# generate all unobserved variables \n"
+             "return [" (str/join "," (get-vars foppl-query)) "] # list\n\n"
+             ]))
+
+(defn gen-ordered-vars [foppl-query]
+  "output ordered variable array of RVs"
   (str/join ["def gen_ordered_vars():\n"
 ;;              "# generate all unobserved variables \n"
              "return [" (str/join "," (get-ordered-vars foppl-query)) "] # need to modify output format\n\n"
@@ -432,9 +439,6 @@
         (recur (assoc gensym-var-map (first var-list) i)
                (inc i)
                (rest var-list))))))
-(let [tmp (get-gensym-var if-src)]
-  tmp)
-
 
 (defn gen-gensym-var [foppl-query]
   (str/join [""
@@ -447,25 +451,19 @@
   "output functions to gen samples; compute pdf and grad "
   (let [[declare-s declare-prior-samples] (tf-var-declare foppl-query)
         gen-samples-s (str/join ["def gen_prior_samples():\n"
-                                   declare-prior-samples
-                                   "Xs = gen_ordered_vars() \n"
-                                   "return Xs # need to modify output format\n\n"])
+                                     declare-prior-samples
+                                     "Xs = gen_vars() \n"
+                                     "return Xs # list \n\n"])
         [pdf-n pdf-s] (tf-joint-log-pdf foppl-query)
         var-cont (get-cont-vars foppl-query)
         grad-s (str/join ["if compute_grad:\n"
                           "grad = torch.autograd.grad("pdf-n ", var_cont)[0] # need to modify format \n"
                           ])
         gen-pdf-s (str/join ["def gen_pdf(Xs, compute_grad = True):\n"
-                                   declare-s
-                                   pdf-s
-                                   "var_cont = gen_cont_vars() \n"
-                                   grad-s
-                                   "return " pdf-n", grad # need to modify output format\n\n"])]
+                                 declare-s
+                                 pdf-s
+                                 "return " pdf-n" # need to modify output format\n\n"])]
     [gen-pdf-s gen-samples-s]))
-
-;; (print (gen-samples-pdf if-src))
-
-
 
 ;;; __main
 (defn compile-query [foppl-query]
@@ -474,14 +472,13 @@
         [gen-pdf-s gen-samples-s] (gen-samples-pdf foppl-query)]
         ;[declare-E run-E] (eval-E foppl-query)]
     (str/join [;heading
-               (gen-gensym-var foppl-query)
+               (gen-vars foppl-query)
+               (gen-cont-vars foppl-query)
+               (gen-disc-vars foppl-query)
                "# prior samples \n"
                gen-samples-s
                 "# compute pdf \n"
                 gen-pdf-s
-               (gen-ordered-vars foppl-query)
-               (gen-cont-vars foppl-query)
-               (gen-disc-vars foppl-query)
                ])))
 
 
@@ -552,3 +549,22 @@
       (observe (normal (get mu z) 2) (get obs z))
       (vector z (get mu z)))))
 (print-graph (first gmm))
+
+
+(def poi-src
+  (foppl-query
+    (let [a (poisson 2)
+          b (poisson 7)
+          d (uniform-discrete (sample a) (sample b))
+          e (sample d)]
+      e)))
+(print-graph (first poi-src))
+
+(def poi-src2
+  (foppl-query
+    (let [a (sample (poisson 2))
+          b (sample (poisson 7))
+          d (uniform-discrete a b)
+          e (sample d)]
+      e)))
+(print-graph (first poi-src2))
