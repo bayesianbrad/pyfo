@@ -5,7 +5,7 @@ Pyfo (Python for FOPPL)
 ===========
 
 Pyfo enables one to write a model in the incredibly flexiable first order probabilistic programming framework
-that is FOPPL. FOPPL's base language is Clojure, which enables the syntax to be neat, yet completely expressive. See
+that is FOPPL. FOPPLs base language is Clojure, which enables the syntax to be neat, yet completely expressive. See
 (ML-wood group tutorial for an introduction to FOPPL. The backend for FOPPL is Discountinous HMC [^fn1], which allows one to
 perform inference in models that have discontinuities that are of measure 0 [^fn2]. In addition to this, we included an
 automated framework for embedding discrete distributions, which allows one to perform inferrence in dsicrete models,
