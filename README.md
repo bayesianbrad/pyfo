@@ -26,7 +26,7 @@ using Hamiltonina Monte Carlo::
 
     ```python
     import DHMC
-    from DHMC.inference.DHMC as HMC
+    from DHMC.inference.DHMC as DHMC
     n_burnin = 1000
     n_sample = 10 ** 4
     stepsize = 0.03
