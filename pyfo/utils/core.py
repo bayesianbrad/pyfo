@@ -81,3 +81,28 @@ def logical_trans(var):
     else:
         return False
 
+def get_tensor_data(t):
+    """
+    Returns data of torch.Tensor.autograd.Variable
+    :param t: Variable
+    :return: torch.Tensor
+    """
+    if isinstance(t, Variable):
+        return t.data
+    return t
+
+def my_import(name):
+    '''
+    Helper function for extracting the whole module and not just the package.
+    See answer by clint miller for details:
+    https://stackoverflow.com/questions/951124/dynamic-loading-of-python-modules
+
+    :param name
+    :type string
+    :return module
+    '''
+    mod = __import__(name)
+    components = name.split('.')
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
