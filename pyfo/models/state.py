@@ -66,14 +66,13 @@ class State(object):
 
     def _log_pdf(self, state):
         """
-        This needs convert the state map, then run self._gen_pdf
-
+        The compiled pytorch function, log_pdf, should automatically
+        return the pdf.
         :param
         :return: log_pdf
         """
 
-        self.current_logpdf = self._gen_logpdf(state)
-        return self._gen_logpdf()
+        return self._gen_logpdf(state)
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
         Implements the 'f_update' in the coordinate wise integrator, to calculate the
@@ -101,24 +100,34 @@ class State(object):
         # TO DO: Incorporate j parameter into this. See A3 Notes.
         update_parameter = disc_params[j]
         state[update_parameter] = state[update_parameter] + step_size
+        current_logp = self._gen_logpdf(state)
         logp_diff = self.current_logpdf - log_prev
-        return logp_diff, self.current_logpdf
+        return logp_diff, current_logp
 
-    def _grad_potential(self, state):
+    def _grad_logp(self, state):
+        """
+        TO DO: Test, as this will only work for individual
+        parameters. Will need to pass through an adapted version
+        of state.
+        Returns the gradient of the log pdf, with respect for
+        each parameter
+        :param state:
+        :return: torch.autograd.Variable
+        """
         log_joint_prob = self._log_pdf(state)
         log_joint_prob.backward()
-        grad_potential = {}
+        grad_logp = {}
         for name, value in state.items():
-            grad_potential[name] = -value.grad.clone().detach()
-            grad_potential[name].volatile = False
-        return grad_potential
+            grad_logp[name] = -value.grad.clone().detach()
+            grad_logp[name].volatile = False
+        return grad_logp
 
 
-    def _state_grad(self):
-        """
-        Calculates the gradient
-        :param compute_grad: type: Variable
-        :return: gradients
-        """
-        # grad = torch.autograd.grad(logp, var_cont)[0]  # need to modify format
-
+    # def _state_grad(self):
+    #     """
+    #     Calculates the gradient
+    #     :param compute_grad: type: Variable
+    #     :return: gradients
+    #     """
+    #     # grad = torch.autograd.grad(logp, var_cont)[0]  # need to modify format
+    #
