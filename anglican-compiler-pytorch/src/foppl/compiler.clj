@@ -298,7 +298,7 @@
             (let [[var-e var-s]  (tf-primitive expr)   ;final return would always be the dist obj
                   var-string (str/join [str-prog var-s
                                         ; var-n " = " var-e ".sample()   #sample \n"])
-                                         var-n " =  Xs.get('" var-n "')   # get the x from input arg\n"])
+                                         var-n " =  Xs['" var-n "']   # get the x from input arg\n"])
 
                   samples-string (str/join [prior-samples var-s
                                         var-n " = " var-e ".sample()   #sample \n"])
@@ -496,15 +496,15 @@
 (spit "./output-pytorch/one-gauss-model.py" (compile-query one-gaussian))
 
 
-(def if-src
-  (foppl-query
-    (let [x (sample (normal 0 1))]
-      (if (> x 0)
-        (observe (normal 1 1) 1)
-        (observe (normal -1 1) 1))
-      x)))
-(print-graph (first if-src))
-(spit "./output-pytorch/if-src-model.py" (compile-query if-src))
+;; (def if-src
+;;   (foppl-query
+;;     (let [x (sample (normal 0 1))]
+;;       (if (> x 0)
+;;         (observe (normal 1 1) 1)
+;;         (observe (normal -1 1) 1))
+;;       x)))
+;; (print-graph (first if-src))
+;; (spit "./output-pytorch/if-src-model.py" (compile-query if-src))
 
 ;; (def tmp (nth (first if-src) 2))
 ;; (get tmp 'x22563)
