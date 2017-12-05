@@ -72,6 +72,7 @@ class HMC(object):
         # return -log_p.data[0,0] This returns an int, below returns a variable.
         return -log_p.data[0]
 
+    # New hamiltonian function.
     def _hamiltonian(self, x, p):
         """
         TO DO and remove hamiltonian function below
@@ -119,6 +120,7 @@ class HMC(object):
 
         return x, v
     def update_disc(self, x, v, step_size, M, n_disc, logp, aux):
+
         coord_order = len(x.data) - n_disc + np.random.permutation(n_disc)
 
         for j in coord_order:
@@ -136,7 +138,7 @@ class HMC(object):
                 v[j] = - v[j]
 
         return x, v, logp, aux
-
+    # Replace with new integrator
     def one_leapfrog_step(self, x, v, step_size):
         n_disc = self.n_disc
         n_cont = self.n_cont
