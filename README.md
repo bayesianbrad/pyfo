@@ -25,7 +25,7 @@ using Hamiltonina Monte Carlo::
 
     Then in your python script:
 
-    <pre><code class="python">
+    ```python
     import DHMC
     from DHMC.inference.DHMC as DHMC
     n_burnin = 1000
@@ -37,12 +37,10 @@ using Hamiltonina Monte Carlo::
     dhmc.sample(n_samples, n_burnin, n_chains)
     # or this
     DHMC_object = DHMC(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
-
     samples = DHMC_object.samples # returns samples of the inferred posterior
-    </code></pre>
-
+    ```
 
 
 [^fn1]: Nishimura, Akihiko, David Dunson, and Jianfeng Lu. "Discontinuous Hamiltonian Monte Carlo for sampling discrete parameters." arXiv preprint arXiv:1705.08510 (2017).
 
-[^fn2]: Yuan, Gram-Hansen, Hongsoek, Stanton, Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
+[^fn2]: Gram-Hansen,Yuan, Hongsoek, Stanton, Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
