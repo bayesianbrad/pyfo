@@ -5,14 +5,15 @@
 </div>
 
 
-Pyfo enables one to write a model in the incredibly flexiable first order probabilistic programming framework
-that is FOPPL. FOPPLs base language is Clojure, which enables the syntax to be neat, yet completely expressive. See
-(ML-wood group tutorial for an introduction to FOPPL. The backend for FOPPL is Discountinous HMC <sup>[1](#fn1)</sup>, which allows one to
-perform inference in models that have discontinuities that are of measure 0 <sup>[2](#fn2)</sup>. In addition to this, we included an
-automated framework for embedding discrete distributions, which allows one to perform inference in discrete models,
-using Hamiltonian Monte Carlo.
+Pyfo enables one to write a model in the flexiable first order probabilistic programming framework
+that is FOPPL. FOPPLs base language is Clojure, which enables the syntax to be neat, yet completely expressive.
 
-#Example
+Inference for FOPPL is performed with Discountinous HMC <sup>[1](#fn1)</sup>, which allows one to
+perform inference in models that have discontinuities that are of measure 0 <sup>[2](#fn2)</sup>. In addition to this, we included an
+automated framework for embedding discrete distributions, which allows one to perform inference in models contianign both discrete
+and continous latent variables.
+
+# Example
 
 ## Writing the model
 Write model in foppl, for example one_dim_gauss.clj
