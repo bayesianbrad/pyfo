@@ -39,7 +39,7 @@ trajectorystep = [10, 20]
 DHMC    = dhmc(logp, start, step_size, n_steps, **kwargs)
 dhmc.sample(n_samples, n_burnin, n_chains)
 # or this, where we take the foppl input, compile it internal into the desired interface and then provide
-# logp to the sampler ourselves. 
+# logp to the sampler ourselves.
 DHMC_object = dhmc(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
 samples = DHMC_object.samples # returns samples of the inferred posterior
 ```
