@@ -7,8 +7,8 @@
 
 Pyfo enables one to write a model in the incredibly flexiable first order probabilistic programming framework
 that is FOPPL. FOPPLs base language is Clojure, which enables the syntax to be neat, yet completely expressive. See
-(ML-wood group tutorial for an introduction to FOPPL. The backend for FOPPL is Discountinous HMC [^fn1], which allows one to
-perform inference in models that have discontinuities that are of measure 0 [^fn2]. In addition to this, we included an
+(ML-wood group tutorial for an introduction to FOPPL. The backend for FOPPL is Discountinous HMC <sup>[1](#fn1)</sup>, which allows one to
+perform inference in models that have discontinuities that are of measure 0 <sup>[2](#fn2)</sup>. In addition to this, we included an
 automated framework for embedding discrete distributions, which allows one to perform inference in discrete models,
 using Hamiltonian Monte Carlo.
 
@@ -17,13 +17,13 @@ using Hamiltonian Monte Carlo.
 ## Writing the model
 Write model in foppl, for example one_dim_gauss.clj
 
-clojure
+```clojure
 (def one-gaussian
     (foppl-query
         (let [x (sample (normal 1.0 5.0))]
             (observe (normal x 2.0) 7.0)
         x)))
-
+```
 
 ## Performing the inference
 
@@ -43,6 +43,6 @@ samples = DHMC_object.samples # returns samples of the inferred posterior
 ```
 
 
-[^fn1]: Nishimura, Akihiko, David Dunson, and Jianfeng Lu. "Discontinuous Hamiltonian Monte Carlo for sampling discrete parameters." arXiv preprint arXiv:1705.08510 (2017).
+<a name="fn1">1</a>: Nishimura, Akihiko, David Dunson, and Jianfeng Lu. "Discontinuous Hamiltonian Monte Carlo for sampling discrete parameters." arXiv preprint arXiv:1705.08510 (2017).
 
-[^fn2]: Gram-Hansen,Yuan, Hongsoek, Stanton, Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
+<a name="fn2">2</a>: Gram-Hansen,Yuan, Hongsoek, Stanton, Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
