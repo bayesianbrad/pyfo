@@ -15,13 +15,13 @@ using Hamiltonina Monte Carlo::
     write model in foppl, for example one_dim_gauss.clj
 
     i.e.
-    ```clojure
+    clojure
     (def one-gaussian
         (foppl-query
             (let [x (sample (normal 1.0 5.0))]
                 (observe (normal x 2.0) 7.0)
             x)))
-    ```
+
 
     Then in your python script:
 
