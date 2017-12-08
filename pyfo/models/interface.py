@@ -19,7 +19,7 @@ class interface(object):
     """
     def __init__(self):
 
-    def gen_vars() -> Set[str]:
+    def gen_vars() -> List[str]:
         """
         Returns the names of the random variables in the model
         :param
@@ -27,14 +27,14 @@ class interface(object):
         """
         raise NotImplementedError
 
-    def gen_cont_vars() -> Set[str]:
+    def gen_cont_vars() -> List[str]:
         """
 
         :return:
         """
         raise NotImplementedError
 
-    def gen_disc_vars() -> Set[str]:
+    def gen_disc_vars() -> List[str]:
         """
 
         :return:
@@ -50,6 +50,8 @@ class interface(object):
         Generates a sample from the prior of all latent variables
         :return: Dict of sampled values
         """
+        # map (bitmap) from every if statement. A list of if statements encontered
+        #    and whether or not we went down the consequent or alternative branch
 
         raise NotImplementedError
 
@@ -64,3 +66,4 @@ class interface(object):
 
         raise NotImplementedError
 
+    # need to know which if branch we have gone down and what
