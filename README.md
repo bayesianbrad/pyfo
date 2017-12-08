@@ -1,8 +1,9 @@
-===========
 
-Pyfo (Python for FOPPL)
 
-===========
+<div align="center">
+  <a href="https://github.com/bradleygramhansen/pyfo"> <img width="150px" height="150px" src="docs/pyfologo.png"></a>
+</div>
+
 
 Pyfo enables one to write a model in the incredibly flexiable first order probabilistic programming framework
 that is FOPPL. FOPPLs base language is Clojure, which enables the syntax to be neat, yet completely expressive. See
