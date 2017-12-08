@@ -30,16 +30,17 @@ Write model in foppl, for example one_dim_gauss.clj
 
 ```python
 import pyfo
-from pyfo.inference.DHMC as DHMC
+from pyfo.inference.DHMC as dhmc
 n_burnin = 1000
 n_sample = 10 ** 4
 stepsize = 0.03
 trajectorystep = [10, 20]
 # Either this
-DHMC    = dhmc.DHMC(logp, start, step_size, n_steps, **kwargs)
+DHMC    = dhmc(logp, start, step_size, n_steps, **kwargs)
 dhmc.sample(n_samples, n_burnin, n_chains)
-# or this
-DHMC_object = DHMC(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
+# or this, where we take the foppl input, compile it internal into the desired interface and then provide
+# logp to the sampler ourselves. 
+DHMC_object = dhmc(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
 samples = DHMC_object.samples # returns samples of the inferred posterior
 ```
 
