@@ -25,7 +25,7 @@ using Hamiltonina Monte Carlo::
 
     Then in your python script:
 
-    ```python
+    <pre><code class="python">
     import DHMC
     from DHMC.inference.DHMC as DHMC
     n_burnin = 1000
@@ -39,7 +39,7 @@ using Hamiltonina Monte Carlo::
     DHMC_object = DHMC(one_dim_gauss.clj, stepsize, trajectorystep, n_burnin, n_samples) # creates sampler object
 
     samples = DHMC_object.samples # returns samples of the inferred posterior
-    ```
+    </code></pre>
 
 
 
