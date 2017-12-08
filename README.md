@@ -29,8 +29,8 @@ Write model in foppl, for example one_dim_gauss.clj
 ## Performing the inference
 
 ```python
-import DHMC
-from DHMC.inference.DHMC as DHMC
+import pyfo
+from pyfo.inference.DHMC as DHMC
 n_burnin = 1000
 n_sample = 10 ** 4
 stepsize = 0.03
