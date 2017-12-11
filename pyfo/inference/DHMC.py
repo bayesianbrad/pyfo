@@ -11,7 +11,7 @@ from torch.autograd import Variable
 # to reflect this.
 # TO DO: Start changing functions in this code to interact with State.
 
-class HMC(object):
+class DHMC(object):
     """
     object: Is the compiled output
         method: gen_prior_samples()
