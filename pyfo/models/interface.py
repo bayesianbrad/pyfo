@@ -19,7 +19,7 @@ class interface(object):
     """
     def __init__(self):
 
-    def gen_vars() -> List[str]:
+    def gen_vars(self) -> List[str]:
         """
         Returns the names of the random variables in the model
         :param
@@ -27,14 +27,14 @@ class interface(object):
         """
         raise NotImplementedError
 
-    def gen_cont_vars() -> List[str]:
+    def gen_cont_vars(self) -> List[str]:
         """
 
         :return:
         """
         raise NotImplementedError
 
-    def gen_disc_vars() -> List[str]:
+    def gen_disc_vars(self) -> List[str]:
         """
 
         :return:
@@ -42,7 +42,7 @@ class interface(object):
         raise NotImplementedError
 
     # prior samples
-    def gen_prior_samples() -> Dict[str,Variable]:
+    def gen_prior_samples(self) -> Dict[str,Variable]:
         """
         Returns a Dictionary whose entries are the string variable names and
         whose values are the sampled values for the same
@@ -56,9 +56,11 @@ class interface(object):
         raise NotImplementedError
 
     # compute pdf
-    def gen_pdf(Xs: Dict[str,Variable]) -> Variable:
+    def gen_pdf(self,Xs: Dict[str,Variable]) -> Variable:
         """
         Returns the log pdf of the model.
+        Pass stat with each variable as  a leaf node, so that the
+        gradients accumalate throughout this method
 
         :param Xs: Current values of the latent variables
         :return logp type: Variable
