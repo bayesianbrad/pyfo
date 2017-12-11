@@ -25,7 +25,7 @@ from numpy.testing import assert_allclose
 from pytest import approx
 from torch.autograd import Variable
 
-torch.set_default_tensor_type(os.environ.get('PYRO_TENSOR_TYPE', 'torch.DoubleTensor'))
+torch.set_default_tensor_type(os.environ.get('PYFO_TENSOR_TYPE', 'torch.DoubleTensor'))
 
 """
 Contains test utilities for assertions, approximate comparison (of tensors and other objects).
