@@ -78,7 +78,7 @@ class DHMCSampler(object):
         x_star[key] = x_star[key] + stepsize*self.M # Need to change M here again
 
         logp_diff = self.log_posterior(x_star) - self.log_posterior(x)
-        
+
         if torch.gt(self.M[key]*torch.abs(torch.sign(p[key])),logp_diff)[0][0]:
             x = x_star
             p[key] = p[key] + torch.sign(p[key])*self.M[key]*logp_diff
@@ -110,8 +110,10 @@ class DHMCSampler(object):
         p = p0.copy.copy()
 
         # update continous set of parameters
+
+        logp = self.log_posterior(x)
         for key in self._cont_keys:
-            p[key] = p[key] + 0.5*stepsize*self.grad_logp(p[key]) # Need to make sure this works
+            p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key]) # Need to make sure this works
             # x[key] = x[key] + 0.5*stepsize*self.M * p[key] # This M will not work in current form
 
         if self._disc_keys is not None:
@@ -128,21 +130,13 @@ class DHMCSampler(object):
             n_fupdate += 1
         if not self._cont_keys:
             # performs standard HMC update
-            grad = self._grad_potential(x)
+            logp = self.log_posterior(x)
             for key in self._cont_keys:
                 x[key] = x[key] + 0.5*stepsize*self.M*p[key]
-                p[key] = p[key] + 0.5*stepsize*self._grad_potential(key)
+                p[key] = p[key] + 0.5*stepsize*self._grad_potential(logp, x[key])
             n_feval += 1
         return x, p, n_feval, n_fupdate
 
-    def _grad_potential(self, x):
-        log_joint_prob = self._log_prob(x)
-        log_joint_prob.backward()
-        grad_potential = {}
-        for name, value in x.items():
-            grad_potential[name] = -value.grad.clone().detach()
-            grad_potential[name].volatile = False
-        return grad_potential
 
     def _energy(self, x, p):
         """
