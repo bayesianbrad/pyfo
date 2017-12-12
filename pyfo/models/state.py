@@ -12,20 +12,19 @@ from torch.autograd import Variable
 from collections import deque
 from typing import Dict, List, bool
 from pyfo.utils.core import VariableCast
-
 class State(object):
     """
-    Stores the state of the object in
+    Stores the state of the object
 
     """
 
-    def __init__(self, gen_prior_samples, gen_logpdf, gen_cont_vars, gen_disc_vars, gen_all_vars):
+    def __init__(self, interface):
 
-        self._state_init = gen_prior_samples()
-        self._gen_logpdf = gen_logpdf # returns logp
-        self._cont_vars = gen_cont_vars() #includes the piecewise variables for now.
-        self._disc_vars = gen_disc_vars()
-        self._all_vars  = gen_all_vars() # returns list of parameters, in same return order as self._state_init
+        self._state_init = interface.gen_prior_samples()
+        self._gen_logpdf = interface.gen_logpdf # returns logp
+        self._cont_vars = interface.gen_cont_vars() #includes the piecewise variables for now.
+        self._disc_vars = interface.gen_disc_vars()
+        self._all_vars  = interface.gen_vars() # returns list of parameters, in same return order as self._state_init
 
 
     def _intiate_state(self):
@@ -41,19 +40,17 @@ class State(object):
 
         return state
 
-    @staticmethod
-    def retain_grads(x):
-        """
-        Takes either the momentum or latents, checks to see if they are a leaf node,
-        if so, adds requires_grad = True
-        :param x: Dict of parameter names and values, values typically will be variables.
-        :return: a
-        """
-        for value in x.values():
-            # XXX: can be removed with PyTorch 0.3
-            if value.is_leaf and not value.requires_grad:
-                value.requires_grad = True
-            value.retain_grad()
+    def _return_disc_list(self):
+        if len(self._disc_vars) == 0:
+            return None
+        else:
+            return self._disc_vars
+
+    def _return_cont_list(self):
+        if len(self._cont_vars) == 0:
+            return None
+        else:
+            return self._cont_vars
     @staticmethod
     def detach_nodes(x):
         """
@@ -71,7 +68,6 @@ class State(object):
         :param
         :return: log_pdf
         """
-
         return self._gen_logpdf(state)
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
@@ -104,7 +100,7 @@ class State(object):
         logp_diff = self.current_logpdf - log_prev
         return logp_diff, current_logp
 
-    def _grad_logp(self, state):
+    def _grad_logp(self, logp, param):
         """
         TO DO: Test, as this will only work for individual
         parameters. Will need to pass through an adapted version
@@ -114,13 +110,9 @@ class State(object):
         :param state:
         :return: torch.autograd.Variable
         """
-        log_joint_prob = self._log_pdf(state)
-        log_joint_prob.backward()
-        grad_logp = {}
-        for name, value in state.items():
-            grad_logp[name] = -value.grad.clone().detach()
-            grad_logp[name].volatile = False
-        return grad_logp
+
+        gradient_of_param = torch.autograd.grad(outputs=logp, inputs=param, retain_graph=True)[0]
+        return gradient_of_param
 
 
     # def _state_grad(self):
