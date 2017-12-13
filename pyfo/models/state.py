@@ -122,3 +122,6 @@ class State(object):
         :param state:
         :return:
         """
+        for key in state:
+            state[key] = VariableCast(state[key].data, grad=True)
+        return state
