@@ -31,6 +31,9 @@ class DHMCSampler(object):
         ## When generating the mometum dictionary we need the discrete params to have their
         ## momentum drawn from the laplacian, and the continous params to be drawn from
         ## gaussian
+        #4 TH NOTE
+        ## Need to deal with a M matrix. I may  just set it to 1 everywhere, inferring the identity.
+
         if scale is None:
              scale = VariableCast(torch.ones(chains,n_param)) # outputs chains x n_param tensor
 
@@ -79,9 +82,9 @@ class DHMCSampler(object):
 
         logp_diff = self.log_posterior(x_star) - self.log_posterior(x)
 
-        if torch.gt(self.M[key]*torch.abs(torch.sign(p[key])),logp_diff)[0][0]:
+        if torch.gt(self.M*torch.abs(torch.sign(p[key])),logp_diff)[0][0]:
             x = x_star
-            p[key] = p[key] + torch.sign(p[key])*self.M[key]*logp_diff
+            p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
         else:
             p[key] = -p[key]
         return x,p
@@ -99,43 +102,56 @@ class DHMCSampler(object):
         :param log_grad:
         :param aux:
         :param n_disc:
-        :return:
+        :return: x, p the proposed values as dict.
         """
 
         # number of function evaluations and fupdates for discrete parameters
         n_feval = 0
         n_fupdate = 0
 
+        #performs shallow copy
         x = x0.copy.copy()
         p = p0.copy.copy()
 
-        # update continous set of parameters
-
+        # perform first step of leapfrog integrators
         logp = self.log_posterior(x)
-        for key in self._cont_keys:
-            p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key]) # Need to make sure this works
-            # x[key] = x[key] + 0.5*stepsize*self.M * p[key] # This M will not work in current form
+        if self._cont_keys is not None:
+            for key in self._cont_keys:
+                p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key]) # Need to make sure this works
 
-        if self._disc_keys is not None:
+        if self._disc_keys is None:
+            for key in self._cont_keys:
+                x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
+
+        else:
             permuted_keys = permutations(self._disc_keys,1)
             # permutates all keys into one permutated config. It deletes in memory as each key is called
             # returns a tuple ('key', []), hence to call 'key' requires [0] index.
+            if self._cont_keys is not None:
+                for key in self._cont_keys:
+                    x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
+                logp = self.log_posterior(x)
 
 
+            if math.isinf(logp):
+                return x, p, n_feval, n_fupdate
 
-        if not self._disc_keys:
-            print('update coordinate wise')
-            for key in permuted_keys:
-                x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
-            n_fupdate += 1
-        if not self._cont_keys:
-            # performs standard HMC update
-            logp = self.log_posterior(x)
-            for key in self._cont_keys:
-                x[key] = x[key] + 0.5*stepsize*self.M*p[key]
-                p[key] = p[key] + 0.5*stepsize*self._grad_potential(logp, x[key])
-            n_feval += 1
-        return x, p, n_feval, n_fupdate
+            if self._disc_keys is not None:
+                print('update coordinate wise')
+                for key in permuted_keys:
+                    x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
+                n_fupdate += 1
+
+            if self._cont_keys is not None:
+                for key in self._cont_keys:
+                    x[key] = x[key] + 0.5 * stepsize * self.M * p[key] # final half step for position
+            if not self._cont_keys:
+                # performs standard HMC update
+                logp = self.log_posterior(x)
+                for key in self._cont_keys:
+                    p[key] = p[key] + 0.5*stepsize*self._grad_potential(logp, x[key]) # final half step for momentum
+                n_feval += 1
+            return x, p, n_feval, n_fupdate
 
 
     def _energy(self, x, p):
@@ -228,6 +244,9 @@ class DHMCSampler(object):
             + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
 
         samples = pd.DataFrame.from_dict(rows, orient='columns')
+        # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
+        # all the samples for a given parameter
+
         return samples, accept_prob, n_feval_per_itr, time_elapsed# [total_accept, burnin_accept]
 
 
