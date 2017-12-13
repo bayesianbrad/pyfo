@@ -106,3 +106,17 @@ def my_import(name):
     for comp in components[1:]:
         mod = getattr(mod, comp)
     return mod
+
+def extract_samples(dataframe, keys):
+    """
+
+    :param dataframe: pandas.DataFrame
+    :param keys: sring of params
+    :return: Samples for each variable
+
+    With a dataframe, the columns correspond to the key names and the
+    rows, correspond to sample number.
+    To extract all the samples (and chains) use dataframe.loc[<key>]
+    If the values stored are arrays, i.e. multiple chains, then use
+    dataframe.loc[<key>][i] to extract the exact array
+    """
