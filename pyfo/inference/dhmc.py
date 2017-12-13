@@ -41,13 +41,15 @@ class DHMCSampler(object):
         self._disc_keys = state._return_disc_list()
         self._cont_keys = state._return_cont_list()
         self.grad_logp = state._grad_logp
-
+        self.init_state = state.intiate_state() # essentially this is just x0
         self.n_param = n_param
         self.n_disc = len(self._disc_keys)
         self.n_cont = len(self._cont_keys)
         # Note:
         # Need to redefine the M matrix for dictionaries.
-        self.M = torch.div(VariableCast(1),torch.cat((scale[:,:-n_disc]**2, scale[:,-n_disc:]),dim=1)) # M.size() = (chains x n_param)
+        #self.M = torch.div(VariableCast(1),torch.cat((scale[:,:-n_disc]**2, scale[:,-n_disc:]),dim=1)) # M.size() = (chains x n_param)
+        self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
+
         self.log_posterior = state.log_posterior  # returns a function that thats the current state as argument
         self.logp_update = state.logp_update # returns a function
         # if M is None:
@@ -161,7 +163,9 @@ class DHMCSampler(object):
         :param p:
         :return: Tensor
         """
-        kinetic_energy = 0.5 * torch.sum(torch.stack([p[name]**2 for name in p]))
+
+        kinetic_energy = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
+        kinetic_energy = torch.sum(torch.stack([self.M*torch.abs(p[name]) for name in self._disc_keys]))
         potential_energy = -self._log_prob(x)
 
 
