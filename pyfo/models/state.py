@@ -27,16 +27,17 @@ class State(object):
         self._all_vars  = interface.gen_vars() # returns list of parameters, in same return order as self._state_init
 
 
-    def _intiate_state(self):
+    def intiate_state(self):
         """
         Creates a dictionary of the state. With each parameter transformed into a variable, if it is not already one.
+        And ensures that the Variable is a leaf node
         :param
         :return: state type: Dict
         """
         state = dict.fromkeys(self._all_vars)
         values= deque(self._state_init)
         for var in state:
-            state[var] = VariableCast(values.popleft())
+            state[var] = VariableCast(values.popleft().data, grad=True)
 
         return state
 
@@ -114,12 +115,10 @@ class State(object):
         gradient_of_param = torch.autograd.grad(outputs=logp, inputs=param, retain_graph=True)[0]
         return gradient_of_param
 
-
-    # def _state_grad(self):
-    #     """
-    #     Calculates the gradient
-    #     :param compute_grad: type: Variable
-    #     :return: gradients
-    #     """
-    #     # grad = torch.autograd.grad(logp, var_cont)[0]  # need to modify format
-    #
+    def _to_leaf(self, state):
+        """
+        Ensures that all latent parameters are reset to leaf nodes, before
+        calling
+        :param state:
+        :return:
+        """
