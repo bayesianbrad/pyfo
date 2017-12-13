@@ -8,8 +8,7 @@ Date created:  27/11/2017
 License: MIT
 '''
 
-from typing import Dict, List, Bool, Set
-import torch
+from typing import Dict, List
 from torch.autograd import Variable
 
 
@@ -56,13 +55,13 @@ class interface(object):
         raise NotImplementedError
 
     # compute pdf
-    def gen_pdf(self,Xs: Dict[str,Variable]) -> Variable:
+    def gen_pdf(self,x: Dict[str,Variable]) -> Variable:
         """
         Returns the log pdf of the model.
         Pass stat with each variable as  a leaf node, so that the
         gradients accumalate throughout this method
 
-        :param Xs: Current values of the latent variables
+        :param x: Current values of the latent variables
         :return logp type: Variable
         """
 
