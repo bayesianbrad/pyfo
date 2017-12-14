@@ -68,8 +68,15 @@ class State(object):
         return the pdf.
         :param
         :return: log_pdf
+
+        Do I need to convert the variables within state, to requires grad = True
+        here? Then they will be passed to gen_logpdf to create the differentiable logpdf
+        . Answer: yes, because
         """
-        return self._gen_logpdf(state)
+        state_leafs = self._to_leaf(state)
+
+
+        return self._gen_logpdf(state_leafs)
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
         Implements the 'f_update' in the coordinate wise integrator, to calculate the
