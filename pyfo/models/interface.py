@@ -12,19 +12,17 @@ from typing import Dict, List
 from torch.autograd import Variable
 
 
-class interface(object):
+class interface():
     """
     A generic model interface for DHMC
     """
-    def __init__(self):
-
     def gen_vars(self) -> List[str]:
         """
         Returns the names of the random variables in the model
         :param
         :return:
         """
-        raise NotImplementedError
+    raise NotImplementedError
 
     def gen_cont_vars(self) -> List[str]:
         """
