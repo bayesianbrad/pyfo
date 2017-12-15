@@ -9,9 +9,6 @@ class model(interface):
     mean and std to be replaced by mu and sigma.
     For other distributions look at the distribution classes for details.
     """
-    def __init__(self):
-        super().__init__()
-
     def gen_vars(self):
         return ['x32870'] # list
 
