@@ -326,11 +326,19 @@
 
 
 ;; add heading, eg "import expr as e"
-(defn add-heading [expr e]
+(defn add-heading-old [expr e]
   (str/join [ "import torch \n"
               "import numpy as np  \n"
               "from torch.autograd import Variable  \n"
               "from Distributions import *  \n"
+              "import " expr " as " e "\n"]))
+
+(defn add-heading [expr e]
+  (str/join [ "import torch \n"
+              "import numpy as np  \n"
+              "from torch.autograd import Variable  \n"
+              "import pyfo.distributions as dist\n"
+              "import pyfo.inference as interface\n"
               "import " expr " as " e "\n"]))
 
 ;;; deal with the E
@@ -401,30 +409,30 @@
 ;;; output into strings
 (defn gen-vars [foppl-query]
   "output variable array of RVs"
-  (str/join ["def gen_vars():\n"
+  (str/join ["\tdef gen_vars(self):\n"
 ;;              "# generate all unobserved variables \n"
-             "return [" (str/join "," (get-vars foppl-query)) "] # list\n\n"
+             "\t\treturn [" (str/join "," (get-vars foppl-query)) "] # list\n\n"
              ]))
 
 (defn gen-ordered-vars [foppl-query]
   "output ordered variable array of RVs"
-  (str/join ["def gen_ordered_vars():\n"
+  (str/join ["\tdef gen_ordered_vars(self):\n"
 ;;              "# generate all unobserved variables \n"
-             "return [" (str/join "," (get-ordered-vars foppl-query)) "] # need to modify output format\n\n"
+             "\t\treturn [" (str/join "," (get-ordered-vars foppl-query)) "] # need to modify output format\n\n"
              ]))
 
 (defn gen-disc-vars [foppl-query]
   "output discrete and piecewise variable array of RVs"
-  (str/join ["def gen_disc_vars():\n"
+  (str/join ["\tdef gen_disc_vars(self):\n"
 ;;              "# generate discrete and piecewise variables \n"
-             "return [" (str/join "," (get-disc-vars foppl-query)) "] # need to modify output format\n\n"
+             "\t\treturn [" (str/join "," (get-disc-vars foppl-query)) "] # need to modify output format\n\n"
              ]))
 
 (defn gen-cont-vars [foppl-query]
   "output continuous variable array of RVs"
-  (str/join ["def gen_cont_vars():\n"
+  (str/join ["\tdef gen_cont_vars(self):\n"
 ;;              "# generate continuous variables \n"
-             "return [" (str/join "," (get-cont-vars foppl-query)) "] # need to modify output format\n\n"
+             "\t\treturn [" (str/join "," (get-cont-vars foppl-query)) "] # need to modify output format\n\n"
              ]))
 
 ;;; prior samples
@@ -450,19 +458,22 @@
 (defn gen-samples-pdf [foppl-query]
   "output functions to gen samples; compute pdf and grad "
   (let [[declare-s declare-prior-samples] (tf-var-declare foppl-query)
-        gen-samples-s (str/join ["def gen_prior_samples():\n"
+        gen-samples-s (clojure.string/replace
+                                    (str/join ["\tdef gen_prior_samples(self):\n"
                                      declare-prior-samples
                                      "Xs = gen_vars() \n"
-                                     "return Xs # list \n\n"])
+                                     "return Xs # list \n\n"]) #"\n" "\n\t\t")
         [pdf-n pdf-s] (tf-joint-log-pdf foppl-query)
         var-cont (get-cont-vars foppl-query)
         grad-s (str/join ["if compute_grad:\n"
                           "grad = torch.autograd.grad("pdf-n ", var_cont)[0] # need to modify format \n"
                           ])
-        gen-pdf-s (str/join ["def gen_pdf(Xs, compute_grad = True):\n"
+        gen-pdf-s (clojure.string/replace
+                      (str/join ["\tdef gen_pdf(self, Xs, compute_grad = True):\n"
                                  declare-s
                                  pdf-s
-                                 "return " pdf-n" # need to modify output format\n\n"])]
+                                 "return " pdf-n" # need to modify output format\n\n"])
+                                 #"\n" "\n\t\t")]
     [gen-pdf-s gen-samples-s]))
 
 ;;; __main
@@ -471,14 +482,15 @@
   (let [heading (add-heading "HMC" "HMC \n")
         [gen-pdf-s gen-samples-s] (gen-samples-pdf foppl-query)]
         ;[declare-E run-E] (eval-E foppl-query)]
-    (str/join [;heading
+    (str/join [heading
+               "\nclass model(interface):\n\n"
                (gen-vars foppl-query)
                (gen-cont-vars foppl-query)
                (gen-disc-vars foppl-query)
-               "# prior samples \n"
+               "\t# prior samples \n"
                gen-samples-s
-                "# compute pdf \n"
-                gen-pdf-s
+               "\t# compute pdf \n"
+               gen-pdf-s
                ])))
 
 
