@@ -9,8 +9,10 @@
   (:use [anglican runtime emit]
         [clojure.inspector :include (atom?)]))
 
-(def contdist-list ["normal" "mvn"])
-(def discdist-list ["discrete"])
+(def contdist-list ["normal" "mvn" "beta" "cauchy" "dirichlet" "exponential"
+                    "gamma" "half_cauchy" "log_normal" "uniform"])
+(def discdist-list ["discrete" "categorical" "poisson" "bernoulli"
+                    "multinomial"])
 
 
 ;;; vetices -> value
@@ -169,7 +171,7 @@
                  [std std-string] (tf-primitive (second (rest expr)))
                  dist-n (gensym "dist")
                  dist-string (str/join [mu-string std-string
-                                        dist-n " = Normal(mean=" mu ", std=" std ")\n"])]
+                                        dist-n " = dist.Normal(mu=" mu ", sigma=" std ")\n"])]
              (vector dist-n dist-string))
 
           "mvn"
@@ -177,16 +179,16 @@
                  [cov cov-string] (tf-primitive (second (rest expr)))
                  dist-n (gensym "dist")
                  dist-string (str/join [mu-string cov-string
-                                        dist-n " = MultivariateNormal(mean=" mu ", cov=" cov ")\n"])]
+                                        dist-n " = dist.MultivariateNormal(mu=" mu ", cov=" cov ")\n"])]
              (vector dist-n dist-string))
 
 
           ;;; discrete
-          "discrete"  ;; translate to categorical in tf
+          "categorical"  ;; translate to categorical in tf
            (let [[p p-string] (tf-primitive (first (rest expr)))
                  dist-n (gensym "dist")
                  dist-string (str/join [p-string
-                                        dist-n " = Categorical(p=" p ")\n"])]
+                                        dist-n " = dist.Categorical(p=" p ")\n"])]
              (vector dist-n dist-string))
 
     ))
@@ -338,8 +340,7 @@
               "import numpy as np  \n"
               "from torch.autograd import Variable  \n"
               "import pyfo.distributions as dist\n"
-              "import pyfo.inference as interface\n"
-              "import " expr " as " e "\n"]))
+              "import pyfo.inference as interface\n"]))
 
 ;;; deal with the E
 ;; output [s1, s2] two string, one declare, one init and run
@@ -411,7 +412,7 @@
   "output variable array of RVs"
   (str/join ["\tdef gen_vars(self):\n"
 ;;              "# generate all unobserved variables \n"
-             "\t\treturn [" (str/join "," (get-vars foppl-query)) "] # list\n\n"
+             "\t\treturn ['" (str/join "', " (get-vars foppl-query)) "'] # list\n\n"
              ]))
 
 (defn gen-ordered-vars [foppl-query]
@@ -425,14 +426,14 @@
   "output discrete and piecewise variable array of RVs"
   (str/join ["\tdef gen_disc_vars(self):\n"
 ;;              "# generate discrete and piecewise variables \n"
-             "\t\treturn [" (str/join "," (get-disc-vars foppl-query)) "] # need to modify output format\n\n"
+             "\t\treturn ['" (str/join "', '" (get-disc-vars foppl-query)) "'] # need to modify output format\n\n"
              ]))
 
 (defn gen-cont-vars [foppl-query]
   "output continuous variable array of RVs"
   (str/join ["\tdef gen_cont_vars(self):\n"
 ;;              "# generate continuous variables \n"
-             "\t\treturn [" (str/join "," (get-cont-vars foppl-query)) "] # need to modify output format\n\n"
+             "\t\treturn ['" (str/join "', '" (get-cont-vars foppl-query)) "'] # need to modify output format\n\n"
              ]))
 
 ;;; prior samples
@@ -461,15 +462,16 @@
         gen-samples-s (clojure.string/replace
                                     (str/join ["\tdef gen_prior_samples(self):\n"
                                      declare-prior-samples
-                                     "Xs = gen_vars() \n"
-                                     "return Xs # list \n\n"]) #"\n" "\n\t\t")
+                                     "state = self.gen_vars() \n"
+                                     "state = getLocals()[state[0]]\n"
+                                     "return state # list \n\n"]) #"\n" "\n\t\t")
         [pdf-n pdf-s] (tf-joint-log-pdf foppl-query)
         var-cont (get-cont-vars foppl-query)
         grad-s (str/join ["if compute_grad:\n"
-                          "grad = torch.autograd.grad("pdf-n ", var_cont)[0] # need to modify format \n"
+                          "\tgrad = torch.autograd.grad("pdf-n ", var_cont)[0] # need to modify format \n"
                           ])
         gen-pdf-s (clojure.string/replace
-                      (str/join ["\tdef gen_pdf(self, Xs, compute_grad = True):\n"
+                      (str/join ["\tdef gen_pdf(self, state):\n"
                                  declare-s
                                  pdf-s
                                  "return " pdf-n" # need to modify output format\n\n"])
@@ -479,7 +481,7 @@
 ;;; __main
 (defn compile-query [foppl-query]
   (reset! vertice-p {})
-  (let [heading (add-heading "HMC" "HMC \n")
+  (let [heading (add-heading)
         [gen-pdf-s gen-samples-s] (gen-samples-pdf foppl-query)]
         ;[declare-E run-E] (eval-E foppl-query)]
     (str/join [heading
