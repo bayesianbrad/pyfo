@@ -335,7 +335,7 @@
               "from Distributions import *  \n"
               "import " expr " as " e "\n"]))
 
-(defn add-heading [expr e]
+(defn add-heading []
   (str/join [ "import torch \n"
               "import numpy as np  \n"
               "from torch.autograd import Variable  \n"
