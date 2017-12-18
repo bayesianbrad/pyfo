@@ -18,9 +18,35 @@ from itertools import permutations
 import time
 from pyfo.utils.core import VariableCast
 import pandas as pd
-class DHMCSampler(object):
+# the state interacts with the interface, where ever that is placed....
+from pyfo.models import state
 
-    def __init__(self, state, n_param, chains= 1,  scale=None):
+
+# def import_model(name):
+#     '''
+#     Helper function for extracting the whole module and not just the package.
+#     See answer by clint miller for details:
+#     https://stackoverflow.com/questions/951124/dynamic-loading-of-python-modules
+#
+#     :param name
+#     :type string
+#     :return module of model (models base class is the interface)
+#     '''
+#     mod = __import__(name)
+#     mod_name = 'pyfo.models.'
+#     components = name.split('.')
+#     for comp in components[1:]:
+#         mod = getattr(mod, comp)
+#     return mod
+
+class DHMCSampler(object):
+    """
+    In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
+    will be stored. But for now, we will inherit the model from pyro.models.<model_name>
+    """
+
+    def __init__(self, cls, chains=1,  scale=None):
+
         # Note for self:
         ## state is a class that contains a dictionary of the system.
         ## to get log_posterior and log_update call the methods on the
@@ -35,9 +61,11 @@ class DHMCSampler(object):
         ## Need to deal with a M matrix. I may  just set it to 1 everywhere, inferring the identity.
 
         if scale is None:
-             scale = VariableCast(torch.ones(chains,n_param)) # outputs chains x n_param tensor
+             scale = VariableCast(torch.ones(chains)) # outputs chains x n_param tensor
 
         # # Set the scale of v to be inversely proportional to the scale of x.
+        self.model =cls() # instantiates model
+        self._state =
         self._disc_keys = state._return_disc_list()
         self._cont_keys = state._return_cont_list()
         self.grad_logp = state._grad_logp
@@ -51,7 +79,7 @@ class DHMCSampler(object):
         self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
 
         self.log_posterior = state.log_posterior  # returns a function that thats the current state as argument
-        self.logp_update = state.logp_update # returns a function
+        self.logp_update = state.logp_update # returns a function ; not currently used 10:50 14th Dec.
         # if M is None:
         #     self.M = torch.ones(n_param, 1) # This M.size() = (10,1)
 
@@ -116,8 +144,8 @@ class DHMCSampler(object):
         p = p0.copy.copy()
 
         # perform first step of leapfrog integrators
-        logp = self.log_posterior(x)
         if self._cont_keys is not None:
+            logp = self.log_posterior(x)
             for key in self._cont_keys:
                 p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key]) # Need to make sure this works
 
@@ -129,6 +157,7 @@ class DHMCSampler(object):
             permuted_keys = permutations(self._disc_keys,1)
             # permutates all keys into one permutated config. It deletes in memory as each key is called
             # returns a tuple ('key', []), hence to call 'key' requires [0] index.
+
             if self._cont_keys is not None:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
@@ -147,11 +176,11 @@ class DHMCSampler(object):
             if self._cont_keys is not None:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key] # final half step for position
+
             if not self._cont_keys:
-                # performs standard HMC update
                 logp = self.log_posterior(x)
                 for key in self._cont_keys:
-                    p[key] = p[key] + 0.5*stepsize*self._grad_potential(logp, x[key]) # final half step for momentum
+                    p[key] = p[key] + 0.5*stepsize*self._grad_logp(logp, x[key]) # final half step for momentum
                 n_feval += 1
             return x, p, n_feval, n_fupdate
 
@@ -216,12 +245,10 @@ class DHMCSampler(object):
 
         return x, acceptprob, n_feval, n_fupdate
 
-    def run_sampler(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20], x0=None,,seed=None, n_update=10):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10):
         torch.manual_seed(seed)
         np.random.seed(seed)
-        if x0 is None:
-            sys.exit('Warning no latent parameters specified. Program terminated')
-        x = x0
+        x = self.init_state
         n_per_update = math.ceil((n_samples + burn_in)/n_update)
         n_feval = 0
         n_fupdate = 0
@@ -250,8 +277,10 @@ class DHMCSampler(object):
         samples = pd.DataFrame.from_dict(rows, orient='columns')
         # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
+        stats = {'samples':samples, 'accept_prob': accept_prob, 'number_of_function_evals':n_feval_per_itr\
+                 'time_elapsed':time_elapsed}
 
-        return samples, accept_prob, n_feval_per_itr, time_elapsed# [total_accept, burnin_accept]
+        return stats
 
 
 
