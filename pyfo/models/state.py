@@ -10,7 +10,6 @@ License: MIT
 import torch
 from torch.autograd import Variable
 from collections import deque
-from typing import Dict, List, bool
 from pyfo.utils.core import VariableCast
 class State(object):
     """
@@ -18,13 +17,17 @@ class State(object):
 
     """
 
-    def __init__(self, interface):
+    def __init__(self, cls):
+        """
 
-        self._state_init = interface.gen_prior_samples()
-        self._gen_logpdf = interface.gen_logpdf # returns logp
-        self._cont_vars = interface.gen_cont_vars() #includes the piecewise variables for now.
-        self._disc_vars = interface.gen_disc_vars()
-        self._all_vars  = interface.gen_vars() # returns list of parameters, in same return order as self._state_init
+        :param cls: this is the interface cls of the model.
+        """
+
+        self._state_init = cls.gen_prior_samples()
+        self._gen_logpdf = cls.gen_logpdf # returns logp
+        self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
+        self._disc_vars = cls.gen_disc_vars()
+        self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
 
 
     def intiate_state(self):
