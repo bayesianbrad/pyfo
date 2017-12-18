@@ -485,13 +485,13 @@
   ([name body]
     (let [body (if (vector? body) (str/join "\n" body) body)
           body (str/replace body #"\n\n" "\n")]
-      (str/join ["\tdef " name "(self):\n\t\t"
+      (str/join ["\t@classmethod\n\tdef " name "(self):\n\t\t"
         (str/replace body #"\n" "\n\t\t") "\n\n"])))
   ([name arg body]
     (let [arg (if (str/blank? arg) "self" (str/join ["self, " arg]))
           body (if (vector? body) (str/join "\n" body) body)
           body (str/replace body #"\n\n" "\n")]
-      (str/join ["\tdef " name "(" arg "):\n\t\t"
+      (str/join ["\t@classmethod\n\tdef " name "(" arg "):\n\t\t"
         (str/replace body #"\n" "\n\t\t") "\n\n"]))))
 
 (defn make-list-of-strings [items]
