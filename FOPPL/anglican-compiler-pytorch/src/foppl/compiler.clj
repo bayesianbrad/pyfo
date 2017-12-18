@@ -166,12 +166,13 @@
 
 (defn convert-dist [expr]
   (case (name (first expr))
+        ;; continuous
           "normal"
            (let [[mu mu-string] (tf-primitive (first (rest expr)))
-                 [std std-string] (tf-primitive (second (rest expr)))
+                 [sigma std-string] (tf-primitive (second (rest expr)))
                  dist-n (gensym "dist")
-                 dist-string (str/join [mu-string std-string
-                                        dist-n " = dist.Normal(mu=" mu ", sigma=" std ")\n"])]
+                 dist-string (str/join [mu-string sigma-string
+                                        dist-n " = dist.Normal(mu=" mu ", sigma="sigma ")\n"])]
              (vector dist-n dist-string))
 
           "mvn"
@@ -181,14 +182,92 @@
                  dist-string (str/join [mu-string cov-string
                                         dist-n " = dist.MultivariateNormal(mu=" mu ", cov=" cov ")\n"])]
              (vector dist-n dist-string))
+          "gamma"
+           (let [[alpha alpha-string] (tf-primitive (first (rest expr)))
+                 [beta beta-string] (tf-primitive (second (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [alpha-string beta-string
+                                        dist-n " = dist.Gamma(alpha=" alpha ", beta=" beta ")\n"])]
+             (vector dist-n dist-string))
+          "beta"
+           (let [[alpha alpha-string] (tf-primitive (first (rest expr)))
+                 [beta beta-string] (tf-primitive (second (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [alpha-string beta-string
+                                        dist-n " = dist.Beta(alpha=" alpha ", beta=" beta ")\n"])]
+             (vector dist-n dist-string))
+          "cauchy"
+           (let [[mu mu-string] (tf-primitive (first (rest expr)))
+                 [gamma gamma-string] (tf-primitive (second (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [mu-string gammma-string
+                                        dist-n " = dist.Cauchy(mu=" mu ", gamma=" gamma ")\n"])]
+             (vector dist-n dist-string))
+          "dirichlet"
+           (let [[alpha alpha-string] (tf-primitive (first (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [alpha-string
+                                        dist-n " = dist.Dirichlet(alpha=" alpha ")\n"])]
+             (vector dist-n dist-string))
+          "exponential"
+           (let [[lambda lambda-string] (tf-primitive (first (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [lambda-string
+                                        dist-n " = dist.Exponential(lambda=" lambda")\n"])]
+             (vector dist-n dist-string))
+          "log_normal"
+           (let [[mu mu-string] (tf-primitive (first (rest expr)))
+                 [sigma std-string] (tf-primitive (second (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [mu-string std-string
+                                        dist-n " = dist.LogNormal(mu=" mu ", sigma=" std ")\n"])]
+             (vector dist-n dist-string))
+          "uniform"
+           (let [[a a-string] (tf-primitive (first (rest expr)))
+                 [b b-string] (tf-primitive (second (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [a-string b-string
+                                        dist-n " = dist.Uniform(a=" a ", b=" b ")\n"])]
+             (vector dist-n dist-string))
+          "half_cauchy"
+           (let [[mu mu-string] (tf-primitive (first (rest expr)))
+                 [gamma gamma-string] (tf-primitive (second (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [mu-string gammma-string
+                                        dist-n " = dist.HalfCauchy(mu=" mu ", gamma=" gamma ")\n"])]
+             (vector dist-n dist-string))
 
-
-          ;;; discrete
+          ;; discrete
           "categorical"  ;; translate to categorical in tf
            (let [[p p-string] (tf-primitive (first (rest expr)))
                  dist-n (gensym "dist")
                  dist-string (str/join [p-string
                                         dist-n " = dist.Categorical(p=" p ")\n"])]
+             (vector dist-n dist-string))
+          "bernoulli"
+           (let [[ps p-string] (tf-primitive (first (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [p-string
+                                        dist-n " = dist.Bernoulli(ps=" ps ")\n"])]
+             (vector dist-n dist-string))
+          "bernoulli"
+           (let [[ps p-string] (tf-primitive (first (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [p-string
+                                        dist-n " = dist.Bernoulli(ps=" ps ")\n"])]
+             (vector dist-n dist-string))
+          "poisson"
+           (let [[lam lam-string] (tf-primitive (first (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [lam-string
+                                        dist-n " = dist.Poisson(lam="lam ")\n"])]
+             (vector dist-n dist-string))
+          "multinomial"   ;; Distribution over counts for `n` independent `Categorical(ps)` trials.
+           (let [[ps ps-string] (tf-primitive (first (rest expr)))
+                 [n  n-string ] (tf-primitive (second (rest expr)))
+                 dist-n (gensym "dist")
+                 dist-string (str/join [ps-string n-string
+                                        dist-n " = dist.Multnomial(ps="ps ", n " = n ")\n"])]
              (vector dist-n dist-string))
 
     ))
@@ -208,7 +287,8 @@
           (convert-primitive-opt expr)
 
           ;;; distribution
-          ("normal" "mvn" "discrete")
+          ("normal" "mvn" "beta" "cauchy" "dirichlet" "exponential" "gamma" "half_cauchy" "log_normal" "uniform"
+           "discrete" "categorical" "poisson" "bernoulli" "multinomial")
           (convert-dist expr)
 
           (prn "No match case!" expr))
