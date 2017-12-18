@@ -543,7 +543,7 @@
                                     (str/join ["\tdef gen_prior_samples(self):\n"
                                      declare-prior-samples
                                      "state = self.gen_vars() \n"
-                                     "state = getLocals()[state[0]]\n"
+                                     "state = locals()[state[0]]\n"
                                      "return state # list \n\n"]) #"\n" "\n\t\t")
         [pdf-n pdf-s] (tf-joint-log-pdf foppl-query)
         var-cont (get-cont-vars foppl-query)

@@ -14,7 +14,7 @@ from pyfo.distributions.half_cauchy import HalfCauchy
 from pyfo.distributions.log_normal import LogNormal
 from pyfo.distributions.multinomial import Multinomial
 from pyfo.distributions.normal import Normal
-from pyfo.distributions.multivariate_normal import MultivariateNormal
+from pyfo.distributions.mvn import MultivariateNormal
 from pyfo.distributions.poisson import Poisson
 from pyfo.distributions.random_primitive import RandomPrimitive
 from pyfo.distributions.uniform import Uniform
