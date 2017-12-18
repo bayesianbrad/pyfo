@@ -65,14 +65,14 @@ class DHMCSampler(object):
 
         # # Set the scale of v to be inversely proportional to the scale of x.
         self.model =cls() # instantiates model
-        self._state =
-        self._disc_keys = state._return_disc_list()
-        self._cont_keys = state._return_cont_list()
-        self.grad_logp = state._grad_logp
-        self.init_state = state.intiate_state() # essentially this is just x0
-        self.n_param = n_param
+        self._state =state(cls)
+        self._disc_keys = self._state._return_disc_list()
+        self._cont_keys = self._state._return_cont_list()
+        self.grad_logp = self._state._grad_logp
+        self.init_state = self._state.intiate_state() # essentially this is just x0
         self.n_disc = len(self._disc_keys)
         self.n_cont = len(self._cont_keys)
+        self.n_params =  self.n_disc + self.n_cont
         # Note:
         # Need to redefine the M matrix for dictionaries.
         #self.M = torch.div(VariableCast(1),torch.cat((scale[:,:-n_disc]**2, scale[:,-n_disc:]),dim=1)) # M.size() = (chains x n_param)
@@ -277,7 +277,7 @@ class DHMCSampler(object):
         samples = pd.DataFrame.from_dict(rows, orient='columns')
         # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'accept_prob': accept_prob, 'number_of_function_evals':n_feval_per_itr\
+        stats = {'samples':samples, 'accept_prob': accept_prob, 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed}
 
         return stats
