@@ -6,7 +6,7 @@
 # If you want Google's container you would reference google/python
 # Read more about containers on our dev center
 # http://devcenter.wercker.com/docs/containers/index.html
-box: python:3.5
+box: python:3.5-slim
 # You can also use services such as databases. Read more on our dev center:
 # http://devcenter.wercker.com/docs/services/index.html
 # services:
@@ -38,6 +38,10 @@ build:
     # A step that executes `pip install` command.
     - pip-install
 
+    -internal/watch:
+      code: python pyfo/tests/distribution_test.py
+      reload: true
+
     # # This pip-install clears the local wheel cache
     # - pip-install:
     #     clean_wheel_dir: true
@@ -45,7 +49,7 @@ build:
     # A custom script step, name value is used in the UI
     # and the code value contains the command that get executed
     - script:
-        name: echo python information
-        code: |
+        name: echo python distribution tests
+        code: python pyfo/tests/distribution_test.py
           echo "python version $(python --version) running"
           echo "pip version $(pip --version) running"
