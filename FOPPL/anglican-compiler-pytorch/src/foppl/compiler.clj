@@ -505,51 +505,35 @@
 ;;; output into strings
 (defn gen-vars [foppl-query]
   "output variable array of RVs"
-<<<<<<< HEAD
   (create-method "gen_vars" (make-return-list (get-vars foppl-query))))
 ;  (str/join ["\tdef gen_vars(self):\n"
-=======
-  (str/join ["\tdef gen_vars():\n"
->>>>>>> 448fffd5c85b9f9cb443c746e7c7d432d2626443
 ;;              "# generate all unobserved variables \n"
 ;             "\t\treturn ['" (str/join "', '" (get-vars foppl-query)) "'] # list\n\n"
 ;             ]))
 
 (defn gen-ordered-vars [foppl-query]
   "output ordered variable array of RVs"
-<<<<<<< HEAD
   (create-method "gen_ordered_vars"
     (make-return-list (get-ordered-vars foppl-query))))
 ;  (str/join ["\tdef gen_ordered_vars(self):\n"
-=======
-  (str/join ["\tdef gen_ordered_vars():\n"
->>>>>>> 448fffd5c85b9f9cb443c746e7c7d432d2626443
 ;;              "# generate all unobserved variables \n"
 ;             "\t\treturn ['" (str/join "', '" (get-ordered-vars foppl-query)) "'] # need to modify output format\n\n"
 ;             ]))
 
 (defn gen-disc-vars [foppl-query]
   "output discrete and piecewise variable array of RVs"
-<<<<<<< HEAD
   (create-method "gen_disc_vars"
     (make-return-list (get-disc-vars foppl-query))))
 ;  (str/join ["\tdef gen_disc_vars(self):\n"
-=======
-  (str/join ["\tdef gen_disc_vars():\n"
->>>>>>> 448fffd5c85b9f9cb443c746e7c7d432d2626443
 ;;              "# generate discrete and piecewise variables \n"
 ;             "\t\treturn ['" (str/join "', '" (get-disc-vars foppl-query)) "'] # need to modify output format\n\n"
 ;             ]))
 
 (defn gen-cont-vars [foppl-query]
   "output continuous variable array of RVs"
-<<<<<<< HEAD
   (create-method "gen_cont_vars"
     (make-return-list (get-cont-vars foppl-query))))
 ;  (str/join ["\tdef gen_cont_vars(self):\n"
-=======
-  (str/join ["\tdef gen_cont_vars():\n"
->>>>>>> 448fffd5c85b9f9cb443c746e7c7d432d2626443
 ;;              "# generate continuous variables \n"
 ;             "\t\treturn ['" (str/join "', '" (get-cont-vars foppl-query)) "'] # need to modify output format\n\n"
 ;             ]))
@@ -577,7 +561,6 @@
 (defn gen-samples-pdf [foppl-query]
   "output functions to gen samples; compute pdf and grad "
   (let [[declare-s declare-prior-samples] (tf-var-declare foppl-query)
-<<<<<<< HEAD
         gen-samples-s (create-method "gen_prior_samples"
                                     [declare-prior-samples
                                      "state = {}"
@@ -590,14 +573,6 @@
 ;                                    "state = self.gen_vars() \n"
 ;                                    "state = locals()[state[0]]\n"
 ;                                    "return state # list \n\n"]) #"\n" "\n\t\t")
-=======
-        gen-samples-s (clojure.string/replace
-                                    (str/join ["\tdef gen_prior_samples(self):\n"
-                                     declare-prior-samples
-                                     "state = gen_vars.__func__() \n"
-                                     "state = locals()[state[0]]\n"
-                                     "return state # list \n\n"]) #"\n" "\n\t\t")
->>>>>>> 448fffd5c85b9f9cb443c746e7c7d432d2626443
         [pdf-n pdf-s] (tf-joint-log-pdf foppl-query)
         var-cont (get-cont-vars foppl-query)
         grad-s (str/join ["if compute_grad:\n"
@@ -638,23 +613,14 @@
         ]
         ;[declare-E run-E] (eval-E foppl-query)]
     (str/join [heading
-<<<<<<< HEAD
                "\nclass model(interface):\n"
                (generate-doc-str foppl-query)
-=======
-               "\nclass model(interface):\n\n"
-               "\t@staticmethod\n"
->>>>>>> 448fffd5c85b9f9cb443c746e7c7d432d2626443
                (gen-vars foppl-query)
-               "\t@staticmethod\n"
                (gen-cont-vars foppl-query)
-               "\t@staticmethod\n"
                (gen-disc-vars foppl-query)
                "\t# prior samples \n"
-               "\t@staticmethod\n"
                gen-samples-s
                "\t# compute pdf \n"
-               "\t@staticmethod\n"
                gen-pdf-s
                ])))
 
