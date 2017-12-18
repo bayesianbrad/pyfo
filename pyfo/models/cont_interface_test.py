@@ -1,43 +1,44 @@
+import torch
+import numpy as np
+from torch.autograd import Variable
 import pyfo.distributions as dist
 import pyfo.inference as interface
 
+
 class model(interface):
-    """
-    For Yuan:
-    Make sure gen_vars, _cont, _disc_vars are all outputting lists of strings
-    When calling logpdf, write as log_pdf
-    mean and std to be replaced by mu and sigma.
-    For other distributions look at the distribution classes for details.
-    """
-    def gen_vars(self):
-        return ['x32870'] # list
+    @staticmethod
+    def gen_vars():
+        return ['x51554']  # list
 
-    def gen_cont_vars(self):
-        return ['x32870'] # need to modify output format
+    @staticmethod
+    def gen_cont_vars():
+        return ['x51554']  # need to modify output format
 
-    def gen_disc_vars(self, disc_vars):
-        return [[]] # need to modify output format
+    @staticmethod
+    def gen_disc_vars():
+        return ['[]']  # need to modify output format
 
     # prior samples
-    def gen_prior_samples(self):
-        dist32896 = dist.Normal(mu=1.0, sigma=5.0)
-        x32870 = dist32896.sample()   #sample
-        x32898 =  x32870 + 1
-        dist32899 = dist.Normal(mu=x32898, sigma=2.0)
-        y32871 = 7.0
-
-        return [x32870]
+    @staticmethod
+    def gen_prior_samples():
+        dist51578 = dist.Normal(mu=1.0, sigma=5.0)
+        x51554 = dist51578.sample()  # sample
+        x51580 = x51554 + 1
+        dist51581 = dist.Normal(mu=x51580, sigma=2.0)
+        y51555 = 7.0
+        state = gen_vars.__func__()
+        state = locals()[state[0]]
+        return state  # list
 
     # compute pdf
-    def gen_pdf(self,x):
-        # Notes: At this point, all x's need to be leaf nodes
-        dist32896 = dist.Normal(mu=1.0, sigma=5.0)
-        x32870 =  x['x32870']   # get the x from input arg
-        p32897 = dist32896.log_pdf(x32870) # from prior
-        x32898 =  x32870 + 1
-        dist32899 = dist.Normal(mu=x32898, sigma=2.0)
-        y32871 = 7.0
-        p32900 = dist32899.log_pdf( y32871) # from observe
-        logp =  p32897 + p32900  # total log joint
-        return logp # need to modify output format
-
+    @staticmethod
+    def gen_pdf(state):
+        dist51578 = dist.Normal(mu=1.0, sigma=5.0)
+        x51554 = state['x51554']  # get the x from input arg
+        p51579 = dist51578.logpdf(x51554)  # from prior
+        x51580 = x51554 + 1
+        dist51581 = dist.Normal(mu=x51580, sigma=2.0)
+        y51555 = 7.0
+        p51582 = dist51581.logpdf(y51555)  # from observe
+        logp = p51579 + p51582  # total log joint
+        return logp  # need to modify output format
