@@ -169,7 +169,7 @@
         ;; continuous
           "normal"
            (let [[mu mu-string] (tf-primitive (first (rest expr)))
-                 [sigma std-string] (tf-primitive (second (rest expr)))
+                 [sigma sigma-string] (tf-primitive (second (rest expr)))
                  dist-n (gensym "dist")
                  dist-string (str/join [mu-string sigma-string
                                         dist-n " = dist.Normal(mu=" mu ", sigma="sigma ")\n"])]
@@ -200,7 +200,7 @@
            (let [[mu mu-string] (tf-primitive (first (rest expr)))
                  [gamma gamma-string] (tf-primitive (second (rest expr)))
                  dist-n (gensym "dist")
-                 dist-string (str/join [mu-string gammma-string
+                 dist-string (str/join [mu-string gamma-string
                                         dist-n " = dist.Cauchy(mu=" mu ", gamma=" gamma ")\n"])]
              (vector dist-n dist-string))
           "dirichlet"
@@ -233,7 +233,7 @@
            (let [[mu mu-string] (tf-primitive (first (rest expr)))
                  [gamma gamma-string] (tf-primitive (second (rest expr)))
                  dist-n (gensym "dist")
-                 dist-string (str/join [mu-string gammma-string
+                 dist-string (str/join [mu-string gamma-string
                                         dist-n " = dist.HalfCauchy(mu=" mu ", gamma=" gamma ")\n"])]
              (vector dist-n dist-string))
 
@@ -243,12 +243,6 @@
                  dist-n (gensym "dist")
                  dist-string (str/join [p-string
                                         dist-n " = dist.Categorical(p=" p ")\n"])]
-             (vector dist-n dist-string))
-          "bernoulli"
-           (let [[ps p-string] (tf-primitive (first (rest expr)))
-                 dist-n (gensym "dist")
-                 dist-string (str/join [p-string
-                                        dist-n " = dist.Bernoulli(ps=" ps ")\n"])]
              (vector dist-n dist-string))
           "bernoulli"
            (let [[ps p-string] (tf-primitive (first (rest expr)))
@@ -380,7 +374,7 @@
             (let [[var-e var-s]  (tf-primitive expr)   ;final return would always be the dist obj
                   var-string (str/join [str-prog var-s
                                         ; var-n " = " var-e ".sample()   #sample \n"])
-                                         var-n " =  Xs['" var-n "']   # get the x from input arg\n"])
+                                         var-n " =  state['" var-n "']   # get the x from input arg\n"])
 
                   samples-string (str/join [prior-samples var-s
                                         var-n " = " var-e ".sample()   #sample \n"])
@@ -490,28 +484,28 @@
 ;;; output into strings
 (defn gen-vars [foppl-query]
   "output variable array of RVs"
-  (str/join ["\tdef gen_vars(self):\n"
+  (str/join ["\tdef gen_vars():\n"
 ;;              "# generate all unobserved variables \n"
              "\t\treturn ['" (str/join "', " (get-vars foppl-query)) "'] # list\n\n"
              ]))
 
 (defn gen-ordered-vars [foppl-query]
   "output ordered variable array of RVs"
-  (str/join ["\tdef gen_ordered_vars(self):\n"
+  (str/join ["\tdef gen_ordered_vars():\n"
 ;;              "# generate all unobserved variables \n"
              "\t\treturn [" (str/join "," (get-ordered-vars foppl-query)) "] # need to modify output format\n\n"
              ]))
 
 (defn gen-disc-vars [foppl-query]
   "output discrete and piecewise variable array of RVs"
-  (str/join ["\tdef gen_disc_vars(self):\n"
+  (str/join ["\tdef gen_disc_vars():\n"
 ;;              "# generate discrete and piecewise variables \n"
              "\t\treturn ['" (str/join "', '" (get-disc-vars foppl-query)) "'] # need to modify output format\n\n"
              ]))
 
 (defn gen-cont-vars [foppl-query]
   "output continuous variable array of RVs"
-  (str/join ["\tdef gen_cont_vars(self):\n"
+  (str/join ["\tdef gen_cont_vars():\n"
 ;;              "# generate continuous variables \n"
              "\t\treturn ['" (str/join "', '" (get-cont-vars foppl-query)) "'] # need to modify output format\n\n"
              ]))
@@ -542,7 +536,7 @@
         gen-samples-s (clojure.string/replace
                                     (str/join ["\tdef gen_prior_samples(self):\n"
                                      declare-prior-samples
-                                     "state = self.gen_vars() \n"
+                                     "state = gen_vars.__func__() \n"
                                      "state = locals()[state[0]]\n"
                                      "return state # list \n\n"]) #"\n" "\n\t\t")
         [pdf-n pdf-s] (tf-joint-log-pdf foppl-query)
@@ -566,12 +560,17 @@
         ;[declare-E run-E] (eval-E foppl-query)]
     (str/join [heading
                "\nclass model(interface):\n\n"
+               "\t@staticmethod\n"
                (gen-vars foppl-query)
+               "\t@staticmethod\n"
                (gen-cont-vars foppl-query)
+               "\t@staticmethod\n"
                (gen-disc-vars foppl-query)
                "\t# prior samples \n"
+               "\t@staticmethod\n"
                gen-samples-s
                "\t# compute pdf \n"
+               "\t@staticmethod\n"
                gen-pdf-s
                ])))
 
