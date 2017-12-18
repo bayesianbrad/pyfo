@@ -58,17 +58,15 @@ n_step_range = [10, 20]
 
 import <model_name>
 
-DHMC    = dhmc(<model_name>, n_chains)
+dhmc_    = dhmc(<model_name>, n_chains)
 
-stats = dhmc.sample(n_samples, burn_in, stepsize_range, n_step_range)
+stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range)
 samples = stats['samples'] # returns dataframe of all samples.
-To do:
-* Have a function that extracts the relevent information from the dataframe, prints a table
-showing summary statistics for each chain. 
-
-
 ```
 
+To do:
+* Have a function that extracts the relevent information from the dataframe, prints a table
+showing summary statistics for each chain.
 
 <a name="fn1">1</a>: Nishimura, Akihiko, David Dunson, and Jianfeng Lu. "Discontinuous Hamiltonian Monte Carlo for sampling discrete parameters." arXiv preprint arXiv:1705.08510 (2017).
 
