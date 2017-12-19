@@ -414,7 +414,7 @@
               "import numpy as np  \n"
               "from torch.autograd import Variable  \n"
               "import pyfo.distributions as dist\n"
-              "import pyfo.inference as interface\n"]))
+              "from pyfo.utils.interface import interface\n"]))
 
 ;;; deal with the E
 ;; output [s1, s2] two string, one declare, one init and run
@@ -712,3 +712,67 @@
 (print-graph (first poi-src2))
 (spit "./output-pytorch/poi-src.py" (compile-query poi-src2))
 
+(def lr-src
+  (foppl-query
+    (defn observe-data [_ data slope bias]
+                        ;;_ loop index
+      					        ;;data value
+      					        ;;slop and bias are the real args
+      (let [xn (first data)
+            yn (second data)
+            zn (+ (* slope xn) bias)]
+        (observe (normal zn 1.0) yn)
+        (rest (rest data))))
+
+    (let [slope (sample (normal 0.0 10.0))
+          bias  (sample (normal 0.0 10.0))
+          data (vector
+                 1.0 2.1 2.0 3.9 3.0 5.3)]
+                 ;4.0 7.7 5.0 10.2 6.0 12.9)]
+      (loop 3 data observe-data slope bias)
+       (vector slope bias))))
+(print-graph (first lr-src))
+(spit "./output-pytorch/lr-src.py" (compile-query lr-src))
+
+(def simple
+  (foppl-query
+    (let [x (sample (normal 1.0 5.0))]
+      (observe (normal x 2.0) 7.0)
+      x)))
+(print-graph (first simple))
+
+;(first src0)
+(spit "./output-pytorch/simple.py" (compile-query simple))
+
+(def hmm-src
+  (foppl-query
+    (defn data [n]
+      (let [points (vector 0.9 0.8 0.7 0.0 -0.025
+                           5.0 2.0 0.1 0.0 0.13
+                           0.45 6.0 0.2 0.3 -1.0 -1.0)]
+        (get points n)))
+
+    ;; Define the init, transition, and observation distributions
+    (defn get-init-params []
+      (vector (/ 1. 3.) (/ 1. 3.) (/ 1. 3.)))
+
+    (defn get-trans-params [k]
+      (nth (vector (vector 0.1  0.5  0.4 )
+                   (vector 0.2  0.2  0.6 )
+                   (vector 0.7 0.15 0.15 )) k))
+
+    (defn get-obs-dist [k]
+      (nth (vector (normal -1. 1.)
+                   (normal  1. 1.)
+                   (normal  0. 1.)) k))   ; have some problem in tf when indexing obj
+
+    ;; Function to step through HMM and sample latent state
+    (defn hmm-step [n states]
+      (let [next-state (sample (categorical (get-trans-params (last states))))]
+        (observe (get-obs-dist next-state) (data n))
+        (conj states next-state)))
+
+    ;; Loop through the data
+    (let [init-state (sample (categorical (get-init-params)))]
+      (loop 1 (vector init-state) hmm-step))))
+(spit "./output-pytorch/hmm.py" (compile-query hmm-src))
