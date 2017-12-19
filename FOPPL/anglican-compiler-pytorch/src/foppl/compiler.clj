@@ -242,7 +242,7 @@
            (let [[p p-string] (tf-primitive (first (rest expr)))
                  dist-n (gensym "dist")
                  dist-string (str/join [p-string
-                                        dist-n " = dist.Categorical(p=" p ")\n"])]
+                                        dist-n " = dist.Categorical(ps=" p ")\n"])]
              (vector dist-n dist-string))
           "bernoulli"
            (let [[ps p-string] (tf-primitive (first (rest expr)))
@@ -635,8 +635,7 @@
       (observe (normal xx 2.0) 7.0)
       xx)))
 (print-graph (first one-gaussian))
-(:body (second one-gaussian))
-(spit "./output-pytorch/one-gauss-model.py" (compile-query one-gaussian))
+(spit "./output-pytorch/onedgaussmodel.py" (compile-query one-gaussian))
 
 
 ;; (def if-src
@@ -688,11 +687,11 @@
   (foppl-query
     (let [mu (vector -5 5)
           obs (vector -7 7)
-          z (sample (discrete [0.3 0.7]))]
+          z (sample (categorical [0.3 0.7]))]
       (observe (normal (get mu z) 2) (get obs z))
       (vector z (get mu z)))))
 (print-graph (first gmm))
-
+(spit "./output-pytorch/ggm.py" (compile-query gmm))
 
 (def poi-src
   (foppl-query
@@ -711,3 +710,5 @@
           e (sample d)]
       e)))
 (print-graph (first poi-src2))
+(spit "./output-pytorch/poi-src.py" (compile-query poi-src2))
+
