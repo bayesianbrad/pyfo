@@ -32,17 +32,12 @@ class State(object):
 
     def intiate_state(self):
         """
-        Creates a dictionary of the state. With each parameter transformed into a variable, if it is not already one.
-        And ensures that the Variable is a leaf node
+        A dictionary of the state.
         :param
-        :return: state type: Dict
+        :return: state type: intialized state
         """
-        state = dict.fromkeys(self._all_vars)
-        values= deque(self._state_init)
-        for var in state:
-            state[var] = VariableCast(values.popleft().data, grad=True)
 
-        return state
+        return self._state_init
 
     def _return_disc_list(self):
         if len(self._disc_vars) == 0:
@@ -65,7 +60,7 @@ class State(object):
         for key, value in x.items():
             x[key] = Variable(value.data, requires_grad=True)
 
-    def _log_pdf(self, state):
+    def _log_pdf(self, state, set_leafs= False):
         """
         The compiled pytorch function, log_pdf, should automatically
         return the pdf.
@@ -76,10 +71,10 @@ class State(object):
         here? Then they will be passed to gen_logpdf to create the differentiable logpdf
         . Answer: yes, because
         """
-        state_leafs = self._to_leaf(state)
+        if set_leafs:
+            state = self._to_leaf(state)
 
-
-        return self._gen_logpdf(state_leafs)
+        return self._gen_logpdf(state)
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
         Implements the 'f_update' in the coordinate wise integrator, to calculate the
@@ -135,3 +130,16 @@ class State(object):
         for key in state:
             state[key] = VariableCast(state[key].data, grad=True)
         return state
+
+    @staticmethod
+    def _return_tensor(val1):
+        """
+        Takes a values, checks to see if it is a variable, if so returns tensor,
+        else returns a tensor of the value
+        :param val1:
+        :return:
+        """
+        if isinstance(val1, Variable):
+            return val1.data
+        else:
+            return val1
