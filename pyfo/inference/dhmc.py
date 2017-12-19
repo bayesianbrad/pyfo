@@ -8,19 +8,18 @@ Date created:  08/12/2017
 License: MIT
 '''
 
-import torch
-import importlib
-import os
 import math
-from torch.autograd import Variable
-import numpy as np
-import sys
-from itertools import permutations
 import time
-from pyfo.utils.core import VariableCast
+from itertools import permutations
+
+import numpy as np
 import pandas as pd
+import torch
+
 # the state interacts with the interface, where ever that is placed....
-from pyfo.models import state
+from pyfo.utils import state
+from pyfo.utils.core import VariableCast
+
 
 # def load_from_file(filepath):
 #     '''
@@ -65,21 +64,21 @@ class DHMCSampler(object):
         # # Set the scale of v to be inversely proportional to the scale of x.
 
         self.model =cls() # instantiates model
-        self._state =state(cls)
+        self._state = state.State(cls)
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # essentially this is just x0
-        self.n_disc = len(self._disc_keys)
-        self.n_cont = len(self._cont_keys)
-        self.n_params =  self.n_disc + self.n_cont
+        # self.n_disc = len(self._disc_keys)
+        # self.n_cont = len(self._cont_keys)
+        # self.n_params =  self.n_disc + self.n_cont
         # Note:
         # Need to redefine the M matrix for dictionaries.
         #self.M = torch.div(VariableCast(1),torch.cat((scale[:,:-n_disc]**2, scale[:,-n_disc:]),dim=1)) # M.size() = (chains x n_param)
         self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
 
-        self.log_posterior = state.log_posterior  # returns a function that thats the current state as argument
-        self.logp_update = state.logp_update # returns a function ; not currently used 10:50 14th Dec.
+        self.log_posterior = self._state._log_pdf  # returns a function that thats the current state as argument
+        self.logp_update = self._state._log_pdf_update # returns a function ; not currently used 10:50 14th Dec.
         # if M is None:
         #     self.M = torch.ones(n_param, 1) # This M.size() = (10,1)
 
@@ -234,7 +233,7 @@ class DHMCSampler(object):
 
         return x, acceptprob, n_feval, n_fupdate
 
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=12345, n_update=10):
         torch.manual_seed(seed)
         np.random.seed(seed)
         x = self.init_state
