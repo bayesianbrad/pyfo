@@ -9,7 +9,8 @@ License: MIT
 '''
 
 import torch
-import copy
+import importlib
+import os
 import math
 from torch.autograd import Variable
 import numpy as np
@@ -21,20 +22,18 @@ import pandas as pd
 # the state interacts with the interface, where ever that is placed....
 from pyfo.models import state
 
-
-# def import_model(name):
+# def load_from_file(filepath):
 #     '''
 #     Helper function for extracting the whole module and not just the package.
 #     See answer by clint miller for details:
-#     https://stackoverflow.com/questions/951124/dynamic-loading-of-python-modules
-#
-#     :param name
+#     https://stackoverflow.com/questions/301134/dynamic-module-import-in-python?noredirect=1&lq=1
+#     :param file_path
 #     :type string
 #     :return module of model (models base class is the interface)
 #     '''
-#     mod = __import__(name)
-#     mod_name = 'pyfo.models.'
-#     components = name.split('.')
+#     PATH = '././FOPPL/outbook-pytorch/' + model_name +'.py'
+#     mod = __import__(model_name)
+#     components = mod_name.split('.')
 #     for comp in components[1:]:
 #         mod = getattr(mod, comp)
 #     return mod
@@ -64,6 +63,7 @@ class DHMCSampler(object):
              scale = VariableCast(torch.ones(chains)) # outputs chains x n_param tensor
 
         # # Set the scale of v to be inversely proportional to the scale of x.
+
         self.model =cls() # instantiates model
         self._state =state(cls)
         self._disc_keys = self._state._return_disc_list()
@@ -85,7 +85,8 @@ class DHMCSampler(object):
 
     def random_momentum(self):
         """
-        Constructs a momentum dictionary
+        Constructs a momentum dictionary where for the discrete keys we have laplacian momen tum
+        and for continous keys we have gaussian
         :return:
         """
         p = {}
@@ -94,7 +95,7 @@ class DHMCSampler(object):
                 p[key] = self.M[key] * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
         if self._cont_keys is not None:
             for key in self._cont_keys:
-                p[key] = torch.sqrt(self.M[key]) * torch.normal(0,1)  # in the future make for multiple dims
+                p[key] = VariableCast(torch.sqrt(self.M[key]) * torch.normal(0,1))  # in the future make for multiple dims
     def coordInt(self,x,p, stepsize,key):
         """
         Performs the coordinate wise update. The permutation is done before the
@@ -110,7 +111,7 @@ class DHMCSampler(object):
         x_star = x.copy.copy()
         x_star[key] = x_star[key] + stepsize*self.M # Need to change M here again
 
-        logp_diff = self.log_posterior(x_star) - self.log_posterior(x)
+        logp_diff = self.log_posterior(x_star, set_leafs=False) - self.log_posterior(x, set_leafs=False)
 
         if torch.gt(self.M*torch.abs(torch.sign(p[key])),logp_diff)[0][0]:
             x = x_star
@@ -145,7 +146,7 @@ class DHMCSampler(object):
 
         # perform first step of leapfrog integrators
         if self._cont_keys is not None:
-            logp = self.log_posterior(x)
+            logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
                 p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key]) # Need to make sure this works
 
@@ -161,7 +162,7 @@ class DHMCSampler(object):
             if self._cont_keys is not None:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
-                logp = self.log_posterior(x)
+                logp = self.log_posterior(x, set_leafs=True)
 
 
             if math.isinf(logp):
@@ -178,7 +179,7 @@ class DHMCSampler(object):
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key] # final half step for position
 
             if not self._cont_keys:
-                logp = self.log_posterior(x)
+                logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5*stepsize*self._grad_logp(logp, x[key]) # final half step for momentum
                 n_feval += 1
@@ -193,25 +194,13 @@ class DHMCSampler(object):
         :return: Tensor
         """
 
-        kinetic_energy = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
-        kinetic_energy = torch.sum(torch.stack([self.M*torch.abs(p[name]) for name in self._disc_keys]))
+        kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
+        kinetic_disc = torch.sum(torch.stack([self.M*torch.abs(p[name]) for name in self._disc_keys]))
+        kinetic_energy = kinetic_cont + kinetic_disc
         potential_energy = -self._log_prob(x)
 
 
-        return self._return_tensor(kinetic_energy) + self._return_tensor(potential_energy)
-
-    @staticmethod
-    def _return_tensor(val1):
-        """
-        Takes a values, checks to see if it is a variable, if so returns tensor,
-        else returns a tensor of the value
-        :param val1:
-        :return:
-        """
-        if isinstance(val1, Variable):
-            return val1.data
-        else:
-            return val1
+        return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
 
     def hmc(self, stepsize, n_step, x0):
         """
