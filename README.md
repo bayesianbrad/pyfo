@@ -50,7 +50,7 @@ Not yet completed. But it needs to be run in the terminal (a little) like this:
 
 ```python
 import pyfo
-from pyfo.inference.DHMC as dhmc
+from pyfo.inference.dhmc import DHMCSampler as dhmc
 burn_in = 1000
 n_sample = 10 ** 4
 stepsize_range = [0.03,0.15]
