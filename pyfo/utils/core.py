@@ -22,7 +22,9 @@ def VariableCast(value, grad = False):
     ------
     torch.autograd.variable.Variable object
     '''
-    if isinstance(value, Variable):
+    if value is None:
+        return None
+    elif isinstance(value, Variable):
         return value # Should I check if FloatTensor?
     elif torch.is_tensor(value):
         return Variable(value, requires_grad = grad)
