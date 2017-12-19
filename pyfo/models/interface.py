@@ -16,25 +16,25 @@ class interface():
     """
     A generic model interface for DHMC
     """
-    @staticmethod
-    def gen_vars() -> List[str]:
+    @classmethod
+    def gen_vars(self) -> List[str]:
         """
         Returns the names of the random variables in the model
         :param
         :return:
         """
-    raise NotImplementedError
+        raise NotImplementedError
 
-    @staticmethod
-    def gen_cont_vars() -> List[str]:
+    @classmethod
+    def gen_cont_vars(self) -> List[str]:
         """
 
         :return:
         """
         raise NotImplementedError
 
-    @staticmethod
-    def gen_disc_vars() -> List[str]:
+    @classmethod
+    def gen_disc_vars(self) -> List[str]:
         """
 
         :return:
@@ -42,8 +42,8 @@ class interface():
         raise NotImplementedError
 
     # prior samples
-    @staticmethod
-    def gen_prior_samples() -> Dict[str,Variable]:
+    @classmethod
+    def gen_prior_samples(self) -> Dict[str,Variable]:
         """
         Returns a Dictionary whose entries are the string variable names and
         whose values are the sampled values for the same
@@ -57,8 +57,8 @@ class interface():
         raise NotImplementedError
 
     # compute pdf
-    @staticmethod
-    def gen_pdf(x: Dict[str,Variable]) -> Variable:
+    @classmethod
+    def gen_pdf(self, state: Dict[str,Variable]) -> Variable:
         """
         Returns the log pdf of the model.
         Pass stat with each variable as  a leaf node, so that the
