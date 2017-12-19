@@ -139,9 +139,9 @@ class Categorical(Distribution):
         :return: tensor with log probabilities for each of the batches.
         :rtype: torch.autograd.Variable
         """
-        logits = self.logits
+        logits = VariableCast(self.logits)
         vs = self.vs
-        x = self._process_data(x)
+        x = self._process_data(VariableCast(x))
         batch_pdf_shape = self.batch_shape(x) + (1,)
         # probability tensor mask when data is numpy
         if isinstance(x, np.ndarray):

@@ -93,6 +93,7 @@ class MultivariateNormal(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
         # expand to patch size of input
+        x = VariableCast(x)
         mu = self.mu.expand(self.shape(x))
         sigma = self.sigma.expand(self.shape(x))
         log_pxs = -1 * (torch.log(sigma) + 0.5 * np.log(2.0 * np.pi) + 0.5 * torch.pow((x - mu) / sigma, 2))

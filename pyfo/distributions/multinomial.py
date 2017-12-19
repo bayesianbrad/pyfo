@@ -83,6 +83,7 @@ class Multinomial(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         batch_log_pdf_shape = self.batch_shape(x) + (1,)
         log_factorial_n = log_gamma(x.sum(-1) + 1)
         log_factorial_xs = log_gamma(x + 1).sum(-1)

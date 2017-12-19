@@ -60,6 +60,7 @@ class Delta(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         v = self.v
         v = v.expand(self.shape(x))
         batch_shape = self.batch_shape(x) + (1,)

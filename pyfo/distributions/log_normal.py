@@ -71,6 +71,7 @@ class LogNormal(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         mu = self.mu.expand(self.shape(x))
         sigma = self.sigma.expand(self.shape(x))
         ll_1 = Variable(torch.Tensor([-0.5 * np.log(2.0 * np.pi)]).type_as(mu.data).expand_as(x))

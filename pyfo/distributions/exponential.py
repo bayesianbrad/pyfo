@@ -64,6 +64,7 @@ class Exponential(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         lam = self.lam.expand(self.shape(x))
         ll = -lam * x + torch.log(lam)
         batch_log_pdf_shape = self.batch_shape(x) + (1,)

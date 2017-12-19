@@ -74,6 +74,7 @@ class Gamma(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         alpha = self.alpha.expand(self.shape(x))
         beta = self.beta.expand(self.shape(x))
         ll_1 = -beta * x

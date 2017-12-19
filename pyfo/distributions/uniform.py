@@ -68,6 +68,7 @@ class Uniform(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         a = self.a.expand(self.shape(x))
         b = self.b.expand(self.shape(x))
         lb = x.ge(a).type_as(a)

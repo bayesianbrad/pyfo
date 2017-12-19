@@ -78,6 +78,7 @@ class Cauchy(Distribution):
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
         # expand to patch size of input
+        x = VariableCast(x)
         mu = self.mu.expand(self.shape(x))
         gamma = self.gamma.expand(self.shape(x))
         x_0 = torch.pow((x - mu) / gamma, 2)

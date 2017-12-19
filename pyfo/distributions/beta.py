@@ -73,6 +73,7 @@ class Beta(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x= VariableCast(x)
         alpha = self.alpha.expand(self.shape(x))
         beta = self.beta.expand(self.shape(x))
         one = Variable(torch.ones(x.size()).type_as(alpha.data))

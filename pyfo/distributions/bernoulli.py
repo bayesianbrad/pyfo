@@ -80,6 +80,7 @@ class Bernoulli(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         batch_log_pdf_shape = self.batch_shape(x) + (1,)
         max_val = (-self.logits).clamp(min=0)
         binary_cross_entropy = self.logits - self.logits * x + max_val + \

@@ -61,6 +61,7 @@ class Poisson(Distribution):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
         """
+        x = VariableCast(x)
         lam = self.lam.expand(self.shape(x))
         ll_1 = torch.sum(x * torch.log(lam), -1)
         ll_2 = -torch.sum(lam, -1)

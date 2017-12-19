@@ -89,6 +89,7 @@ class Dirichlet(Distribution):
         :return: log probability densities of each element in the batch.
         :rtype: torch.autograd.Variable of torch.Tensor of dimension 1.
         """
+        x = VariableCast(x)
         alpha = self.alpha.expand(self.shape(x))
         x_sum = torch.sum(torch.mul(alpha - 1, torch.log(x)), -1)
         beta = log_beta(alpha)
