@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 '''
 Author: Bradley Gram-Hansen
-Time created:  16:42
-Date created:  09/11/2017
+Time created:  16:39
+Date created:  18/12/2017
 
 License: MIT
 '''
