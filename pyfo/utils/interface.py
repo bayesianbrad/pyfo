@@ -11,7 +11,6 @@ License: MIT
 from typing import Dict, List
 from torch.autograd import Variable
 
-
 class interface():
     """
     A generic model interface for DHMC
