@@ -350,7 +350,7 @@
                     samples-string (str/join [prior-samples cond-s dist-s o-s
                                               var-n " = " o-n " \n"])
                     pdf-n (gensym "p")
-                    pdf-s (str/join [pdf-n " = " dist-n ".logpdf(" var-n ") if " cond-n " else " 0 " # from observe with if  \n"])]
+                    pdf-s (str/join [pdf-n " = " dist-n ".(" var-n ") if " cond-n " else " 0 " # from observe with if  \n"])]
                  (update-v-p var-n pdf-n)  ;; update the atomn
                  (recur (rest var-list)
                         (str/join [var-string pdf-s])
@@ -364,7 +364,7 @@
                     samples-string (str/join [prior-samples var-s o-s
                                               var-n " = " o-n " \n"])
                     pdf-n (gensym "p")
-                    pdf-s (str/join [pdf-n " = "  var-e ".logpdf(" var-n ") # from observe  \n"])]
+                    pdf-s (str/join [pdf-n " = "  var-e ".log_pdf(" var-n ") # from observe  \n"])]
                   (update-v-p var-n pdf-n)  ;; update the atomn
                   (recur (rest var-list)
                          (str/join [var-string pdf-s])
@@ -380,7 +380,7 @@
                                         var-n " = " var-e ".sample()   #sample \n"])
 
                   pdf-n (gensym "p")
-                  pdf-s (str/join [pdf-n " = " var-e ".logpdf( " var-n ") # from prior\n"])]
+                  pdf-s (str/join [pdf-n " = " var-e ".log_pdf( " var-n ") # from prior\n"])]
                 (update-v-p var-n pdf-n)  ;;update the atom
                 (recur (rest var-list)
                        (str/join [var-string pdf-s])
