@@ -109,7 +109,7 @@ def my_import(name):
         mod = getattr(mod, comp)
     return mod
 
-def extract_samples(dataframe, keys):
+def extract_means(dataframe, keys=None):
     """
 
     :param dataframe: pandas.DataFrame
@@ -122,3 +122,25 @@ def extract_samples(dataframe, keys):
     If the values stored are arrays, i.e. multiple chains, then use
     dataframe.loc[<key>][i] to extract the exact array
     """
+    means = {}
+    if keys:
+        for key in keys:
+            if key is None:
+                continue
+            else:
+                means[key] = dataframe[key].sum() / len(dataframe.index)
+        return means
+    else:
+        return dataframe.values.sum() / len(dataframe)
+
+
+
+# def print_stats(data, keys):
+#
+#     """
+#
+#     :param data:
+#     :param keys:
+#     :return:
+#     """
+#
