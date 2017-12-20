@@ -48,6 +48,12 @@ class State(object):
             return None
         else:
             return self._cont_vars
+
+    def _return_all_list(self):
+        if len(self._all_vars) == 0:
+            return None
+        else:
+            return self._all_vars
     @staticmethod
     def detach_nodes(x):
         """
