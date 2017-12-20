@@ -28,7 +28,7 @@ class interface():
     def gen_cont_vars(self) -> List[str]:
         """
 
-        :return:
+        :return: List of continous arameter strings
         """
         raise NotImplementedError
 
@@ -36,10 +36,15 @@ class interface():
     def gen_disc_vars(self) -> List[str]:
         """
 
-        :return:
+        :return: Lst of discrete parameter strings
         """
         raise NotImplementedError
+    @classmethod
+    def gen_if_vars(self) -> List[str]:
+        """
 
+        :return: List of if ancestors as string
+        """
     # prior samples
     @classmethod
     def gen_prior_samples(self) -> Dict[str,Variable]:
