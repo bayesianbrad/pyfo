@@ -91,10 +91,18 @@ class DHMCSampler(object):
         p = {}
         if self._disc_keys is not None:
             for key in self._disc_keys:
-                p[key] = self.M[key] * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
+                p[key] = self.M * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
         if self._cont_keys is not None:
             for key in self._cont_keys:
-                p[key] = VariableCast(torch.sqrt(self.M[key]) * torch.normal(0,1))  # in the future make for multiple dims
+                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))  # in the future make for multiple dims
+        # Uncomment this version and delete the above when self.M is corrected
+        # if self._disc_keys is not None:
+        #     for key in self._disc_keys:
+        #         p[key] = self.M[key] * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
+        # if self._cont_keys is not None:
+        #     for key in self._cont_keys:
+        #         p[key] = VariableCast(torch.sqrt(self.M[key]) * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))  # in the future make for multiple dims
+        return p
     def coordInt(self,x,p, stepsize,key):
         """
         Performs the coordinate wise update. The permutation is done before the
@@ -192,12 +200,18 @@ class DHMCSampler(object):
         :param p:
         :return: Tensor
         """
-
-        kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
-        kinetic_disc = torch.sum(torch.stack([self.M*torch.abs(p[name]) for name in self._disc_keys]))
+        print('Debug statement in _energy(). The cont_keys are: {0}\n'
+              'the discrete keys are: {1}'.format(self._cont_keys, self._disc_keys))
+        if self._disc_keys is not None:
+            kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
+        else:
+            kinetic_disc = VariableCast(0)
+        if self._cont_keys is not None:
+            kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
+        else:
+            self._cont_keys = VariableCast(0)
         kinetic_energy = kinetic_cont + kinetic_disc
-        potential_energy = -self._log_prob(x)
-
+        potential_energy = -self.log_posterior(x)
 
         return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
 
@@ -246,8 +260,8 @@ class DHMCSampler(object):
         tic = time.process_time()
 
         for i in range(n_samples+burn_in):
-            stepsize = np.random.uniform_(stepsize_range[0], stepsize_range[1]) #  may need to transforms to variables.
-            n_step = np.random.uniform_(n_step_range[0], n_step_range[1])
+            stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
+            n_step = VariableCast(np.random.uniform(n_step_range[0], n_step_range[1]))
             x, accept_prob[i], n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
