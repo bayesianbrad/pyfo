@@ -2,28 +2,28 @@ import torch
 import numpy as np  
 from torch.autograd import Variable  
 import pyfo.distributions as dist
-import pyfo.inference as interface
+from pyfo.utils.interface import interface
 
 class model(interface):
 	'''
 	Vertices V:
-	#{x30562 y30563}
+	#{y32998 x32997}
 	Arcs A:
-	#{[x30562 y30563]}
+	#{[x32997 y32998]}
 	Conditional densities P:
-	x30562 -> (fn [] (normal 1.0 5.0))
-	y30563 -> (fn [x30562] (normal x30562 2.0))
+	x32997 -> (fn [] (normal 1.0 5.0))
+	y32998 -> (fn [x32997] (normal x32997 2.0))
 	Observed values O:
-	y30563 -> 7.0
+	y32998 -> 7.0
 	'''
 
 	@classmethod
 	def gen_vars(self):
-		return ['x30562']
+		return ['x32997']
 
 	@classmethod
 	def gen_cont_vars(self):
-		return ['x30562']
+		return ['x32997']
 
 	@classmethod
 	def gen_disc_vars(self):
@@ -32,10 +32,10 @@ class model(interface):
 	# prior samples 
 	@classmethod
 	def gen_prior_samples(self):
-		dist30586 = dist.Normal(mu=1.0, sigma=5.0)
-		x30562 = dist30586.sample()   #sample 
-		dist30588 = dist.Normal(mu=x30562, sigma=2.0)
-		y30563 = 7.0 
+		dist33021 = dist.Normal(mu=1.0, sigma=5.0)
+		x32997 = dist33021.sample()   #sample 
+		dist33023 = dist.Normal(mu=x32997, sigma=2.0)
+		y32998 = 7.0 
 		state = {}
 		for _gv in self.gen_vars():
 			state[_gv] = locals()[_gv]
@@ -44,12 +44,12 @@ class model(interface):
 	# compute pdf 
 	@classmethod
 	def gen_pdf(self, state):
-		dist30586 = dist.Normal(mu=1.0, sigma=5.0)
-		x30562 =  state['x30562']   # get the x from input arg
-		p30587 = dist30586.logpdf( x30562) # from prior
-		dist30588 = dist.Normal(mu=x30562, sigma=2.0)
-		y30563 = 7.0 
-		p30589 = dist30588.logpdf(y30563) # from observe  
-		logp =  p30587 + p30589  # total log joint 
+		dist33021 = dist.Normal(mu=1.0, sigma=5.0)
+		x32997 =  state['x32997']   # get the x from input arg
+		p33022 = dist33021.log_pdf( x32997) # from prior
+		dist33023 = dist.Normal(mu=x32997, sigma=2.0)
+		y32998 = 7.0 
+		p33024 = dist33023.log_pdf(y32998) # from observe  
+		logp =  p33022 + p33024  # total log joint 
 		return logp # need to modify output format
 
