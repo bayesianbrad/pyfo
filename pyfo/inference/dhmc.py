@@ -15,10 +15,11 @@ from itertools import permutations
 import numpy as np
 import pandas as pd
 import torch
-
+import copy
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
+from pyfo.utils.core import extract_means
 
 
 # def load_from_file(filepath):
@@ -67,6 +68,8 @@ class DHMCSampler(object):
         self._state = state.State(cls)
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
+        self._all_keys = self._state._return_all_list()
+
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # essentially this is just x0
         # self.n_disc = len(self._disc_keys)
@@ -115,7 +118,7 @@ class DHMCSampler(object):
         :return: Updated x and p indicies
         """
 
-        x_star = x.copy.copy()
+        x_star = copy.copy(x)
         x_star[key] = x_star[key] + stepsize*self.M # Need to change M here again
 
         logp_diff = self.log_posterior(x_star, set_leafs=False) - self.log_posterior(x, set_leafs=False)
@@ -148,9 +151,8 @@ class DHMCSampler(object):
         n_fupdate = 0
 
         #performs shallow copy
-        x = x0.copy.copy()
-        p = p0.copy.copy()
-
+        x = copy.copy(x0)
+        p = copy.copy(p0)
         # perform first step of leapfrog integrators
         if self._cont_keys is not None:
             logp = self.log_posterior(x, set_leafs=True)
@@ -160,6 +162,10 @@ class DHMCSampler(object):
         if self._disc_keys is None:
             for key in self._cont_keys:
                 x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
+            logp = self.log_posterior(x, set_leafs=True)
+            for key in self._cont_keys:
+                p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
+            return x, p, n_feval, n_fupdate
 
         else:
             permuted_keys = permutations(self._disc_keys,1)
@@ -175,11 +181,10 @@ class DHMCSampler(object):
             if math.isinf(logp):
                 return x, p, n_feval, n_fupdate
 
-            if self._disc_keys is not None:
-                print('update coordinate wise')
-                for key in permuted_keys:
-                    x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
-                n_fupdate += 1
+            print('update coordinate wise')
+            for key in permuted_keys:
+                x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
+            n_fupdate += 1
 
             if self._cont_keys is not None:
                 for key in self._cont_keys:
@@ -200,8 +205,6 @@ class DHMCSampler(object):
         :param p:
         :return: Tensor
         """
-        print('Debug statement in _energy(). The cont_keys are: {0}\n'
-              'the discrete keys are: {1}'.format(self._cont_keys, self._disc_keys))
         if self._disc_keys is not None:
             kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
         else:
@@ -232,7 +235,7 @@ class DHMCSampler(object):
         n_feval = 0
         n_fupdate = 0
         x, p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x0,p,stepsize)
-        for i in range(1,n_step):
+        for i in range(n_step):
             # may have to add inf statement see original code
             x,p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x,p,stepsize)
             n_feval += n_feval_local
@@ -245,42 +248,52 @@ class DHMCSampler(object):
         if acceptprob[0] < np.random.uniform(0,1):
             x = x0
 
-        return x, acceptprob, n_feval, n_fupdate
+        return x, acceptprob[0], n_feval, n_fupdate
 
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=12345, n_update=10):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=12345, n_update=10, print_stats= False):
+        # Note currently not doing anything with burn in
         torch.manual_seed(seed)
         np.random.seed(seed)
         x = self.init_state
         n_per_update = math.ceil((n_samples + burn_in)/n_update)
         n_feval = 0
         n_fupdate = 0
-        rows = []
-        accept_prob = torch.zeros(n_samples + burn_in, 1)
+        x_dicts = []
+        accept =[]
 
         tic = time.process_time()
 
         for i in range(n_samples+burn_in):
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
-            n_step = VariableCast(np.random.uniform(n_step_range[0], n_step_range[1]))
-            x, accept_prob[i], n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
+            n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
+            x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
-            rows.append(x)
+            accept.append(accept_prob)
+            x_dicts.append(x)
             if (i + 1) % n_per_update == 0:
                 print('{:d} iterations have been completed.'.format(i + 1))
         toc = time.process_time()
         time_elapsed = toc - tic
         n_feval_per_itr = n_feval / (n_samples + burn_in)
         n_fupdate_per_itr = n_fupdate / (n_samples + burn_in)
-        print('Each iteration of DHMC on average required '
-            + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
-            + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+        if self._disc_keys is not None:
+            print('Each iteration of DHMC on average required '
+                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
+                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
 
-        samples = pd.DataFrame.from_dict(rows, orient='columns')
+
+
+        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns')
+        samples =  all_samples.loc[burn_in:, :]
+        means = extract_means(samples,self._all_keys)
+
+
         # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'accept_prob': accept_prob, 'number_of_function_evals':n_feval_per_itr, \
+        stats = {'samples':samples, 'means':means, 'accept_prob': np.sum(accept)/len(accept), 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed}
+
 
         return stats
 

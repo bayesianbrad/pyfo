@@ -3,6 +3,7 @@ import numpy as np
 from torch.autograd import Variable  
 import pyfo.distributions as dist
 from pyfo.utils.interface import interface
+import math
 
 class model(interface):
 	'''
@@ -37,9 +38,9 @@ class model(interface):
 	# prior samples 
 	@classmethod
 	def gen_prior_samples(self):
-		dist32851 = dist.Normal(mu=0.0, sigma=10.0)
+		dist32851 = dist.Normal(mu=0.0, sigma=math.sqrt(10.0))
 		x32740 = dist32851.sample()   #sample 
-		dist32853 = dist.Normal(mu=0.0, sigma=10.0)
+		dist32853 = dist.Normal(mu=0.0, sigma=math.sqrt(10.0))
 		x32743 = dist32853.sample()   #sample 
 		x32855 = x32740 * 2.0
 		x32856 =  x32855 + x32743  
@@ -61,10 +62,10 @@ class model(interface):
 	# compute pdf 
 	@classmethod
 	def gen_pdf(self, state):
-		dist32851 = dist.Normal(mu=0.0, sigma=10.0)
+		dist32851 = dist.Normal(mu=0.0, sigma=math.sqrt(10.0))
 		x32740 =  state['x32740']   # get the x from input arg
 		p32852 = dist32851.log_pdf( x32740) # from prior
-		dist32853 = dist.Normal(mu=0.0, sigma=10.0)
+		dist32853 = dist.Normal(mu=0.0, sigma=math.sqrt(10.0))
 		x32743 =  state['x32743']   # get the x from input arg
 		p32854 = dist32853.log_pdf( x32743) # from prior
 		x32855 = x32740 * 2.0
