@@ -710,7 +710,7 @@
           e (sample d)]
       e)))
 (print-graph (first poi-src2))
-(spit "./output-pytorch/poi-src.py" (compile-query poi-src2))
+(spit "./output-pytorch/poisson.py" (compile-query poi-src2))
 
 (def lr-src
   (foppl-query
@@ -732,7 +732,7 @@
       (loop 3 data observe-data slope bias)
        (vector slope bias))))
 (print-graph (first lr-src))
-(spit "./output-pytorch/lr-src.py" (compile-query lr-src))
+(spit "./output-pytorch/lrsrc.py" (compile-query lr-src))
 
 (def simple
   (foppl-query

@@ -40,7 +40,7 @@
       (loop 3 data observe-data slope bias)
        (vector slope bias))))
 (print-graph (first lr-src))
-(spit "./output-pytorch/lr-src.py" (compile-query lr-src))
+(spit "./output-pytorch/lrsrc.py" (compile-query lr-src))
 
 (def hmm-src
   (foppl-query
