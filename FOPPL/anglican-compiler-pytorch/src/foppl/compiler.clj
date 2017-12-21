@@ -542,6 +542,24 @@
 ;             "\t\treturn ['" (str/join "', '" (get-cont-vars foppl-query)) "'] # need to modify output format\n\n"
 ;             ]))
 
+(defn gen-graph-vertices [foppl-query]
+  "output the vertices/nodes of the graph"
+  (let [vertices (first (first foppl-query))
+        vertices (str/join "', '" (map #(.toString %) vertices))]
+    (create-method "gen_vertices"
+      (str/join ["return ['" vertices "']"]))))
+
+(defn tuple-to-py [edge]
+  (let [[a b] edge]
+    (str/join ["('" a "', '" b "')"])))
+
+(defn gen-graph-edges [foppl-query]
+  "output the edges/arcs of the graph"
+  (let [edges (second (first foppl-query))
+        edges (str/join ", " (map tuple-to-py edges))]
+    (create-method "gen_edges"
+      (str/join ["return [" edges "]"]))))
+
 ;;; prior samples
 (defn get-gensym-var [foppl-query]
   "output var map {gensym var-name: index in x}"
@@ -622,6 +640,8 @@
                (gen-vars foppl-query)
                (gen-cont-vars foppl-query)
                (gen-disc-vars foppl-query)
+               (gen-graph-vertices foppl-query)
+               (gen-graph-edges foppl-query)
                "\t# prior samples \n"
                gen-samples-s
                "\t# compute pdf \n"
