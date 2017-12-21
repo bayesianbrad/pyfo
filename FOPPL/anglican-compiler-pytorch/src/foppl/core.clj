@@ -38,7 +38,8 @@
 (def G_empty [#{} #{} {} {}])
 
 ;; primitive procedures which are safe to evaluate on boxed expressions
-(def whitelist #{'conj 'nth 'first 'second 'rest 'last 'vector 'list 'get})
+;;  -- Had to remove 'get'
+(def whitelist #{'conj 'nth 'first 'second 'rest 'last 'vector 'list})
 
 (defn merge-graph [G1 G2]
   (let [[V1 A1 P1 O1] G1
@@ -115,7 +116,9 @@
 
 (defn compile-graph [expr phi rho]
   ;; (println (str "Compiling expression: " expr))
-  (cond (seq? expr)
+  (cond (vector? expr)
+        (compile-graph (cons 'vector expr) phi rho)
+        (seq? expr)
         (case (name (first expr))
           ; let
           "let" (let [[[x e1] e2] (rest expr)
