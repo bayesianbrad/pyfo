@@ -106,7 +106,8 @@ class DHMCSampler(object):
         #     for key in self._cont_keys:
         #         p[key] = VariableCast(torch.sqrt(self.M[key]) * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))  # in the future make for multiple dims
         return p
-    def coordInt(self,x,p, stepsize,key):
+
+    def coordInt(self,x,p,stepsize,key):
         """
         Performs the coordinate wise update. The permutation is done before the
         variables are executed within the function.
@@ -120,17 +121,14 @@ class DHMCSampler(object):
 
         x_star = copy.copy(x)
         x_star[key] = x_star[key] + stepsize*self.M # Need to change M here again
-
         logp_diff = self.log_posterior(x_star, set_leafs=False) - self.log_posterior(x, set_leafs=False)
-
-        if torch.gt(self.M*torch.abs(torch.sign(p[key])),logp_diff)[0][0]:
-            x = x_star
+        cond = torch.gt(self.M*torch.abs(torch.sign(p[key])),logp_diff)
+        if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
+            return x_star[key], p[key]
         else:
             p[key] = -p[key]
-        return x,p
-
-
+        return x[key],p[key]
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize, aux= None):
         """
@@ -177,11 +175,11 @@ class DHMCSampler(object):
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
                 logp = self.log_posterior(x, set_leafs=True)
 
+            # Uncomment this statement when correct transforms have
+            # been impleemnted.
+            # if math.isinf(logp):
+            #     return x, p, n_feval, n_fupdate
 
-            if math.isinf(logp):
-                return x, p, n_feval, n_fupdate
-
-            print('update coordinate wise')
             for key in permuted_keys:
                 x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
             n_fupdate += 1
@@ -291,7 +289,7 @@ class DHMCSampler(object):
 
         # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'means':means, 'accept_prob': np.sum(accept)/len(accept), 'number_of_function_evals':n_feval_per_itr, \
+        stats = {'samples':samples, 'means':means, 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed}
 
 
