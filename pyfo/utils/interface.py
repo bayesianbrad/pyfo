@@ -74,4 +74,65 @@ class interface():
 
         raise NotImplementedError
 
+    @classmethod
+    def get_vertices(self) -> List[str]:
+        """
+        Returns all vertices of the graphical model as a list of
+        strings.
+
+        :return vertices type: List[str]
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def get_arcs(self) -> List[tuple]:
+        """
+        Returns all arcs/edges as tuples (u, v) with both u and v being string
+        names of variables.
+
+        :return arcs type: List[Tuple[str, str]]
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def get_parents_map(self) -> Dict[str, set]:
+        """
+        Returns a dictionary of all variable names and the corresponding
+        parents for each variable.
+
+        Consider, for instance, a graph containing the following edges/arcs:
+          x1 -> x3, x2 -> x3, x1 -> x4, x3 -> x4
+        Then the returned value of this function is a dictionary as follow:
+          x1: ()
+          x2: ()
+          x3: (x1, x2)
+          x4: (x1, x3)
+        In other words: you get a dictionary that maps each variable name to
+        its correspondings parents.
+
+        :return child_parent_relationships type: Dict[str, Set[str]]
+        """
+        result = { u: [] for u in self.vertices }
+        for (u, v) in self.arcs:
+            if v in result:
+                result[v].append(u)
+            else:
+                result[v] = [u]
+        return { key: set(result[key]) for key in result }
+
+    @classmethod
+    def get_parents_of_node(self, var_name: str) -> set:
+        """
+        Returns a set of all variable names, which are parents of the given
+        node/variable/vertex. This function basically extracts a single entry
+        from the dictionary given by `get_parents_map`.
+
+        :return set_of_parents :type Set[str]
+        """
+        edges = self.get_parents_map()
+        if var_name in edges:
+            return edges[var_name]
+        else:
+            return set()
+
     # need to know which if branch we have gone down and what

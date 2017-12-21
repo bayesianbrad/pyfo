@@ -546,7 +546,7 @@
   "output the vertices/nodes of the graph"
   (let [vertices (first (first foppl-query))
         vertices (str/join "', '" (map #(.toString %) vertices))]
-    (create-method "gen_vertices"
+    (create-method "get_vertices"
       (str/join ["return ['" vertices "']"]))))
 
 (defn tuple-to-py [edge]
@@ -557,7 +557,7 @@
   "output the edges/arcs of the graph"
   (let [edges (second (first foppl-query))
         edges (str/join ", " (map tuple-to-py edges))]
-    (create-method "gen_edges"
+    (create-method "get_arcs"
       (str/join ["return [" edges "]"]))))
 
 ;;; prior samples
