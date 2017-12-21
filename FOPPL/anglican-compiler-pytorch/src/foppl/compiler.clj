@@ -154,7 +154,7 @@
                                   less-n " = torch.exp (" fir-n ")\n"])]
             (vector less-n less-s))
 
-          "nth"
+          ("nth" "get")
           (let [[num-n num-s] (tf-primitive (nth expr 2))
                 [elem-n elem-s] (tf-primitive (nth expr 1))
                 r-n (gensym "x")
@@ -277,13 +277,17 @@
         (case (name (first expr))
           ;; primitive operation
           ("not" "and" "or" ">" ">=" "<" "<="
-           "+" "sum" "-" "*" "/" "exp" "nth")
+           "+" "sum" "-" "*" "/" "exp" "nth" "get")
           (convert-primitive-opt expr)
 
           ;;; distribution
           ("normal" "mvn" "beta" "cauchy" "dirichlet" "exponential" "gamma" "half_cauchy" "log_normal" "uniform"
            "discrete" "categorical" "poisson" "bernoulli" "multinomial")
           (convert-dist expr)
+
+          "vector"
+          (let [data (vec (rest expr))]
+            (tf-primitive data))
 
           (prn "No match case!" expr))
 
