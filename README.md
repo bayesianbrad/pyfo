@@ -64,10 +64,16 @@ stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range)
 samples = stats['samples'] # returns dataframe of all samples.
 ```
 
+##Contributors
+
+Bradley Gram-Hansen
+Tobias Kohn
+Yuan Zhou
+
 To do:
 * Have a function that extracts the relevent information from the dataframe, prints a table
 showing summary statistics for each chain.
 
 <a name="fn1">1</a>: Nishimura, Akihiko, David Dunson, and Jianfeng Lu. "Discontinuous Hamiltonian Monte Carlo for sampling discrete parameters." arXiv preprint arXiv:1705.08510 (2017).
 
-<a name="fn2">2</a>: Gram-Hansen,Yuan, Hongsoek, Stanton, Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
+<a name="fn2">2</a>: Gram-Hansen, Kohn, Zhou, Hongsoek, Stanton, Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
