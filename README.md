@@ -64,7 +64,7 @@ stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range)
 samples = stats['samples'] # returns dataframe of all samples.
 ```
 
-##Contributors
+## Contributors
 
 Bradley Gram-Hansen
 Tobias Kohn
