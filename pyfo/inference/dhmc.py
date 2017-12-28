@@ -22,22 +22,6 @@ from pyfo.utils.core import VariableCast
 from pyfo.utils.core import extract_means
 
 
-# def load_from_file(filepath):
-#     '''
-#     Helper function for extracting the whole module and not just the package.
-#     See answer by clint miller for details:
-#     https://stackoverflow.com/questions/301134/dynamic-module-import-in-python?noredirect=1&lq=1
-#     :param file_path
-#     :type string
-#     :return module of model (models base class is the interface)
-#     '''
-#     PATH = '././FOPPL/outbook-pytorch/' + model_name +'.py'
-#     mod = __import__(model_name)
-#     components = mod_name.split('.')
-#     for comp in components[1:]:
-#         mod = getattr(mod, comp)
-#     return mod
-
 class DHMCSampler(object):
     """
     In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
@@ -68,6 +52,7 @@ class DHMCSampler(object):
         self._state = state.State(cls)
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
+        #self._cond_keys = self._state._return_cond_list()
         self._all_keys = self._state._return_all_list()
 
         self.grad_logp = self._state._grad_logp
@@ -188,7 +173,7 @@ class DHMCSampler(object):
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key] # final half step for position
 
-            if not self._cont_keys:
+            if self._cont_keys is not None:
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5*stepsize*self._grad_logp(logp, x[key]) # final half step for momentum
@@ -210,7 +195,7 @@ class DHMCSampler(object):
         if self._cont_keys is not None:
             kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
         else:
-            self._cont_keys = VariableCast(0)
+            kinetic_cont = VariableCast(0)
         kinetic_energy = kinetic_cont + kinetic_disc
         potential_energy = -self.log_posterior(x)
 
