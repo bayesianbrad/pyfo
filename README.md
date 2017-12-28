@@ -70,13 +70,6 @@ samples = stats['samples'] # returns dataframe of all samples.
 
 ## Contributors
 
-Bradley Gram-Hansen
-Tobias Kohn
-Sam Staton
-Frank Wood
-Hongseok Yang
-Yuan Zhou
-
 To do:
 * Have a function that extracts the relevent information from the dataframe, prints a table
 showing summary statistics for each chain. (ESS?)
