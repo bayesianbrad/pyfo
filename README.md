@@ -70,12 +70,13 @@ samples = stats['samples'] # returns dataframe of all samples. To get all sample
 means = states['means'] # returns dictionary key:value, where key - parameter , value = mean of parameter
 ```
 
-##Contributors
+## Contributors
 
 Bradley Gram-Hansen
 Tobias Kohn
 Yuan Zhou
 
+## References
 
 <a name="fn1">1</a>: Jan-Willem van de Meent, Brooks Paige, Hongseok Yang, and Frank Wood. "A Tutorial on Probabilistic Programming.
 "
