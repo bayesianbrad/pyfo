@@ -35,7 +35,7 @@ class Clojure_Finder(_MetaPathFinder):
     def find_spec(self, fullname, path, target = None):
         import os.path
         from importlib.machinery import ModuleSpec
-
+        fullname = fullname.split(sep='.')[-1]
         if '.' in fullname:
             raise NotImplementedError()
 
