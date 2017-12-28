@@ -2,10 +2,11 @@
 # (c) 2017, Tobias Kohn
 #
 # 21. Dec 2017
-# 22. Dec 2017
+# 27. Dec 2017
 #
-from .foppl_distributions import continuous_distributions, discrete_distributions, distribution_params
+from .foppl_distributions import distribution_params
 from .graphs import *
+from .foppl_objects import Symbol
 
 def _has_second_argument(f):
     try:
@@ -67,6 +68,8 @@ class Walker(object):
 class AstBinary(Node):
 
     def __init__(self, op: str, left: Node, right: Node):
+        if isinstance(op, Symbol):
+            op = op.name
         self.op = op
         self.left = left
         self.right = right
@@ -75,7 +78,7 @@ class AstBinary(Node):
         return [self.left, self.right]
 
     def __repr__(self):
-        return "({} {} {})".format(self.left, self.op, self.right)
+        return "({} {} {})".format(repr(self.left), self.op, repr(self.right))
 
 
 class AstBody(Node):
@@ -88,6 +91,22 @@ class AstBody(Node):
 
     def __repr__(self):
         return "body({})".format('; '.join([repr(item) for item in self.body]))
+
+
+class AstCompare(Node):
+
+    def __init__(self, op: str, left: Node, right: Node):
+        if isinstance(op, Symbol):
+            op = op.name
+        self.op = op
+        self.left = left
+        self.right = right
+
+    def get_children(self):
+        return [self.left, self.right]
+
+    def __repr__(self):
+        return "({} {} {})".format(repr(self.left), self.op, repr(self.right))
 
 
 class AstDef(Node):
@@ -150,6 +169,8 @@ class AstFunction(Node):
 class AstFunctionCall(Node):
 
     def __init__(self, function, args):
+        if isinstance(function, Symbol):
+            op = function.name
         self.function = function
         self.args = args
 
@@ -170,7 +191,7 @@ class AstFunctionCall(Node):
 
 class AstIf(Node):
 
-    def __init__(self, cond, if_body, else_body):
+    def __init__(self, cond: AstCompare, if_body, else_body):
         self.cond = cond
         self.if_body = if_body
         self.else_body = else_body
@@ -229,8 +250,10 @@ class AstSymbol(Node):
 class AstUnary(Node):
 
     def __init__(self, op: str, item: Node):
-        self.item = item
+        if isinstance(op, Symbol):
+            op = op.name
         self.op = op
+        self.item = item
 
     def get_children(self):
         return [self.item]

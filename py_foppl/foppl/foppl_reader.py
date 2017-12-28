@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 29. Nov 2017
-# 21. Dec 2017
+# 27. Dec 2017
 #
 from .foppl_objects import *
 
@@ -190,7 +190,17 @@ class CharacterStream(object):
                 result += self.next() + self.read_while(is_identifier)
 
         elif c == '.' and not is_identifier(self.peek(1)):
-            return '.'
+            return self.next()
+
+        elif c in ['<', '>']:
+            self.next()
+            if self.peek() == '=':
+                return c + self.next()
+            else:
+                return c
+
+        elif c in ['=']:
+            return self.next()
 
         else:
             result = self._do_read_symbol()

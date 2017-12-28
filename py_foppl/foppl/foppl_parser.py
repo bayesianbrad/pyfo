@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 21. Dec 2017
-# 22. Dec 2017
+# 27. Dec 2017
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -40,15 +40,23 @@ class ExprParser(object):
     def parse(self, form: Form):
         f = form.head
 
-        if f in [Symbol.PLUS, Symbol.MINUS] and len(form) == 2:
+        if f in [Symbol.PLUS, Symbol.MINUS, Symbol.NOT] and len(form) == 2:
             return AstUnary(f, self._parse(form[1]))
 
-        elif f in [Symbol.PLUS, Symbol.MINUS, Symbol.MULTIPLY, Symbol.DIVIDE]:
+        elif f in [Symbol.PLUS, Symbol.MINUS, Symbol.MULTIPLY, Symbol.DIVIDE, Symbol.AND, Symbol.OR, Symbol.XOR]:
             items = [self._parse(item) for item in form.tail]
             result = items[0]
             for item in items[1:]:
                 result = AstBinary(f, result, item)
             return result
+
+        elif f in [Symbol.EQ, Symbol.LT, Symbol.LE, Symbol.GT, Symbol.GE]:
+            if len(form) != 3:
+                raise SyntaxError("Too many or too few arguments for comparison '{}'".format(repr(f)))
+            items = [self._parse(item) for item in form.tail]
+            left = self._parse(form[1])
+            right = self._parse(form[2])
+            return AstCompare(f, left, right)
 
         elif isinstance(f, Symbol):
             args = [self._parse(arg) for arg in form.tail]
@@ -77,6 +85,9 @@ class ExprParser(object):
 
             elif f.name == "nth":
                 return AstFunctionCall("get", args)
+
+            elif f.name == "apply":
+                return AstFunctionCall(self._parse(form[1]), self._parse(form[2:]))
 
             elif f.name in distribution_map:
                 return AstDistribution(distribution_map[f.name], args)

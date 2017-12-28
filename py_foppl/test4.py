@@ -1,7 +1,7 @@
-from foppl.graphs import *
-from foppl.model_generator import *
-from foppl.foppl_parser import *
-from foppl.compiler import *
+from py_foppl.foppl.graphs import *
+from py_foppl.foppl.model_generator import *
+from py_foppl.foppl.foppl_parser import *
+from py_foppl.foppl.compiler import *
 
 
 if __name__ == "__main__":

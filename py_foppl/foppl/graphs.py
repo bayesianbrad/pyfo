@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 20. Dec 2017
-# 22. Dec 2017
+# 28. Dec 2017
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -17,21 +17,33 @@ class Graph(object):
         self.arcs = arcs
         self.conditional_densities = cond_densities
         self.observed_values = obs_values
-        f = lambda x: x[5:x.index('(')]
+        self.observed_conditions = {}
+        f = lambda x: (x[5:x.index('(')] if x.startswith('dist') and '(' in x else x)
         self.cont_vars = set(n for n in vertices
                                 if n in cond_densities
                                 if f(cond_densities[n]) in continuous_distributions)
         self.disc_vars = set(n for n in vertices
                                 if n in cond_densities
                                 if f(cond_densities[n]) in discrete_distributions)
+        self.cond_vars = set(n for n in vertices
+                                if n in cond_densities
+                                if n.startswith('cond'))
         self.EMPTY: Graph = None
 
     def __repr__(self):
+        cond = self.conditional_densities
+        obs = self.observed_values
+        C_ = "\n".join(["  {} -> {}".format(v, cond[v]) for v in cond])
+        O_ = "\n".join(["  {} -> {}".format(v, cond[v]) for v in obs])
         V = "Vertices V:\n  " + ', '.join(sorted(self.vertices))
         A = "Arcs A:\n  " + ', '.join(['({}, {})'.format(u, v) for (u, v) in self.arcs])
-        C = "Conditional densities C:\n  " + str(self.conditional_densities)
-        O = "Observed values O:\n  " + str(self.observed_values)
+        C = "Conditional densities C:\n" + C_
+        O = "Observed values O:\n" + O_
         return "\n".join([V, A, C, O])
+
+    @property
+    def is_empty(self):
+        return len(self.vertices) == 0 and len(self.arcs) == 0
 
     def merge(self, other):
         V = set.union(self.vertices, other.vertices)
@@ -41,7 +53,20 @@ class Graph(object):
         G = Graph(V, A, C, O)
         G.cont_vars = set.union(self.cont_vars, other.cont_vars)
         G.disc_vars = set.union(self.disc_vars, other.disc_vars)
+        G.observed_conditions = {**self.observed_conditions, **other.observed_conditions}
         return G
+
+    def add_condition_for_observation(self, obs: str, cond: str):
+        if obs in self.observed_conditions:
+            self.observed_conditions[obs] += " and {}".format(cond)
+        else:
+            self.observed_conditions[obs] = cond
+
+    def add_condition(self, cond):
+        if cond:
+            for obs in self.observed_values.keys():
+                self.add_condition_for_observation(obs, cond)
+        return self
 
     def get_code_for_variable(self, var_name: str):
         if var_name in self.conditional_densities:
@@ -102,6 +127,7 @@ class Graph(object):
                 edges[u] = w
 
         result = []
+        f = lambda s: int(''.join([x for x in s if '0' <= x <= '9']))
         while len(edges) > 0:
             batch = []
             keys = list(edges.keys())
@@ -109,7 +135,7 @@ class Graph(object):
                 if len(edges[u]) == 0:
                     del edges[u]
                     batch.append(u)
-            result += sorted(batch)
+            result += sorted(batch, key=f)
             batch = set(batch)
             for u in edges:
                 edges[u] = edges[u].difference(batch)

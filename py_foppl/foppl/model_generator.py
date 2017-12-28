@@ -2,12 +2,11 @@
 # (c) 2017, Tobias Kohn
 #
 # 21. Dec 2017
-# 22. Dec 2017
+# 28. Dec 2017
 #
 import datetime
 import importlib
 from .graphs import Graph
-
 class Model_Generator(object):
 
     def __init__(self, graph: Graph, name: str = 'model'):
@@ -16,16 +15,15 @@ class Model_Generator(object):
         self.interface_name = 'interface'
         self.interface_source = 'pyfo.utils.interface'
         self.imports = [
-            'import torch',
+            'import math',
             'import numpy as np',
+            'import torch',
             'from torch.autograd import Variable',
             'import pyfo.distributions as dist'
         ]
         self.interface_name = 'object'
         self.interface_source = ''
-        self.imports = ''
         self._output: str = None
-        self.value = 123
 
     def generate_class(self) -> str:
         """
@@ -162,6 +160,13 @@ class Model_Generator(object):
     def _gen_ordered_vars(self):
         return None
 
+    def _gen_cond_vars(self):
+        vars = self.graph.cond_vars
+        if len(vars) > 0:
+            return "return ['{}']".format("', '".join(vars))
+        else:
+            return "return []"
+
     def _gen_cont_vars(self):
         vars = self.graph.cont_vars
         if len(vars) > 0:
@@ -210,9 +215,16 @@ class Model_Generator(object):
                     result.append("{} = {}".format(v, graph.observed_values[v]))
                 else:
                     result.append("{v} = state['{v}']".format(v=v))
-                result.append("p{p_index} = dist_{v}.log_pdf({v})".format(p_index=p_index, v=v))
+                s = "p{p_index} = dist_{v}.log_pdf({v})".format(p_index=p_index, v=v)
+                if v in graph.observed_conditions:
+                    s += " if {} else 0".format(graph.observed_conditions[v])
+                result.append(s)
                 p_vars.append("p{p_index}".format(p_index=p_index))
                 p_index += 1
+
+            elif v.startswith("cond"):
+                result.append("{v} = state['{v}']".format(v=v))
+
             else:
                 result.append("{} = {}".format(v, code))
         if len(p_vars) > 0:

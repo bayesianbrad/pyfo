@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 29. Nov 2017
-# 21. Dec 2017
+# 27. Dec 2017
 #
 class Sequence(object):
 
@@ -32,6 +32,11 @@ class Form(Sequence):
     def __init__(self, data):
         self.data = data
 
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return Form(self.data[item])
+        else:
+            return self.data[item]
 
 class Value(object):
     def __init__(self, value):
@@ -142,3 +147,8 @@ Symbol.AND = Symbol('and')
 Symbol.OR = Symbol('or')
 Symbol.NOT = Symbol('not')
 Symbol.XOR = Symbol('xor')
+Symbol.EQ = Symbol('=')
+Symbol.LT = Symbol('<')
+Symbol.GT = Symbol('>')
+Symbol.LE = Symbol('<=')
+Symbol.GE = Symbol('>=')
