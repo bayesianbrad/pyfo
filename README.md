@@ -11,7 +11,7 @@ that is FOPPL <sup>[1](#fn1)</sup>. FOPPLs base language is Clojure, which enabl
 Inference for FOPPL is performed with Discontinuous HMC <sup>[2](#fn2)</sup> and Reflection, refraction HMC <sup>[3](#fn3)</sup>, which allows one to
 perform inference in models that have discontinuities that are of measure 0 <sup>[4](#fn4)</sup>. In addition to this, we included an
 automated framework for embedding discrete distributions, which maps the discrete distributions to piece-wise constant functions, that have measure 0
-discontinuities. This allows one to perform inference in models containing discrete latent varibles. 
+discontinuities. This allows one to perform inference in models containing discrete latent varibles.
 and continous latent variables.
 
 # Requirements
