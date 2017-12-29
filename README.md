@@ -8,7 +8,8 @@
 `Pyfo` enables one to write a model in the flexiable first order probabilistic programming framework
 that is FOPPL <sup>[1](#fn1)</sup>. FOPPLs base language is Clojure, which enables the syntax to be neat, yet completely expressive.
 What is great about `pyfo` is that one does not even need to install Clojure, nor need to understand how to use the REPL.
-Simply write your model in clojure, or python code in accordance with the [interface](https://github.com/bradleygramhansen/pyfo/blob/master/pyfo/utils/interface.py), and`pyfo` does the rest.
+Simply write your model in Clojure, or alternatively you can write the model in pure Python code in accordance with the
+[interface](https://github.com/bradleygramhansen/pyfo/blob/master/pyfo/utils/interface.py), and`pyfo` does the rest.
 
 Inference for FOPPL is performed with Discontinuous HMC <sup>[2](#fn2)</sup> and Reflection, refraction HMC <sup>[3](#fn3)</sup>, which allows one to
 perform inference in models that have discontinuities that are of measure 0 <sup>[4](#fn4)</sup>. In addition to this, we included an
@@ -78,8 +79,8 @@ Yuan Zhou
 
 ## References
 
-<a name="fn1">1</a>: Jan-Willem van de Meent, Brooks Paige, Hongseok Yang, and Frank Wood. "A Tutorial on Probabilistic Programming.
-"
+<a name="fn1">1</a>: Jan-Willem van de Meent, Brooks Paige, Hongseok Yang, and Frank Wood. "A Tutorial on Probabilistic Programming."
+
 <a name="fn2">2</a>: Nishimura, Akihiko, David Dunson, and Jianfeng Lu. "Discontinuous Hamiltonian Monte Carlo for sampling discrete parameters." arXiv preprint arXiv:1705.08510 (2017).
 
 <a name="fn3">3</a>: Hadi Mohasel Afshar, Justin Domke. "Reflection, Refraction, and Hamiltonian Monte Carlo."
