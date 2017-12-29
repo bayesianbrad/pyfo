@@ -16,7 +16,7 @@
 *.zip
 *.save
 *.save.1
-*.idea/*
+*.idea
 
 # default ignore binary files
 *.mat
@@ -44,6 +44,7 @@ Thumbs.db
 
 # Unignore *.pngs in latex/slides
 !/latex/slides/**/figures/*.png
-FOPPL/anglican-compiler-pytorch/output-pytorch/*
-FOPPL/anglican-compiler-pytorch/target/*
-
+FOPPL/anglican-compiler-pytorch/output-pytorch/
+FOPPL/anglican-compiler-pytorch/target/
+env/
+.idea/
