@@ -17,7 +17,6 @@ and continous latent variables.
 # Requirements
  * clojure
  * pyfo
- * foppl (should be installed when the user installs leiningen as that will pull the libraries from clojars - it will be package by thenS)
 
 # Installation instructions
  * Instructions for clojure can be found here: [https://clojure.org/guides/getting_started]
@@ -30,7 +29,9 @@ and continous latent variables.
 # Example
 
 ## Writing the model
-Write model in foppl, for example one_dim_gauss.clj
+Write the model in Clojue and contained within pyfo is FOPPL. This will take your model and compile it to python code.
+It essentially constructs the logjoint of the model and ensures that the orger of the direct acylic graph (DAG) is
+preserved. For example one_dim_gauss.clj
 
 ```clojure
 (def one-gaussian
@@ -39,25 +40,21 @@ Write model in foppl, for example one_dim_gauss.clj
             (observe (normal x 2.0) 7.0)
         x)))
 ```
-## Compiling the model
-
-Not yet completed. But it needs to be run in the terminal (a little) like this:
-        ```clojure
-        clojure compiler.clj <model_name>.clj
-        Saves to directory where <model_name>.clj is.
-        ```
-
+which we save as `<model_name>.clj` .  In this instance `model_name = onedimgauss`, therefore we save as onedimgauss.clj
 ## Performing the inference
 
+Ensure that your model, in this case `onedimgauss.clj` is in the same directory, in which you are placing the following
+inference script.
+
 ```python
-import pyfo
+from pyro.pyfoppl.foppl import imports # this uses a loader and finder module.
+import <model_name> # when we do this `imports` is triggered, compiles the modle automatically and loads it as a module.
 from pyfo.inference.dhmc import DHMCSampler as dhmc
+
 burn_in = 1000
 n_samples = 10 ** 4
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
-
-from <model_name> import model
 
 dhmc_    = dhmc(<model_name>, n_chains)
 
