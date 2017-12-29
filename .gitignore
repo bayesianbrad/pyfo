@@ -43,6 +43,7 @@ Thumbs.db
 *.dvi
 
 # Unignore *.pngs in latex/slides
+pyfo.egg-info/
 !/latex/slides/**/figures/*.png
 #FOPPL/anglican-compiler-pytorch/output-pytorch/
 #FOPPL/anglican-compiler-pytorch/target/
