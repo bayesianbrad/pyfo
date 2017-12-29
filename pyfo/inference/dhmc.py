@@ -245,7 +245,9 @@ class DHMCSampler(object):
         accept =[]
 
         tic = time.process_time()
-
+        print(50*'=')
+        print('The sampler is now performing inference....')
+        print(50*'=')
         for i in range(n_samples+burn_in):
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
@@ -270,6 +272,9 @@ class DHMCSampler(object):
         all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns')
         samples =  all_samples.loc[burn_in:, :]
         means = extract_means(samples,self._all_keys)
+        print(50*'=')
+        print('Sampling has now been completed....')
+        print(50*'=')
 
 
         # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
