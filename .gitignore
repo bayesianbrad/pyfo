@@ -48,4 +48,4 @@ pyfo.egg-info/
 #FOPPL/anglican-compiler-pytorch/output-pytorch/
 #FOPPL/anglican-compiler-pytorch/target/
 env/
-#.idea/
+.idea/
