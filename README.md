@@ -53,21 +53,21 @@ Not yet completed. But it needs to be run in the terminal (a little) like this:
 import pyfo
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 burn_in = 1000
-n_sample = 10 ** 4
+n_samples = 10 ** 4
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 
-import <model_name>
+from <model_name> import model
 
 dhmc_    = dhmc(<model_name>, n_chains)
 
 stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range)
-parameters = stats['all_params'] # returns all the keys for the parameters
-cont_params = states['cont_params'] # returns continuous keys
-disc_params = states['disc_params'] # returns discrete keys
+# parameters = stats['all_params'] # returns all the keys for the parameters
+# cont_params = stats['cont_params'] # returns continuous keys
+# disc_params = stats['disc_params'] # returns discrete keys
 
 samples = stats['samples'] # returns dataframe of all samples. To get all samples for a given parameter simply do: samples_param = samples[<param_name>]
-means = states['means'] # returns dictionary key:value, where key - parameter , value = mean of parameter
+means = stats['means'] # returns dictionary key:value, where key - parameter , value = mean of parameter
 ```
 
 ## Contributors
