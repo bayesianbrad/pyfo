@@ -15,20 +15,18 @@ import sys
 
 DISTNAME = 'pyfo'
 DESCRIPTION = "Python for FOPPL"
-LONG_DESCRIPTION =  open('README.mdmd').read()
-MAINTAINER = 'Bradley Gram-hansen, Yuan Zhang'
+LONG_DESCRIPTION =  open('README.md').read()
+MAINTAINER = 'Bradley Gram-hansen, Tobias Kohn, Yuan Zhang'
 MAINTAINER_EMAIL = 'bradleygramhansen@gmail.com'
-AUTHOR = 'Bradley Gram-Hansen and Yuan Zhang'
+AUTHOR = 'Bradley Gram-Hansen, Yuan Zhang and Tobias Kohn'
 AUTHOR_EMAIL = 'bradley@robots.ox.ac.uk'
-URL = "http://github.com/pyfo"
+URL = "http://github.com/bradleygramhansen/pyfo"
 LICENSE = 'LICENSE.txt'
 VERSION = "0.1.0"
-PACKAGES = ['pyfo', 'pyfo.tests', 'pyfo.src']
+PACKAGES = ['pyfo', 'py_foppl']
 classifiers = ['Development Status :: 1 - Production/UnStable',
                'Programming Language :: Python',
-               'Programming Language :: Python :: 3',
-               'Programming Language :: Python :: 3.4',
-               'Programming Language :: Python :: 3.5',
+               'Programming Language :: Python :: 3.6',
                'License :: OSI Approved :: MIT License',
                'Intended Audience :: Science/Research',
                'Topic :: Scientific/Engineering',
