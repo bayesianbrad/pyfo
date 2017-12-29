@@ -44,7 +44,7 @@ Thumbs.db
 
 # Unignore *.pngs in latex/slides
 !/latex/slides/**/figures/*.png
-FOPPL/anglican-compiler-pytorch/output-pytorch/
-FOPPL/anglican-compiler-pytorch/target/
+#FOPPL/anglican-compiler-pytorch/output-pytorch/
+#FOPPL/anglican-compiler-pytorch/target/
 env/
 .idea/
