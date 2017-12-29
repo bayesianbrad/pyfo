@@ -5,6 +5,4 @@ tqdm>=4.19.4
 six>=1.11.0
 h5py>=2.7.1
 enum34>=1.1.6
-python_version >= '3.6'
-torch>=0.1.2.post1
 numpy>=1.13.3
