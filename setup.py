@@ -23,7 +23,7 @@ AUTHOR_EMAIL = 'bradley@robots.ox.ac.uk'
 URL = "http://github.com/bradleygramhansen/pyfo"
 LICENSE = 'LICENSE.txt'
 VERSION = "0.1.0"
-PACKAGES = ['pyfo', 'py_foppl']
+PACKAGES = ['pyfo', 'pyfoppl']
 classifiers = ['Development Status :: 1 - Production/UnStable',
                'Programming Language :: Python',
                'Programming Language :: Python :: 3.6',
