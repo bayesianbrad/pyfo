@@ -8,6 +8,12 @@ from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
 from .compiler import compile
 from .model_generator import Model_Generator
 
+# [Bradley] Testing : using import sys, the first argument of sys.path is the path to the script
+# in which the python interpreter is first invoked. This path does not include the script name, just the
+# directory including the script. Seems to work.
+import sys
+PATH = sys.path[0]
+
 def compile_module(module, input_text):
     graph, expr = compile(input_text)
     model_gen = Model_Generator(graph)
@@ -29,7 +35,7 @@ class Clojure_Loader(_Loader):
 
 class Clojure_Finder(_MetaPathFinder):
 
-    def find_module(self, fullname, path=None):
+    def find_module(self, fullname, path=PATH):
         return self.find_spec(fullname, path)
 
     def find_spec(self, fullname, path, target = None):
@@ -44,5 +50,5 @@ class Clojure_Finder(_MetaPathFinder):
         else:
             return None
 
-import sys
+# import sys removed as importing at top
 sys.meta_path.append(Clojure_Finder())
