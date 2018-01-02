@@ -47,7 +47,7 @@ preserved. For example one_dim_gauss.clj
 which we save as `<model_name>.clj` .  In this instance `model_name = onedimgauss`, therefore we save as onedimgauss.clj
 ## Performing the inference
 
-Ensure that your model, in this case `onedimgauss.clj` is in the same directory, in which you are placing the following
+Ensure that your model, in this case `onedimgauss.clj`, is in the same directory in which you are placing the following
 inference script.
 
 ```python
@@ -60,7 +60,7 @@ n_samples = 10 ** 4
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 
-dhmc_    = dhmc(<model_name>, n_chains)
+dhmc_    = dhmc(<model_name>.model, n_chains)
 
 stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range)
 # parameters = stats['all_params'] # returns all the keys for the parameters
