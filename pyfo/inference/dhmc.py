@@ -83,6 +83,9 @@ class DHMCSampler(object):
         if self._cont_keys is not None:
             for key in self._cont_keys:
                 p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))  # in the future make for multiple dims
+        # if self._cond_keys is not None:
+        #     for key in self._cond_keys:
+        #         p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
         # Uncomment this version and delete the above when self.M is corrected
         # if self._disc_keys is not None:
         #     for key in self._disc_keys:
@@ -113,7 +116,7 @@ class DHMCSampler(object):
             return x_star[key], p[key]
         else:
             p[key] = -p[key]
-        return x[key],p[key]
+            return x[key],p[key]
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize, aux= None):
         """
@@ -196,6 +199,11 @@ class DHMCSampler(object):
             kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
+        # if self._cond_keys is not None:
+        #     kinetic_cond = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cond_keys]))
+        # else:
+        #     kinetic_cond = VariableCast(0)
+        # kinetic_energy = kinetic_cont + kinetic_disc + kinetic_cond
         kinetic_energy = kinetic_cont + kinetic_disc
         potential_energy = -self.log_posterior(x)
 
@@ -243,6 +251,7 @@ class DHMCSampler(object):
         n_fupdate = 0
         x_dicts = []
         accept =[]
+        print('The first debug statement ', x)
 
         tic = time.process_time()
         print(50*'=')
@@ -257,6 +266,7 @@ class DHMCSampler(object):
             accept.append(accept_prob)
             x_dicts.append(x)
             if (i + 1) % n_per_update == 0:
+                print('The second debug stawtment', x)
                 print('{:d} iterations have been completed.'.format(i + 1))
         toc = time.process_time()
         time_elapsed = toc - tic
