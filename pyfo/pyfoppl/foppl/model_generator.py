@@ -20,9 +20,9 @@ class Model_Generator(object):
         self.imports = [
             'import math',
             'import numpy as np',
-            #'import torch',
-            #'from torch.autograd import Variable',
-            #'import pyfo.distributions as dist'
+            'import torch',
+            'from torch.autograd import Variable',
+            'import pyfo.distributions as dist'
         ]
         self.interface_name = 'object'
         self.interface_source = ''
