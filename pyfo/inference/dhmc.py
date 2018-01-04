@@ -53,6 +53,7 @@ class DHMCSampler(object):
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         #self._cond_keys = self._state._return_cond_list()
+        #self._if_keys = self._state._return_if_list()
         self._all_keys = self._state._return_all_list()
 
         self.grad_logp = self._state._grad_logp
@@ -60,15 +61,10 @@ class DHMCSampler(object):
         # self.n_disc = len(self._disc_keys)
         # self.n_cont = len(self._cont_keys)
         # self.n_params =  self.n_disc + self.n_cont
-        # Note:
-        # Need to redefine the M matrix for dictionaries.
-        #self.M = torch.div(VariableCast(1),torch.cat((scale[:,:-n_disc]**2, scale[:,-n_disc:]),dim=1)) # M.size() = (chains x n_param)
         self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
 
-        self.log_posterior = self._state._log_pdf  # returns a function that thats the current state as argument
-        self.logp_update = self._state._log_pdf_update # returns a function ; not currently used 10:50 14th Dec.
-        # if M is None:
-        #     self.M = torch.ones(n_param, 1) # This M.size() = (10,1)
+        self.log_posterior = self._state._log_pdf  # returns a function that is the current state as argument
+        # self.logp_update = self._state._log_pdf_update # returns a function ; not currently used 10:50 14th Dec.
 
     def random_momentum(self):
         """
@@ -83,16 +79,9 @@ class DHMCSampler(object):
         if self._cont_keys is not None:
             for key in self._cont_keys:
                 p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))  # in the future make for multiple dims
-        # if self._cond_keys is not None:
-        #     for key in self._cond_keys:
+        # if self._if_keys is not None:
+        #     for key in self._if_keys:
         #         p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
-        # Uncomment this version and delete the above when self.M is corrected
-        # if self._disc_keys is not None:
-        #     for key in self._disc_keys:
-        #         p[key] = self.M[key] * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
-        # if self._cont_keys is not None:
-        #     for key in self._cont_keys:
-        #         p[key] = VariableCast(torch.sqrt(self.M[key]) * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))  # in the future make for multiple dims
         return p
 
     def coordInt(self,x,p,stepsize,key):
@@ -187,9 +176,9 @@ class DHMCSampler(object):
     def _energy(self, x, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
-        :param x:
-        :param p:
-        :return: Tensor
+        :param x: positions
+        :param p: momentums
+        :return: Tensor of total energy
         """
         if self._disc_keys is not None:
             kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
@@ -199,8 +188,8 @@ class DHMCSampler(object):
             kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
-        # if self._cond_keys is not None:
-        #     kinetic_cond = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cond_keys]))
+        # if self._if_keys is not None:
+        #     kinetic_cond = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._if_keys]))
         # else:
         #     kinetic_cond = VariableCast(0)
         # kinetic_energy = kinetic_cont + kinetic_disc + kinetic_cond
@@ -242,7 +231,6 @@ class DHMCSampler(object):
         return x, acceptprob[0], n_feval, n_fupdate
 
     def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=12345, n_update=10, print_stats= False):
-        # Note currently not doing anything with burn in
         torch.manual_seed(seed)
         np.random.seed(seed)
         x = self.init_state
