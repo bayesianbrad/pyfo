@@ -28,7 +28,7 @@ class interface():
     def gen_cont_vars(self) -> List[str]:
         """
 
-        :return: List of continous arameter strings
+        :return: List of continous random variables strings
         """
         raise NotImplementedError
 
@@ -36,14 +36,14 @@ class interface():
     def gen_disc_vars(self) -> List[str]:
         """
 
-        :return: Lst of discrete parameter strings
+        :return: Lst of discrete random variables (RV from discrete distributions) strings
         """
         raise NotImplementedError
     @classmethod
     def gen_if_vars(self) -> List[str]:
         """
 
-        :return: List of if ancestors as string
+        :return: List of free random variables and its ancestors in if conditions as string
         """
     # prior samples
     @classmethod
