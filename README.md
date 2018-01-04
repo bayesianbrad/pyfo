@@ -14,8 +14,7 @@ Simply write your model in Clojure, or alternatively you can write the model in 
 Inference for FOPPL is performed with Discontinuous HMC <sup>[2](#fn2)</sup> and Reflection, refraction HMC <sup>[3](#fn3)</sup>, which allows one to
 perform inference in models that have discontinuities that are of measure 0 <sup>[4](#fn4)</sup>. In addition to this, we included an
 automated framework for embedding discrete distributions, which maps the discrete distributions to piece-wise constant functions, that have measure 0
-discontinuities. This allows one to perform inference in models containing discrete latent varibles.
-and continous latent variables.
+discontinuities. This allows one to perform inference in models containing discrete and continuous latent variables.
 
 
 # Requirements
@@ -85,4 +84,4 @@ Yuan Zhou
 
 <a name="fn3">3</a>: Hadi Mohasel Afshar, Justin Domke. "Reflection, Refraction, and Hamiltonian Monte Carlo."
 
-<a name="fn4">4</a>: Bradley Gram-Hansen, Yuan Zhou, Tobias Kohn, Hongseok Yang, Sam Stanton, Frank Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
+<a name="fn4">4</a>: Bradley Gram-Hansen*, Yuan Zhou*, Tobias Kohn, Sam Stanton, Frank Wood, Hongseok Yang. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."

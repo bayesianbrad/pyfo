@@ -30,7 +30,6 @@ def VariableCast(value, grad = False):
         return Variable(value, requires_grad = grad)
     elif isinstance(value, np.ndarray):
         tensor = torch.from_numpy(value).float()
-        print(type(tensor))
         return Variable(tensor, requires_grad = grad)
     else:
         return Variable(torch.FloatTensor([value]), requires_grad = grad)

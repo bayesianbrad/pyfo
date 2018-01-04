@@ -2,7 +2,6 @@ import torch
 from torch.autograd import Variable
 import pyfo.distributions as dist
 from pyfo.utils.interface import interface
-from pyfo.utils.core import VariableCast
 
 class model(interface):
     @classmethod
@@ -24,12 +23,14 @@ class model(interface):
     # prior samples
     @classmethod
     def gen_prior_samples(self):
-        dist30359 = dist.Normal(mu=0, sigma=1)
+        dist30359 = dist.Normal(mean=0, std=1)
         x30321 = dist30359.sample()   #sample
-        # x30361 = logical_trans( x30321 > 0)
-        dist30362 = dist.Normal(mu=1, sigma=1)
+        x30361 = logical_trans( x30321 > 0)
+        dist30362 = dist.Normal(mean=1, std=1)
         y30324 = 1
-        dist30366 = dist.Normal(mu=-1, sigma=1)
+        x30364 = logical_trans( x30321 > 0)
+        x30365 = not logical_trans(x30364)
+        dist30366 = dist.Normal(mean=-1, std=1)
         y30327 = 1
         state = {}
         for _gv in self.gen_vars():
@@ -39,26 +40,17 @@ class model(interface):
     # compute pdf
     @classmethod
     def gen_pdf(self, state):
-        dist30359 = dist.Normal(mu=0, sigma=1)
+        dist30359 = dist.Normal(mean=0, std=1)
         x30321 =  state['x30321']    # get the x from input arg
-        p30360 = dist30359.log_pdf( x30321) # from prior
-        dist30362 = dist.Normal(mu=1, sigma=1)
+        p30360 = dist30359.logpdf( x30321) # from prior
+        x30361 = logical_trans( x30321 > 0)
+        dist30362 = dist.Normal(mean=1, std=1)
         y30324 = 1
-        dist30366 = dist.Normal(mu=-1, sigma=1)
+        p30363 = dist30362.logpdf( y30324) if x30361 else 0 # from observe with if
+        x30364 = logical_trans( x30321 > 0)
+        x30365 = not logical_trans(x30364)
+        dist30366 = dist.Normal(mean=-1, std=1)
         y30327 = 1
-        if (x30321>0).data[0]:
-            p30363 = dist30362.log_pdf( y30324) # from observe with if
-            p30367 = VariableCast(0, grad=True)
-        else:
-            p30367 = dist30366.log_pdf(y30327)
-            p30363 = VariableCast(0, grad=True)
+        p30367 = dist30366.logpdf( y30327) if x30365 else 0 # from observe with if
         logp =  p30360 + p30363 + p30367  # total log joint
         return logp # need to m
-
-
-# def logical_trans(var):
-#    value = VariableCast(var)
-#    if value.data[0]:
-# 	   return True
-#    else:
-# 	   return False
