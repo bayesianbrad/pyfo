@@ -1,12 +1,64 @@
 #
-# (c) 2017, Tobias Kohn
+# This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.
 #
-# 20. Dec 2017
-# 28. Dec 2017
+# License: MIT (see LICENSE.txt)
+#
+# 20. Dec 2017, Tobias Kohn
+# 04. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
 class Graph(object):
+    """
+    The graph models sampling and observations as nodes/vertices, and the functional relationship between these
+    stochastic variables as directed edges/arcs. The shape of the graph is therefore determined by the fields
+    `vertices` and `arcs`, respectively. The vertices are names stored as strings, whereas the arcs are stored
+    as tuples of names.
+
+    For each vertex `x`, the Python code to compute the vertex' value is stored in the field `conditional_densities`.
+    That is, `conditional_densities[x]` contains the Python code necessary to generate the correct value for `x`,
+    possibly with dependencies on other vertices (as indicated by the arcs).
+
+    Observed values are stored in the field `observed_values`. If the vertex `x` has been observed to have value `1`,
+    this value is stored as `observed_values[x]`.
+
+    The graph constructs three additional sets of unobserved values: `cont_vars` for values samples from a continuous
+    distribution, `disc_vars` for values samples from a discrete distribution, and `cond_vars` for vertices, which
+    occur as part of conditional execution (`if`-expressions/statements).
+
+    Graphs are thought to be immutable objects. Use a `GraphBuilder` to create and modify new graphs.
+
+    Example:
+        ```python
+        (let [x (sample (categorical 0 1))
+              y (if (>= x 0)
+                    (sample(normal(mu=1, sigma=0.25)))
+                    (sample(normal(mu=2, sigma=0.5)))]
+          (observe (normal (y 1)) 1.5))
+        ```
+        This code gives raise to the graph:
+        ```
+        Vertices:
+        'x', 'y', 'y_1', 'y_2', 'y_cond', 'z'
+        Arcs:
+        (x, y_cond), (y_1, y), (y_2, y), (y, z)
+        Conditional densities:
+        x      -> categorial(0, 1)
+        y_1    -> normal(mu = 1, sigma = 0.25)
+        y_2    -> normal(mu = 2, signa = 0.5)
+        y_cond -> x >= 0
+        y      -> y_1 if y_cond else y_2
+        z      -> normal(mu = y, sigma = 1)
+        Observed values:
+        z      -> 1.5
+        Discrete vars:
+        x
+        Continuous vars:
+        y_1, y_2
+        Conditional vars:
+        y_cond
+        ```
+    """
 
     def __init__(self, vertices: set, arcs: set, cond_densities: dict = None, obs_values: dict = None):
         if cond_densities is None:
@@ -18,23 +70,26 @@ class Graph(object):
         self.conditional_densities = cond_densities
         self.observed_values = obs_values
         self.observed_conditions = {}
+        observed = self.observed_values.keys()
         f = lambda x: (x[5:x.index('(')] if x.startswith('dist') and '(' in x else x)
         self.cont_vars = set(n for n in vertices
                                 if n in cond_densities
+                                if n not in observed
                                 if f(cond_densities[n]) in continuous_distributions)
         self.disc_vars = set(n for n in vertices
                                 if n in cond_densities
+                                if n not in observed
                                 if f(cond_densities[n]) in discrete_distributions)
         self.cond_vars = set(n for n in vertices
                                 if n in cond_densities
                                 if n.startswith('cond'))
-        self.EMPTY: Graph = None
+        self.EMPTY = None
 
     def __repr__(self):
         cond = self.conditional_densities
         obs = self.observed_values
         C_ = "\n".join(["  {} -> {}".format(v, cond[v]) for v in cond])
-        O_ = "\n".join(["  {} -> {}".format(v, cond[v]) for v in obs])
+        O_ = "\n".join(["  {} -> {}".format(v, obs[v]) for v in obs])
         V = "Vertices V:\n  " + ', '.join(sorted(self.vertices))
         A = "Arcs A:\n  " + ', '.join(['({}, {})'.format(u, v) for (u, v) in self.arcs])
         C = "Conditional densities C:\n" + C_
@@ -43,9 +98,19 @@ class Graph(object):
 
     @property
     def is_empty(self):
+        """
+        Returns `True` if the graph is empty (contains no vertices).
+        """
         return len(self.vertices) == 0 and len(self.arcs) == 0
 
     def merge(self, other):
+        """
+        Merges this graph with another graph and returns the result. The original graphs are not modified, but
+        a new object is instead created and returned.
+
+        :param other: The second graph to merge with the current one.
+        :return:      A new graph-object.
+        """
         V = set.union(self.vertices, other.vertices)
         A = set.union(self.arcs, other.arcs)
         C = {**self.conditional_densities, **other.conditional_densities}
@@ -114,6 +179,10 @@ class Graph(object):
 
     @property
     def sorted_var_list(self):
+        """
+        The list of all variables, sorted so that each vertex in the sequence only depends on vertices occurring
+        earlier in the sequence.
+        """
         edges = self.sorted_edges_by_child.copy()
         changed = True
         while changed:

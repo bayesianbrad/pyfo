@@ -1,8 +1,10 @@
 #
-# (c) 2017, Tobias Kohn
+# This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.
 #
-# 24. Dec 2017
-# 28. Dec 2017
+# License: MIT (see LICENSE.txt)
+#
+# 24. Dec 2017, Tobias Kohn
+# 04. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 
@@ -27,9 +29,24 @@ class Optimizer(Walker):
     def visit_binary(self, node: AstBinary):
         left = node.left.walk(self)
         right = node.right.walk(self)
+
         if isinstance(left, AstValue) and isinstance(right, AstValue):
             if node.op in self.__binary_ops:
                 return AstValue(self.__binary_ops[node.op](left.value, right.value))
+
+        if isinstance(left, AstValue):
+            if (left.value == 0 and node.op in ['+', 'or']) or \
+               (left.value == 1 and node.op in ['*']):
+                return right
+
+            if left.value == 0 and node.op == '-':
+                return AstUnary('-', right)
+
+        if isinstance(right, AstValue):
+            if (right.value == 0 and node.op in ['+', '-', 'or']) or \
+               (right.value == 1 and node.op in ['*', '/']):
+                return left
+
         return node
 
     def visit_body(self, node: AstBody):
@@ -79,11 +96,19 @@ class Optimizer(Walker):
         cond = node.cond.walk(self)
         if_body = node.if_body.walk(self)
         else_body = node.else_body.walk(self) if node.else_body else None
+
         if isinstance(cond, AstValue) and type(cond.value) is bool:
             if cond.value:
                 return if_body
             elif else_body:
                 return else_body
+
+        # We get rid of a `not` in an `if`-`else`-expression by swaping
+        # the `if`- and `else`-parts.
+        if else_body and isinstance(cond, AstUnary) and cond.op == 'not':
+            else_body, if_body = if_body, else_body
+            cond = cond.item
+
         return AstIf(cond, if_body, else_body)
 
     def visit_symbol(self, node: AstSymbol):
@@ -94,23 +119,38 @@ class Optimizer(Walker):
         return node
 
     def visit_unary(self, node: AstUnary):
+        # reduce two applications of the same unary operation
+        if isinstance(node.item, AstUnary) and node.op == node.item.op:
+            if node.op in ['+', '-', 'not']:
+                return node.item.item.walk(self)
+
         item = node.item.walk(self)
+        # plus-signs are redundant
         if node.op == '+':
             return item
 
+        # apply the unary operation to values
         elif isinstance(item, AstValue):
             if node.op == '-':
                 return AstValue(-item.value)
             elif node.op == 'not':
                 return AstValue(not item.value)
 
+        # reduce two applications of the same unary operation
         elif isinstance(item, AstUnary):
             if item.op == '-' and node.op == '-':
                 return item.item
             if item.op == 'not' and node.op == 'not':
                 return item.item
 
-        return node
+        # simplify the patterns 'NOT COMPARISON', e.g. `not x < 0` to `x >= 0`
+        elif isinstance(item, AstCompare) and node.op == 'not' and item.op in ['<', '>']:
+            if item.op == '<':
+                return AstCompare('>=', item.left, item.right)
+            elif item.op == '>':
+                return AstCompare('>=', item.right, item.left)
+
+        return AstUnary(node.op, item)
 
     def visit_vector(self, node: AstVector):
         children = [child.walk(self) for child in node.get_children()]

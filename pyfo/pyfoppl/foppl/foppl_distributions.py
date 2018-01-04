@@ -1,8 +1,10 @@
 #
-# (c) 2017, Tobias Kohn
+# This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.
 #
-# 21. Dec 2017
-# 22. Dec 2017
+# License: MIT (see LICENSE.txt)
+#
+# 21. Dec 2017, Tobias Kohn
+# 22. Dec 2017, Tobias Kohn
 #
 discrete_distributions = {
     "Bernoulli",

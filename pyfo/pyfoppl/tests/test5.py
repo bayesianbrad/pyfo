@@ -1,4 +1,5 @@
-from pyfo import py_foppl as test_if_src
+from pyfo.pyfoppl.foppl import imports
+from pyfo.pyfoppl.tests import test_if_src
 
 # print(dir(test_if_src))
 # print("=" * 50)

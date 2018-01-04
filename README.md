@@ -33,15 +33,14 @@ discontinuities. This allows one to perform inference in models containing discr
 
 ## Writing the model
 Write the model in Clojue and contained within pyfo is FOPPL. This will take your model and compile it to python code.
-It essentially constructs the logjoint of the model and ensures that the orger of the direct acylic graph (DAG) is
+It essentially constructs the logjoint of the model and ensures that the order of the direct acylic graph (DAG) is
 preserved. For example one_dim_gauss.clj
 
 ```clojure
-(def one-gaussian
-    (foppl-query
-        (let [x (sample (normal 1.0 5.0))]
-            (observe (normal x 2.0) 7.0)
-        x)))
+
+   (let [x (sample (normal 1.0 5.0))]
+        (observe (normal x 2.0) 7.0)
+    x)
 ```
 which we save as `<model_name>.clj` .  In this instance `model_name = onedimgauss`, therefore we save as onedimgauss.clj
 ## Performing the inference
@@ -50,7 +49,7 @@ Ensure that your model, in this case `onedimgauss.clj`, is in the same directory
 inference script.
 
 ```python
-from pyro.pyfoppl.foppl import imports # this uses a loader and finder module.
+from pyfo.pyfoppl.foppl import imports # this uses a loader and finder module.
 import <model_name> # when we do this `imports` is triggered, compiles the modle automatically and loads it as a module.
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
@@ -72,9 +71,9 @@ means = stats['means'] # returns dictionary key:value, where key - parameter , v
 
 ## Contributors
 
-Bradley Gram-Hansen
-Tobias Kohn
-Yuan Zhou
+- Bradley Gram-Hansen
+- Tobias Kohn
+- Yuan Zhou
 
 ## References
 
@@ -84,4 +83,4 @@ Yuan Zhou
 
 <a name="fn3">3</a>: Hadi Mohasel Afshar, Justin Domke. "Reflection, Refraction, and Hamiltonian Monte Carlo."
 
-<a name="fn4">4</a>: Bradley Gram-Hansen*, Yuan Zhou*, Tobias Kohn, Sam Stanton, Frank Wood, Hongseok Yang. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
+<a name="fn4">4</a>: Bradley Gram-Hansen*, Yuan Zhou*, Tobias Kohn, Sam Stanton, Hongseok Yang, Frank Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
