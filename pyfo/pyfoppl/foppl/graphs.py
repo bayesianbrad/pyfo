@@ -83,6 +83,7 @@ class Graph(object):
         self.cond_vars = set(n for n in vertices
                                 if n in cond_densities
                                 if n.startswith('cond'))
+        self.original_names = {}
         self.EMPTY = None
 
     def __repr__(self):
@@ -119,6 +120,7 @@ class Graph(object):
         G.cont_vars = set.union(self.cont_vars, other.cont_vars)
         G.disc_vars = set.union(self.disc_vars, other.disc_vars)
         G.observed_conditions = {**self.observed_conditions, **other.observed_conditions}
+        G.original_names = {**self.original_names, **other.original_names}
         return G
 
     def add_condition_for_observation(self, obs: str, cond: str):
@@ -132,6 +134,9 @@ class Graph(object):
             for obs in self.observed_values.keys():
                 self.add_condition_for_observation(obs, cond)
         return self
+
+    def add_original_name(self, original_name, new_name):
+        self.original_names[new_name] = original_name
 
     def get_code_for_variable(self, var_name: str):
         if var_name in self.conditional_densities:
@@ -177,6 +182,22 @@ class Graph(object):
         else:
             return set()
 
+    def get_all_parents_of_node(self, var_name):
+        edges = self.sorted_edges_by_child
+        if var_name in edges:
+            result = list(edges[var_name])
+            i = 0
+            while i < len(result):
+                node = result[i]
+                if node in edges:
+                    for e in edges[node]:
+                        if e not in result:
+                            result.append(e)
+                i += 1
+            return set(result)
+        else:
+            return set()
+
     @property
     def sorted_var_list(self):
         """
@@ -208,6 +229,15 @@ class Graph(object):
             batch = set(batch)
             for u in edges:
                 edges[u] = edges[u].difference(batch)
+        return result
+
+    @property
+    def if_vars(self):
+        result = set()
+        for cond in self.cond_vars:
+            ancestors = self.get_all_parents_of_node(cond)
+            ancestors = ancestors.difference(self.disc_vars)
+            result = result.union(ancestors)
         return result
 
 

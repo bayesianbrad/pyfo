@@ -4,13 +4,28 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 28. Dec 2017, Tobias Kohn
+# 04. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .graphs import *
 from .foppl_objects import Symbol
 from .foppl_parser import parse
+from .foppl_reader import is_alpha, is_alpha_numeric
 from .optimizers import Optimizer
+
+
+def _is_identifier(symbol):
+    """
+    Checks if the given 'symbol' is a string and a valid Python identifier comprising letters, digits and an underscore.
+
+    :param symbol: Any object which might be an identifier.
+    :return:       `True` if the object is an identifier, `False` otherwise.
+    """
+    if type(symbol) is str and len(symbol) > 0 and is_alpha(symbol[0]):
+        return all([is_alpha_numeric(c) for c in symbol])
+    else:
+        return False
+
 
 class Scope(object):
     """
@@ -177,7 +192,10 @@ class Compiler(Walker):
             self.scope.add_function(name, node)
         else:
             node = self.optimize(node)
-            self.scope.add_symbol(name, node.walk(self))
+            value = node.walk(self)
+            if _is_identifier(value[1]):
+                value[0].add_original_name(name, value[1])
+            self.scope.add_symbol(name, value)
             if isinstance(node, AstValue):
                 self.scope.add_value(name, node.value)
 
@@ -232,7 +250,7 @@ class Compiler(Walker):
         node = self.optimize(node)
         l_g, l_e = node.left.walk(self)
         r_g, r_e = node.right.walk(self)
-        result = "({} {} {})".format(l_e, node.op, r_e)
+        result = "({} {} {}).data[0]".format(l_e, node.op, r_e)
         return l_g.merge(r_g), result
 
     def visit_def(self, node: AstDef):

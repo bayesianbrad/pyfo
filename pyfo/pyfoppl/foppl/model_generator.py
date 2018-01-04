@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 03. Jan 2018, Tobias Kohn
+# 04. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
@@ -88,6 +88,8 @@ class Model_Generator(object):
             self._output += str(self.graph.vertices)
             self._output += '\n\tarcs = '
             self._output += str(self.graph.arcs)
+            self._output += '\n\tnames = '
+            self._output += repr(self.graph.original_names)
             self._output += '\n'
             self._output += self._format_method(name='get_vertices', code='return list(self.vertices)')
             self._output += self._format_method(name='get_arcs', code='return list(self.arcs)')
@@ -177,6 +179,13 @@ class Model_Generator(object):
         else:
             return "return []"
 
+    def _gen_if_vars(self):
+        vars = self.graph.if_vars
+        if len(vars) > 0:
+            return "return ['{}']".format("', '".join(vars))
+        else:
+            return "return []"
+
     def _gen_disc_vars(self):
         vars = self.graph.disc_vars
         if len(vars) > 0:
@@ -195,8 +204,10 @@ class Model_Generator(object):
                     result.append("{} = {}".format(v, graph.observed_values[v]))
                 else:
                     result.append("{v} = dist_{v}.sample()".format(v=v))
+
             else:
                 result.append("{} = {}".format(v, code))
+
         result += [
             "state = {}",
             "for _gv in self.gen_vars():",
