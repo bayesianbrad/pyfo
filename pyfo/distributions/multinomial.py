@@ -107,4 +107,4 @@ class Multinomial(Distribution):
         """
             Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
         """
-        return False
+        return True

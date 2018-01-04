@@ -161,3 +161,9 @@ class MultivariateNormal(Distribution):
 
     def analytic_var(self):
         return torch.diag(self.sigma)    #         return log_p
+
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False

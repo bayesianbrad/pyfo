@@ -93,4 +93,4 @@ class HalfCauchy(Distribution):
         """
             Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
         """
-        return True
+        return False
