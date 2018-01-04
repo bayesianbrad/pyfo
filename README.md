@@ -40,7 +40,7 @@ preserved. For example one_dim_gauss.clj
 
    (let [x (sample (normal 1.0 5.0))]
         (observe (normal x 2.0) 7.0)
-    x))
+    x)
 ```
 which we save as `<model_name>.clj` .  In this instance `model_name = onedimgauss`, therefore we save as onedimgauss.clj
 ## Performing the inference

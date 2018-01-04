@@ -1,18 +1,17 @@
 #
-# (c) 2017, Tobias Kohn
+# This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.
 #
-# 18. Nov 2017
-# 22. Dec 2017
+# License: MIT (see LICENSE.txt)
+#
+# 18. Nov 2017, Tobias Kohn
+# 04. Jan 2018, Bradley Gram-Hansen
 #
 from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
 from .compiler import compile
 from .model_generator import Model_Generator
-
-# [Bradley] Testing : using import sys, the first argument of sys.path is the path to the script
-# in which the python interpreter is first invoked. This path does not include the script name, just the
-# directory including the script. Seems to work.
 import sys
-PATH = sys.path[0]
+
+_PATH = sys.path[0]
 
 def compile_module(module, input_text):
     graph, expr = compile(input_text)
@@ -35,13 +34,17 @@ class Clojure_Loader(_Loader):
 
 class Clojure_Finder(_MetaPathFinder):
 
-    def find_module(self, fullname, path=PATH):
+    def find_module(self, fullname, path=None):
+        if path is None:
+            path = _PATH
         return self.find_spec(fullname, path)
 
     def find_spec(self, fullname, path, target = None):
         import os.path
         from importlib.machinery import ModuleSpec
+
         fullname = fullname.split(sep='.')[-1]
+
         if '.' in fullname:
             raise NotImplementedError()
 
@@ -50,5 +53,5 @@ class Clojure_Finder(_MetaPathFinder):
         else:
             return None
 
-# import sys removed as importing at top
+import sys
 sys.meta_path.append(Clojure_Finder())

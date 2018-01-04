@@ -1,12 +1,15 @@
 #
-# (c) 2017, Tobias Kohn
+# This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.
 #
-# 21. Dec 2017
-# 28. Dec 2017
+# License: MIT (see LICENSE.txt)
+#
+# 21. Dec 2017, Tobias Kohn
+# 03. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
 from .graphs import Graph
+
 class Model_Generator(object):
 
     def __init__(self, graph: Graph, name: str = 'model'):
@@ -17,13 +20,13 @@ class Model_Generator(object):
         self.imports = [
             'import math',
             'import numpy as np',
-            'import torch',
-            'from torch.autograd import Variable',
-            'import pyfo.distributions as dist'
+            #'import torch',
+            #'from torch.autograd import Variable',
+            #'import pyfo.distributions as dist'
         ]
         self.interface_name = 'object'
         self.interface_source = ''
-        self._output: str = None
+        self._output = None
 
     def generate_class(self) -> str:
         """

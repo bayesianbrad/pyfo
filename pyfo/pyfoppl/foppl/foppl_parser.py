@@ -1,8 +1,10 @@
 #
-# (c) 2017, Tobias Kohn
+# This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.
 #
-# 21. Dec 2017
-# 27. Dec 2017
+# License: MIT (see LICENSE.txt)
+#
+# 21. Dec 2017, Tobias Kohn
+# 04. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -53,9 +55,25 @@ class ExprParser(object):
         elif f in [Symbol.EQ, Symbol.LT, Symbol.LE, Symbol.GT, Symbol.GE]:
             if len(form) != 3:
                 raise SyntaxError("Too many or too few arguments for comparison '{}'".format(repr(f)))
-            items = [self._parse(item) for item in form.tail]
             left = self._parse(form[1])
             right = self._parse(form[2])
+
+            # We convert all comparisons (except for equality) to the pattern `X >= 0`
+            if f == Symbol.LE:
+                f = Symbol.GE
+                left, right = right, left
+
+            elif f in [Symbol.GT, Symbol.LT]:
+                if f == Symbol.GT:
+                    left, right = right, left
+                if not (isinstance(right, AstValue) and right.value == 0):
+                    left = AstBinary('-', left, right)
+                    right = AstValue(0)
+                return AstUnary('not', AstCompare(Symbol.GE, left, right))
+
+            if not (isinstance(right, AstValue) and right.value == 0):
+                left = AstBinary('-', left, right)
+                right = AstValue(0)
             return AstCompare(f, left, right)
 
         elif isinstance(f, Symbol):
