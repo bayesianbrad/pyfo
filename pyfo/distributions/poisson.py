@@ -20,7 +20,7 @@ class Poisson(Distribution):
     """
 
     def __init__(self, lam, batch_size=None, *args, **kwargs):
-        self.lam = VariableCast(self.lam)
+        self.lam = VariableCast(lam)
         if self.lam.dim() == 1 and batch_size is not None:
             self.lam = self.lam.expand(batch_size, self.lam.size(0))
         super(Poisson, self).__init__(*args, **kwargs)
