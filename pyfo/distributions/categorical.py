@@ -42,12 +42,13 @@ class Categorical(Distribution):
                              "but not both.".format(ps, logits))
         self.ps, self.logits = get_probs_and_logits(ps=VariableCast(ps), logits=VariableCast(logits), is_multidimensional=True)
         # vs is None, Variable(Tensor), or numpy.array
-        self.vs = self._process_data(vs)
+        # vs is None, Variable(Tensor), or numpy.array
+        self.vs = self._process_data(VariableCast(vs))
         self.one_hot = one_hot
         self.log_pdf_mask = log_pdf_mask
         if vs is not None:
             vs_shape = self.vs.shape if isinstance(self.vs, np.ndarray) else self.vs.size()
-            if vs_shape != ps.size():
+            if vs_shape != self.ps.size():
                 raise ValueError("Expected vs.size() or vs.shape == ps.size(), but got {} vs {}"
                                  .format(vs_shape, ps.size()))
             if self.one_hot:

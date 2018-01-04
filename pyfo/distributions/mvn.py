@@ -51,7 +51,7 @@ class MultivariateNormal(Distribution):
     """Multivariate normal (Gaussian) distribution.
     A distribution over vectors in which all the elements have a joint Gaussian
     density.
-    :param torch.autograd.Variable loc: Mean. Must be a vector (Variable
+    :param torch.autograd.Variable mu: Mean. Must be a vector (Variable
         containing a 1d Tensor).
     :param torch.autograd.Variable covariance_matrix: Covariance matrix.
         Must be symmetric and positive semidefinite.
@@ -73,7 +73,7 @@ class MultivariateNormal(Distribution):
 
     reparameterized = True
 
-    def __init__(self, loc, covariance_matrix=None, scale_tril=None, batch_size=None, use_inverse_for_batch_log=False,
+    def __init__(self, mu, covariance_matrix=None, scale_tril=None, batch_size=None, use_inverse_for_batch_log=False,
                  normalized=True, *args, **kwargs):
         if covariance_matrix is None and scale_tril is None:
             raise ValueError('At least one of covariance_matrix or scale_tril must be specified')
@@ -81,7 +81,7 @@ class MultivariateNormal(Distribution):
             cov_matrix  = VariableCast(covariance_matrix)
         if scale_tril is not None:
             scale_tri = VariableCast(scale_tril)
-        self.mu = VariableCast(loc)
+        self.mu = VariableCast(mu)
         self.output_shape = self.mu.size()
         self.use_inverse_for_batch_log = use_inverse_for_batch_log
         self.normalized = normalized
@@ -102,7 +102,7 @@ class MultivariateNormal(Distribution):
             self.sigma = torch.mm(scale_tri.transpose(0, 1), scale_tri)
             self.sigma_cholesky = scale_tri
         if self.mu.dim() > 1:
-            raise ValueError("The mean must be a vector, but got loc.size() = {}".format(self.mu.size()))
+            raise ValueError("The mean must be a vector, but got mu.size() = {}".format(self.mu.size()))
 
         super(MultivariateNormal, self).__init__(*args, **kwargs)
 
