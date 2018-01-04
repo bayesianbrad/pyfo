@@ -55,7 +55,7 @@ distribution_params = {
     "Gamma": ["alpha", "beta"],
     "HalfCauchy": ["mu", "gamma"],
     "Multnomial": ["ps", "n"],
-    "MultivariateNormal": ["mu", "cov"],
+    "MultivariateNormal": ["mu", "covariance_matrix"],
     "Normal": ["mu", "sigma"],
     "Poisson": ["lam"],
     "Uniform": ["a", "b"]
