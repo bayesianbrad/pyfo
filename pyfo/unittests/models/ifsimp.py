@@ -11,7 +11,7 @@ class model(interface):
 
     @classmethod
     def gen_cont_vars(self):
-        return []
+        return ['x30321']
 
     @classmethod
     def gen_if_vars(self):
@@ -19,7 +19,7 @@ class model(interface):
 
     @classmethod
     def gen_disc_vars(self):
-        return ['x30321']
+        return []
 
     # prior samples
     @classmethod
