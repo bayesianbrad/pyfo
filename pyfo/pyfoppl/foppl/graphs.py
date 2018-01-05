@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 04. Jan 2018, Tobias Kohn
+# 05. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -28,7 +28,9 @@ class Graph(object):
 
     In order to assist the compilation process, the graph records some additional information as follows:
     - `observed_conditions` indicates for observed values the condition under which it is actually observed,
-    - `original_names` is a mapping from internal names to the variable names used in the original script.
+    - `original_names` is a mapping from internal names to the variable names used in the original script,
+    - `conditional_functions` maps conditional values (`True`/`False`) to their functions, i.e., for `c = f >= 0`
+      we map `c -> f`.
 
     Graphs are thought to be immutable objects. Use a `GraphBuilder` to create and modify new graphs. There are some
     exceptions, though: the compiler might have to add a specific value or mapping to a newly created graph. That is
@@ -77,6 +79,7 @@ class Graph(object):
         self.observed_values = obs_values
         self.observed_conditions = {}
         self.original_names = {}
+        self.conditional_functions = {}
         observed = self.observed_values.keys()
         f = lambda x: (x[5:x.index('(')] if x.startswith('dist') and '(' in x else x)
         self.cont_vars = set(n for n in vertices
@@ -127,6 +130,7 @@ class Graph(object):
         G.disc_vars = set.union(self.disc_vars, other.disc_vars)
         G.observed_conditions = {**self.observed_conditions, **other.observed_conditions}
         G.original_names = {**self.original_names, **other.original_names}
+        G.conditional_functions = {**self.conditional_functions, **other.conditional_functions}
         return G
 
     def add_condition_for_observation(self, obs: str, cond: str):
@@ -143,6 +147,9 @@ class Graph(object):
 
     def add_original_name(self, original_name, new_name):
         self.original_names[new_name] = original_name
+
+    def add_conditional_function(self, cond_name, function_name):
+        self.conditional_functions[cond_name] = function_name
 
     def get_code_for_variable(self, var_name: str):
         if var_name in self.conditional_densities:
@@ -245,6 +252,15 @@ class Graph(object):
             ancestors = ancestors.difference(self.disc_vars)
             result = result.union(ancestors)
         return result
+
+    def get_conditional_functions(self):
+        result = []
+        for name in self.conditional_functions:
+            target = self.conditional_functions[name]
+            if not target.startswith("lambda "):
+                target = repr(target)
+            result.append("'{}': {}".format(name, target))
+        return "{{\n  {}\n}}".format(',\n  '.join(result))
 
 
 class GraphBuilder(object):

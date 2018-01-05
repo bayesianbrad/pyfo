@@ -16,6 +16,7 @@ class Optimizer(Walker):
         '-': lambda x, y: x - y,
         '*': lambda x, y: x * y,
         '/': lambda x, y: x / y,
+        '**': lambda x, y: x ** y,
         'and': lambda x, y: x & y,
         'or':  lambda x, y: x | y,
         'xor': lambda x, y: x ^ y
@@ -71,6 +72,9 @@ class Optimizer(Walker):
             if isinstance(vector, AstValue) and isinstance(index, AstValue):
                 return AstValue(vector.value[int(index.value)])
             return AstFunctionCall(node.function, [vector, index])
+        return node
+
+    def visit_call_map(self, node: AstFunctionCall):
         return node
 
     def visit_call_rest(self, node: AstFunctionCall):

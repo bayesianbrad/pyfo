@@ -12,6 +12,7 @@ from .foppl_objects import Symbol
 from .foppl_parser import parse
 from .foppl_reader import is_alpha, is_alpha_numeric
 from .optimizers import Optimizer
+from .function_compiler import FunctionCompiler
 from . import Options
 
 
@@ -108,6 +109,8 @@ class Compiler(Walker):
         self.scope = Scope()
         # The optimizer is used to simplify expressions, e.g., 2+3 -> 5:
         self.optimizer = Optimizer(self)
+        # The function-compiler is used to create lambda-functions
+        self.function_compiler = FunctionCompiler(self)
         # When inside a conditional expression (if), we keep track of the current conditions with this stack:
         self.conditions = []
 
@@ -227,23 +230,31 @@ class Compiler(Walker):
         return result_graph, result_expr
 
     def visit_call_exp(self, node: AstFunctionCall):
-        if len(node.args) == 1:
-            graph, arg = self.optimize(node.args[0]).walk(self)
-            return graph, "math.exp({})".format(arg)
+        node = self.optimize(node)
+        if isinstance(node, AstFunctionCall) and node.function == 'exp':
+            if len(node.args) == 1:
+                graph, arg = self.optimize(node.args[0]).walk(self)
+                return graph, "math.exp({})".format(arg)
+            else:
+                raise SyntaxError("'exp' requires exactly one argument")
         else:
-            raise SyntaxError("'exp' requires exactly one argument")
+            return node.walk(self)
 
     def visit_call_get(self, node: AstFunctionCall):
-        args = node.args
-        if len(args) == 2:
-            seq_graph, seq_expr = args[0].walk(self)
-            idx_graph, idx_expr = args[1].walk(self)
-            if all(['0' <= x <= '9' for x in idx_expr]):
-                return seq_graph.merge(idx_graph), "{}[{}]".format(seq_expr, idx_expr)
+        node = self.optimize(node)
+        if isinstance(node, AstFunctionCall) and node.function == 'get':
+            args = node.args
+            if len(args) == 2:
+                seq_graph, seq_expr = args[0].walk(self)
+                idx_graph, idx_expr = args[1].walk(self)
+                if all(['0' <= x <= '9' for x in idx_expr]):
+                    return seq_graph.merge(idx_graph), "{}[{}]".format(seq_expr, idx_expr)
+                else:
+                    return seq_graph.merge(idx_graph), "{}[int({})]".format(seq_expr, idx_expr)
             else:
-                return seq_graph.merge(idx_graph), "{}[int({})]".format(seq_expr, idx_expr)
+                raise SyntaxError("'get' expects exactly two arguments")
         else:
-            raise SyntaxError("'get' expects exactly two arguments")
+            return node.walk(self)
 
     def visit_call_map(self, node: AstFunctionCall):
         f = node.args[0]
@@ -270,20 +281,49 @@ class Compiler(Walker):
             raise SyntaxError("'map' expects a function and at least one vector")
 
     def visit_call_rest(self, node: AstFunctionCall):
-        args = node.args
-        if len(args) == 1:
-            graph, expr = args[0].walk(self)
-            return graph, "{}[1:]".format(expr)
+        node = self.optimize(node)
+        if isinstance(node, AstFunctionCall) and node.function == 'rest':
+            args = node.args
+            if len(args) == 1:
+                graph, expr = args[0].walk(self)
+                return graph, "{}[1:]".format(expr)
+            else:
+                raise SyntaxError("'rest' expects exactly one argument")
         else:
-            raise SyntaxError("'rest' expects exactly one argument")
+            return node.walk(self)
 
     def visit_compare(self, node: AstCompare):
         node = self.optimize(node)
         if isinstance(node, AstCompare):
             l_g, l_e = node.left.walk(self)
             r_g, r_e = node.right.walk(self)
-            result = "({} {} {}){}".format(l_e, node.op, r_e, Options.conditional_suffix)
-            return l_g.merge(r_g), result
+            graph = l_g.merge(r_g)
+            expr = "({} {} {}){}".format(l_e, node.op, r_e, Options.conditional_suffix)
+            if not graph.is_empty:
+                cond_name = self.gen_symbol('cond_')
+                cur_cond = self.current_condition()
+                if cur_cond:
+                    graph = graph.merge(Graph({cur_cond}, {(cur_cond, cond_name)}))
+
+                if Options.uniform_conditionals and node.op == '>=' and \
+                        isinstance(node.right, AstValue) and node.right.value == 0:
+                    f_name = self.gen_symbol('f')
+                    graph = graph.merge(Graph({f_name}, {(v, f_name) for v in graph.vertices}, {f_name: l_e}))
+                    graph = graph.merge(Graph({cond_name}, {(f_name, cond_name)},
+                                              {cond_name: "({} >= 0){}".format(f_name, Options.conditional_suffix)}))
+                    graph.add_conditional_function(cond_name, f_name)
+                    if self.function_compiler:
+                        try:
+                            graph.add_conditional_function(f_name,
+                                "lambda state: {}".format(self.function_compiler.walk(node.left)))
+                        except NotImplementedError:
+                            pass
+                else:
+                    graph = graph.merge(Graph({cond_name}, {(v, cond_name) for v in graph.vertices},
+                                              {cond_name: expr}))
+                expr = cond_name
+
+            return graph, expr
         else:
             return node.walk(self)
 
@@ -327,33 +367,36 @@ class Compiler(Walker):
         if not isinstance(node, AstIf):
             return node.walk(self)
 
-        # We create two symbol for the condition and the result of the entire if-expression, respectively.
-        cond_name = self.gen_symbol('cond_')
+        # We create two symbol for the entire if-expression.
         name = self.gen_symbol('c')
 
         # Compile the condition. If we are inside another conditional expression already, we link the new
         # condition to the current condition through a new edge in the graph, so that the new condition
         # depends on the current one.
-        cond_graph, cond = node.cond.walk(self)
-        cur_cond = self.current_condition()
-        if cur_cond:
-            cond_graph = cond_graph.merge(Graph({cur_cond}, {(cur_cond, cond_name)}))
+        cond_graph, cond_name = node.cond.walk(self)
 
         # Compile if- and else-body (if present). During this compilation step, we push the new condition onto
         # the condition stack, so that expressions and statements within the branches are made aware of being
         # inside a conditional branch.
-        self.begin_condition(cond_name)
-        if_graph, if_body = node.if_body.walk(self)
-        if node.else_body:
-            else_graph, else_body = node.else_body.walk(self)
+        if not cond_graph.is_empty and _is_identifier(cond_name) and cond_name.startswith("cond"):
+            self.begin_condition(cond_name)
+            if_graph, if_body = node.if_body.walk(self)
+            if node.else_body:
+                else_graph, else_body = node.else_body.walk(self)
+            else:
+                else_graph, else_body = Graph.EMPTY, "None"
+            self.end_condition()
+
         else:
-            else_graph, else_body = Graph.EMPTY, "None"
-        self.end_condition()
+            if_graph, if_body = node.if_body.walk(self)
+            if node.else_body:
+                else_graph, else_body = node.else_body.walk(self)
+            else:
+                else_graph, else_body = Graph.EMPTY, "None"
 
         # We put together the final if-expression as well as the graph. For the graph, we add all edges as needed.
         expr = "{} if {} else {}".format(if_body, cond_name, else_body)
         graph = cond_graph
-        graph = graph.merge(Graph({cond_name}, set((v, cond_name) for v in graph.vertices), {cond_name: cond}))
         graph = graph.merge(if_graph.add_condition(cond_name))
         graph = graph.merge(else_graph.add_condition("not " + cond_name))
         graph = graph.merge(Graph({name}, set((v, name) for v in graph.vertices), {name: expr}))

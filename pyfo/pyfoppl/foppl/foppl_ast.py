@@ -163,7 +163,7 @@ class AstFunctionCall(Node):
 
     def __init__(self, function, args):
         if isinstance(function, Symbol):
-            op = function.name
+            function = function.name
         self.function = function
         self.args = args
 
