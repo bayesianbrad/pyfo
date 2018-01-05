@@ -27,8 +27,12 @@ class State(object):
         self._gen_logpdf = cls.gen_pdf # returns logp
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
         self._disc_vars = cls.gen_disc_vars()
+        self._if_vars = cls.gen_if_vars()
+        self._arcs = cls.get_arcs()
+        self._vertices = cls.get_verticies()
+        self._ancestors = cls.parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
         self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
-
+        # self._discontinuities = cls.gen_discontinuities()
     def intiate_state(self):
         """
         A dictionary of the state.
@@ -48,6 +52,23 @@ class State(object):
             return None
         else:
             return self._cont_vars
+
+    def _return_if_vars(self):
+        if len(self._if_vars) == 0:
+            return None
+        else:
+            return self._vertices
+    def _return_arcs(self):
+        if len(self._arcs) == 0:
+            return None
+        else:
+            return self._arcs
+
+    def _return_vertices(self):
+        if len(self._vertices) == 0:
+            return None
+        else:
+            return self._vertices
 
     def _return_all_list(self):
         if len(self._all_vars) == 0:
@@ -147,3 +168,19 @@ class State(object):
             return val1.data
         else:
             return val1
+
+    def _gradient_field(self, cond, state):
+        """
+
+        :param state: dict of all latent variables
+        :param cond: the predicate
+        :return: unit grad Vector of the ancestor history of
+        the predicate.
+        Tobias has now created a dictionary of the predicates,
+        that has for the value a lambda function that returns
+        the scalar field .
+        """
+        scalar_field =
+
+
+
