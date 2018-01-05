@@ -26,7 +26,13 @@ class Graph(object):
     distribution, `disc_vars` for values samples from a discrete distribution, and `cond_vars` for vertices, which
     occur as part of conditional execution (`if`-expressions/statements).
 
-    Graphs are thought to be immutable objects. Use a `GraphBuilder` to create and modify new graphs.
+    In order to assist the compilation process, the graph records some additional information as follows:
+    - `observed_conditions` indicates for observed values the condition under which it is actually observed,
+    - `original_names` is a mapping from internal names to the variable names used in the original script.
+
+    Graphs are thought to be immutable objects. Use a `GraphBuilder` to create and modify new graphs. There are some
+    exceptions, though: the compiler might have to add a specific value or mapping to a newly created graph. That is
+    why you will find some `add_XXX`-methods. They should, however, be used with caution and only in controlled ways.
 
     Example:
         ```python
@@ -70,6 +76,7 @@ class Graph(object):
         self.conditional_densities = cond_densities
         self.observed_values = obs_values
         self.observed_conditions = {}
+        self.original_names = {}
         observed = self.observed_values.keys()
         f = lambda x: (x[5:x.index('(')] if x.startswith('dist') and '(' in x else x)
         self.cont_vars = set(n for n in vertices
@@ -83,7 +90,6 @@ class Graph(object):
         self.cond_vars = set(n for n in vertices
                                 if n in cond_densities
                                 if n.startswith('cond'))
-        self.original_names = {}
         self.EMPTY = None
 
     def __repr__(self):
@@ -278,7 +284,10 @@ class GraphBuilder(object):
         self.observed_values[key] = value
 
 
-def merge(G1: Graph, G2: Graph):
-    return G1.merge(G2)
+def merge(*graphs):
+    result = Graph.EMPTY
+    for g in graphs:
+        result = result.merge(g)
+    return result
 
 Graph.EMPTY = Graph(set(), set())

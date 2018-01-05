@@ -20,6 +20,8 @@ def compile_module(module, input_text):
     exec(code, module.__dict__)
     module.graph = graph
     module.code = code
+    if module.model:
+        module.model.graph = graph
     return module
 
 class Clojure_Loader(_Loader):

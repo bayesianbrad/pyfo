@@ -4,9 +4,10 @@
 # License: MIT (see LICENSE.txt)
 #
 # 24. Dec 2017, Tobias Kohn
-# 04. Jan 2018, Tobias Kohn
+# 05. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
+from . import Options
 
 class Optimizer(Walker):
 
@@ -18,6 +19,13 @@ class Optimizer(Walker):
         'and': lambda x, y: x & y,
         'or':  lambda x, y: x | y,
         'xor': lambda x, y: x ^ y
+    }
+
+    __inverse_cmp = {
+        '>': '<=',
+        '>=': '<',
+        '<=': '>',
+        '<': '>=',
     }
 
     def __init__(self, compiler=None):
@@ -111,11 +119,36 @@ class Optimizer(Walker):
 
         return AstIf(cond, if_body, else_body)
 
+    def visit_sqrt(self, node: AstSqrt):
+        from math import sqrt
+        item = node.item.walk(self)
+
+        if isinstance(item, AstValue):
+            value = item.value
+            if type(value) in [int, float]:
+                return AstValue(sqrt(value))
+            elif type(value) is list and all([type(x) in [int, float] for x in value]):
+                return AstValue([sqrt(x) for x in value])
+
+        if isinstance(item, AstVector):
+            node = AstVector([AstSqrt(x) for x in item.items])
+            return node.walk(self)
+
+        return AstSqrt(item)
+
     def visit_symbol(self, node: AstSymbol):
         if self.compiler:
             result = self.compiler.scope.find_value(node.name)
             if result:
-                return result
+                if type(result) in [int, float, list, str, bool]:
+                    return AstValue(result)
+                else:
+                    return result
+            result = self.compiler.scope.find_symbol(node.name)
+            if type(result) is tuple and len(result) == 2:
+                graph, value = result
+                if graph.is_empty and isinstance(value, AstValue):
+                    return value
         return node
 
     def visit_unary(self, node: AstUnary):
@@ -144,11 +177,15 @@ class Optimizer(Walker):
                 return item.item
 
         # simplify the patterns 'NOT COMPARISON', e.g. `not x < 0` to `x >= 0`
-        elif isinstance(item, AstCompare) and node.op == 'not' and item.op in ['<', '>']:
-            if item.op == '<':
-                return AstCompare('>=', item.left, item.right)
-            elif item.op == '>':
-                return AstCompare('>=', item.right, item.left)
+        elif isinstance(item, AstCompare) and node.op == 'not':
+            if Options.uniform_conditionals:
+                if item.op == '<':
+                    return AstCompare('>=', item.left, item.right)
+                elif item.op == '>':
+                    return AstCompare('>=', item.right, item.left)
+            else:
+                if item.op in self.__inverse_cmp:
+                    return AstCompare(self.__inverse_cmp[item.op], item.left, item.right)
 
         return AstUnary(node.op, item)
 

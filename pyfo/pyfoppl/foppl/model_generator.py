@@ -9,23 +9,20 @@
 import datetime
 import importlib
 from .graphs import Graph
+from . import Options
 
 class Model_Generator(object):
 
     def __init__(self, graph: Graph, name: str = 'model'):
         self.graph = graph
         self.name = name
-        self.interface_name = 'interface'
-        self.interface_source = 'pyfo.utils.interface'
-        self.imports = [
-            'import math',
-            'import numpy as np',
-            'import torch',
-            'from torch.autograd import Variable',
-            'import pyfo.distributions as dist'
-        ]
-        self.interface_name = 'object'
-        self.interface_source = ''
+        if Options.model_interface:
+            name, source = Options.model_interface
+        else:
+            name, source = 'object', ''
+        self.interface_name = name
+        self.interface_source = source
+        self.imports = Options.model_imports.copy()
         self._output = None
 
     def generate_class(self) -> str:
@@ -226,10 +223,11 @@ class Model_Generator(object):
             if code.startswith('dist.'):
                 result.append("dist_{v} = {code}".format(v=v, code=code))
                 if graph.is_observed_variable(v):
-                    result.append("{} = {}".format(v, graph.observed_values[v]))
+                    # result.append("{} = {}".format(v, graph.observed_values[v]))
+                    s = "p{p_index} = dist_{v}.log_pdf({w})".format(p_index=p_index, v=v, w=graph.observed_values[v])
                 else:
                     result.append("{v} = state['{v}']".format(v=v))
-                s = "p{p_index} = dist_{v}.log_pdf({v})".format(p_index=p_index, v=v)
+                    s = "p{p_index} = dist_{v}.log_pdf({v})".format(p_index=p_index, v=v)
                 if v in graph.observed_conditions:
                     s += " if {} else 0".format(graph.observed_conditions[v])
                 result.append(s)
@@ -241,6 +239,11 @@ class Model_Generator(object):
 
             else:
                 result.append("{} = {}".format(v, code))
+
+        # Let's get rid of values, which are computed but never used
+        while len(result) > 0 and not result[-1].startswith('p'):
+            del result[-1]
+
         if len(p_vars) > 0:
             result.append("logp = " + (" + ".join(p_vars)))
             result.append("return logp")

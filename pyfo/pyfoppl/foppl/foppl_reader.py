@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 29. Nov 2017, Tobias Kohn
-# 27. Dec 2017, Tobias Kohn
+# 04. Jan 2018, Tobias Kohn
 #
 from .foppl_objects import *
 
@@ -292,7 +292,7 @@ class Reader(object):
         elif c in ['(', '[', '{']:
             first_char = src.next()
             result = []
-            while src.peek() not in [None, ')', ']', '}']:
+            while src.skip_space() not in [None, ')', ']', '}']:
                 result.append(self.__next__())
 
             if src.peek() in [')', ']', '}']:

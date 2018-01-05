@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 27. Dec 2017, Tobias Kohn
+# 05. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import distribution_params
 from .graphs import *
@@ -137,24 +137,15 @@ class AstDistribution(Node):
     def get_children(self):
         return self.args
 
+    def walk(self, walker):
+        name = self.name.lower()
+        method_name = "visit_distribution_" + name
+        if hasattr(walker, method_name):
+            return getattr(walker, method_name)(self)
+        return super(AstDistribution, self).walk(walker)
+
     def __repr__(self):
         return "dist.{}({})".format(self.name, ', '.join([repr(arg) for arg in self.args]))
-
-    def repr_with_args(self, walker):
-        graph = Graph.EMPTY
-        args = []
-        for arg in self.args:
-            gr, expr = arg.walk(walker)
-            graph = graph.merge(gr)
-            args.append(expr)
-        params = distribution_params[self.name].copy()
-        if len(params) == len(args):
-            for i in range(len(params)):
-                params[i] += '=' + args[i]
-
-            return graph, "dist.{}({})".format(self.name, ', '.join(params))
-        else:
-            raise SyntaxError("wrong number of arguments for distribution '{}'".format(self.name))
 
 
 class AstFunction(Node):
@@ -238,6 +229,15 @@ class AstSample(Node):
 
     def __repr__(self):
         return "sample({})".format(repr(self.distribution))
+
+
+class AstSqrt(Node):
+
+    def __init__(self, item: Node):
+        self.item = item
+
+    def __repr__(self):
+        return "sqrt({})".format(repr(self.item))
 
 
 class AstSymbol(Node):

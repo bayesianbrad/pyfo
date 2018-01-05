@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 04. Jan 2018, Tobias Kohn
+# 05. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .graphs import *
@@ -12,6 +12,7 @@ from .foppl_objects import Symbol
 from .foppl_parser import parse
 from .foppl_reader import is_alpha, is_alpha_numeric
 from .optimizers import Optimizer
+from . import Options
 
 
 def _is_identifier(symbol):
@@ -171,7 +172,10 @@ class Compiler(Walker):
                 if isinstance(value, AstFunction):
                     self.scope.add_function(name, value)
                 else:
-                    self.scope.add_symbol(name, value.walk(self))
+                    if type(value) in [int, bool, str, float]:
+                        self.scope.add_symbol(name, (Graph.EMPTY, AstValue(value)))
+                    else:
+                        self.scope.add_symbol(name, value.walk(self))
             result = function.body.walk(self)
         finally:
             self.end_scope()
@@ -201,14 +205,17 @@ class Compiler(Walker):
 
     def visit_node(self, node: Node):
         # We raise an exception as we want to handle all types of nodes explicitly.
-        raise NotImplementedError(type(node))
+        raise NotImplementedError("{}".format(type(node)))
 
     def visit_binary(self, node: AstBinary):
         node = self.optimize(node)
-        l_g, l_e = node.left.walk(self)
-        r_g, r_e = node.right.walk(self)
-        result = "({} {} {})".format(l_e, node.op, r_e)
-        return l_g.merge(r_g), result
+        if isinstance(node, AstBinary):
+            l_g, l_e = node.left.walk(self)
+            r_g, r_e = node.right.walk(self)
+            result = "({} {} {})".format(l_e, node.op, r_e)
+            return l_g.merge(r_g), result
+        else:
+            return node.walk(self)
 
     def visit_body(self, node: AstBody):
         result_graph = Graph.EMPTY
@@ -238,6 +245,30 @@ class Compiler(Walker):
         else:
             raise SyntaxError("'get' expects exactly two arguments")
 
+    def visit_call_map(self, node: AstFunctionCall):
+        f = node.args[0]
+        args = [self.optimize(arg) for arg in node.args[1:]]
+        if all([isinstance(arg, AstValue) for arg in args]):
+            args = [arg.value for arg in args]
+        else:
+            raise RuntimeError("Cannot apply 'map' to {}".format(args))
+        if len(args) > 0 and isinstance(f, AstFunction):
+            if len(args) > 1:
+                mangled_args = []
+                L = min([len(arg) for arg in args])
+                for i in range(L):
+                    mangled_args.append([arg[i] for arg in args])
+                args = mangled_args
+            else:
+                args = [[arg] for arg in args[0]]
+            Vec = [self.apply_function(f, arg) for arg in args]
+            graph = merge(*[v[0] for v in Vec])
+            expr = "[{}]".format(', '.join([v[1] for v in Vec]))
+            return graph, expr
+
+        else:
+            raise SyntaxError("'map' expects a function and at least one vector")
+
     def visit_call_rest(self, node: AstFunctionCall):
         args = node.args
         if len(args) == 1:
@@ -248,10 +279,13 @@ class Compiler(Walker):
 
     def visit_compare(self, node: AstCompare):
         node = self.optimize(node)
-        l_g, l_e = node.left.walk(self)
-        r_g, r_e = node.right.walk(self)
-        result = "({} {} {}).data[0]".format(l_e, node.op, r_e)
-        return l_g.merge(r_g), result
+        if isinstance(node, AstCompare):
+            l_g, l_e = node.left.walk(self)
+            r_g, r_e = node.right.walk(self)
+            result = "({} {} {}){}".format(l_e, node.op, r_e, Options.conditional_suffix)
+            return l_g.merge(r_g), result
+        else:
+            return node.walk(self)
 
     def visit_def(self, node: AstDef):
         if self.scope.is_global_scope:
@@ -261,7 +295,20 @@ class Compiler(Walker):
             raise SyntaxError("'def' must be on the global level")
 
     def visit_distribution(self, node: AstDistribution):
-        return node.repr_with_args(self)
+        graph = Graph.EMPTY
+        args = []
+        for arg in node.args:
+            gr, expr = arg.walk(self)
+            graph = graph.merge(gr)
+            args.append(expr)
+        params = distribution_params[node.name].copy()
+        if len(params) == len(args):
+            for i in range(len(params)):
+                params[i] += '=' + args[i]
+
+            return graph, "dist.{}({})".format(node.name, ', '.join(params))
+        else:
+            raise SyntaxError("wrong number of arguments for distribution '{}'".format(node.name))
 
     def visit_functioncall(self, node: AstFunctionCall):
         func = node.function
@@ -270,7 +317,7 @@ class Compiler(Walker):
         if isinstance(func, AstFunction):
             return self.apply_function(func, node.args)
         else:
-            raise SyntaxError("'%s' is not a function".format(node.function))
+            raise SyntaxError("'{}' is not a function".format(node.function))
 
     def visit_if(self, node: AstIf):
         # The optimizer might detect that the condition is static (can be determined at compile time), and
@@ -347,12 +394,24 @@ class Compiler(Walker):
             graph = graph.merge(Graph({cond}, {(cond, name)}))
         return graph, name
 
+    def visit_sqrt(self, node: AstSqrt):
+        node = self.optimize(node)
+        if isinstance(node, AstSqrt):
+            graph, expr = node.item.walk(self)
+            return graph, "math.sqrt({})".format(expr)
+        else:
+            return node.walk(self)
+
     def visit_symbol(self, node: AstSymbol):
         return self.scope.find_symbol(node.name)
 
     def visit_unary(self, node: AstUnary):
-        graph, expr = node.item.walk(self)
-        return graph, "{}{}".format(node.op, expr)
+        node = self.optimize(node)
+        if isinstance(node, AstUnary):
+            graph, expr = node.item.walk(self)
+            return graph, "{}{}".format(node.op, expr)
+        else:
+            return node.walk(self)
 
     def visit_value(self, node: AstValue):
         # We must use `repr` here instead of `str`, as `repr` returns a string with delimiters.
