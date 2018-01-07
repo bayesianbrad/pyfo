@@ -45,6 +45,14 @@ class interface():
 
         :return: List of free random variables and its ancestors in if conditions as string
         """
+        raise NotImplementedError
+    @classmethod
+    def gen_cond_vars(self) -> List[str]:
+        """
+
+        :return: List of free random variables and its ancestors in if conditions as string
+        """
+        raise NotImplementedError
     # prior samples
     @classmethod
     def gen_prior_samples(self) -> Dict[str,Variable]:
