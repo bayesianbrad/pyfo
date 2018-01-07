@@ -19,7 +19,7 @@ import copy
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
-from pyfo.utils.core import extract_means
+from pyfo.utils.eval_stats import extract_means
 
 
 class DHMCSampler(object):
@@ -38,26 +38,26 @@ class DHMCSampler(object):
         ## Rather than dealing with the 'indicies' of parameters we deal instead with the keys
         # 3rd Note
         ## When generating the mometum dictionary we need the discrete params to have their
-        ## momentum drawn from the laplacian, and the continous params to be drawn from
+        ## momentum drawn from the laplacian, and the continuous params to be drawn from
         ## gaussian
         #4 TH NOTE
         ## Need to deal with a M matrix. I may  just set it to 1 everywhere, inferring the identity.
 
-        if scale is None:
-             scale = VariableCast(torch.ones(chains)) # outputs chains x n_param tensor
-
-        # # Set the scale of v to be inversely proportional to the scale of x.
-
         self.model =cls() # instantiates model
         self._state = state.State(cls)
+
+        # Parameter keys
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
-        #self._cond_keys = self._state._return_cond_list()
-        #self._if_keys = self._state._return_if_list()
+        self._cond_keys = self._state._return_cond_list()
+        self._if_keys = self._state._return_if_list()
         self._all_keys = self._state._return_all_list()
 
+        # True latent variable names
+        self._names = self._state._return_true_names()
+
         self.grad_logp = self._state._grad_logp
-        self.init_state = self._state.intiate_state() # essentially this is just x0
+        self.init_state = self._state.intiate_state() # this is just x0
         # self.n_disc = len(self._disc_keys)
         # self.n_cont = len(self._cont_keys)
         # self.n_params =  self.n_disc + self.n_cont
@@ -172,7 +172,24 @@ class DHMCSampler(object):
                 n_feval += 1
             return x, p, n_feval, n_fupdate
 
+    def RRhmc(self,x ,p):
+        """
 
+        :param x:
+        :param p:
+        :return:
+
+        TO DO: Implement the RRHMC algorithm
+        Current methods (nearly) available:
+            State.scalar_field() will calculate the normal vector to the
+            discontinuity boundary.
+        Current method to do:
+            Calculate the unit P_perpedicular component
+            Implement FirstDiscontinuity function
+            Implement 'time tracker function'
+
+
+        """
     def _energy(self, x, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
@@ -230,7 +247,7 @@ class DHMCSampler(object):
 
         return x, acceptprob[0], n_feval, n_fupdate
 
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=12345, n_update=10, print_stats= False):
+    def sample(self,n_samples= 1000, burn_in= 100, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=12345, n_update=10, print_stats= False):
         torch.manual_seed(seed)
         np.random.seed(seed)
         x = self.init_state
@@ -239,7 +256,7 @@ class DHMCSampler(object):
         n_fupdate = 0
         x_dicts = []
         accept =[]
-        print('The first debug statement ', x)
+        print('The first debug statement in dhmc.sample()  ', x)
 
         tic = time.process_time()
         print(50*'=')
@@ -254,7 +271,7 @@ class DHMCSampler(object):
             accept.append(accept_prob)
             x_dicts.append(x)
             if (i + 1) % n_per_update == 0:
-                print('The second debug stawtment', x)
+                print('The second debug statement in dhmc.sample()', x)
                 print('{:d} iterations have been completed.'.format(i + 1))
         toc = time.process_time()
         time_elapsed = toc - tic
@@ -268,8 +285,10 @@ class DHMCSampler(object):
 
 
         all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns')
+        all_samples.rename(columns=self._names, inplace=True)
         samples =  all_samples.loc[burn_in:, :]
-        means = extract_means(samples,self._all_keys)
+        # here, names.values() are the true keys
+        means = extract_means(samples,self._names.values())
         print(50*'=')
         print('Sampling has now been completed....')
         print(50*'=')
