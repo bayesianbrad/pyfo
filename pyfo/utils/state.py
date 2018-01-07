@@ -28,11 +28,15 @@ class State(object):
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
         self._disc_vars = cls.gen_disc_vars()
         self._if_vars = cls.gen_if_vars()
+        self._cond_vars=  cls.gen_cond_vars()
         self._arcs = cls.get_arcs()
-        self._vertices = cls.get_verticies()
-        self._ancestors = cls.parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
+        self._vertices = cls.get_vertices()
+        self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
         self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
         # self._discontinuities = cls.gen_discontinuities()
+
+        # True names of parameters
+        self._names = cls.names
     def intiate_state(self):
         """
         A dictionary of the state.
@@ -53,11 +57,18 @@ class State(object):
         else:
             return self._cont_vars
 
-    def _return_if_vars(self):
+    def _return_if_list(self):
         if len(self._if_vars) == 0:
             return None
         else:
-            return self._vertices
+            return self._if_vars
+
+    def _return_cond_list(self):
+        if len(self._cond_vars) == 0:
+            return None
+        else:
+            return self._cond_vars
+
     def _return_arcs(self):
         if len(self._arcs) == 0:
             return None
@@ -75,6 +86,13 @@ class State(object):
             return None
         else:
             return self._all_vars
+
+    def _return_true_names(self):
+        if len(self._names) == 0:
+            return None
+        else:
+            return self._names
+
     @staticmethod
     def detach_nodes(x):
         """
@@ -100,6 +118,29 @@ class State(object):
             state = self._to_leaf(state)
 
         return self._gen_logpdf(state)
+
+    def _embed(self, state, disc_key):
+        """
+
+        :param state:
+        :param disc_key: Discrete parameter being embedded
+        :return: state with embedded parameter value
+        If embedded value falls outside of domain of discrete
+        parameter return -inf
+        else
+
+        TO DO
+        """
+
+    def _unembed(self, state, disc_key):
+        """
+
+        :param state:
+        :param disc_key:
+        :return: state with unembedded value
+
+        TO DO
+        """
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
         Implements the 'f_update' in the coordinate wise integrator, to calculate the
@@ -169,18 +210,25 @@ class State(object):
         else:
             return val1
 
-    def _gradient_field(self, cond, state):
+    def _gradient_field(self, key, state):
         """
 
         :param state: dict of all latent variables
-        :param cond: the predicate
-        :return: unit grad Vector of the ancestor history of
-        the predicate.
+        :param key: the value of predicate
+        :return: unit grad Vector type: List of Variables
         Tobias has now created a dictionary of the predicates,
         that has for the value a lambda function that returns
         the scalar field .
+
+        To DO: Finish once tobias gets back, as the function is including variables that
+        do not exist in the outputted parameter fields. Will need to use ancestor to generate the keys for the history,
+        so that we know what to differentiate with respect to
         """
-        scalar_field =
+        ancestors = self._ancestors(key) # returns set
+        scalar_field = [] #TO DO
+        grad_vec = []
+        for ancestor in ancestors:
+            grad_vec.append(torch.autograd.grad(scalar_field, ancestor, retain_graph=True))
 
-
+        return grad_vec
 
