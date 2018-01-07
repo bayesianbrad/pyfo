@@ -71,7 +71,7 @@ class ExprParser(object):
                     if not (isinstance(right, AstValue) and right.value == 0):
                         left = AstBinary('-', left, right)
                         right = AstValue(0)
-                    return AstUnary('not', AstCompare(Symbol.GE, left, right))
+                    return AstUnary('not ', AstCompare(Symbol.GE, left, right))
 
             if not (isinstance(right, AstValue) and right.value == 0):
                 left = AstBinary('-', left, right)
