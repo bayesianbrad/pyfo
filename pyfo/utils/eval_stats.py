@@ -70,3 +70,27 @@ def gelman_rubin_diagnostic(x, logger, mu=None):
     r_hat = np.sqrt(v / w)
     logger.info('R: max [%f] min [%f]' % (np.max(r_hat), np.min(r_hat)))
     return r_hat
+
+def extract_means(dataframe, keys=None):
+    """
+
+    :param dataframe: pandas.DataFrame
+    :param keys: sring of params
+    :return: Samples for each variable
+
+    With a dataframe, the columns correspond to the key names and the
+    rows, correspond to sample number.
+    To extract all the samples (and chains) use dataframe.loc[<key>]
+    If the values stored are arrays, i.e. multiple chains, then use
+    dataframe.loc[<key>][i] to extract the exact array
+    """
+    means = {}
+    if keys:
+        for key in keys:
+            if key is None:
+                continue
+            else:
+                means[key] = dataframe[key].sum() / len(dataframe.index)
+        return means
+    else:
+        return dataframe.values.sum() / len(dataframe)
