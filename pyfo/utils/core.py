@@ -11,7 +11,7 @@ import torch
 import numpy as np
 from torch.autograd import Variable
 
-def VariableCast(value, grad = False):
+def VariableCast(value, grad = False, dist=None):
     '''casts an input to torch Variable object
     input
     -----
@@ -31,6 +31,8 @@ def VariableCast(value, grad = False):
     elif isinstance(value, np.ndarray):
         tensor = torch.from_numpy(value).float()
         return Variable(tensor, requires_grad = grad)
+    elif isinstance(value,list):
+        return Variable(torch.FloatTensor([value]).squeeze(), requires_grad = grad)
     else:
         return Variable(torch.FloatTensor([value]), requires_grad = grad)
 
@@ -108,29 +110,6 @@ def my_import(name):
         mod = getattr(mod, comp)
     return mod
 
-def extract_means(dataframe, keys=None):
-    """
-
-    :param dataframe: pandas.DataFrame
-    :param keys: sring of params
-    :return: Samples for each variable
-
-    With a dataframe, the columns correspond to the key names and the
-    rows, correspond to sample number.
-    To extract all the samples (and chains) use dataframe.loc[<key>]
-    If the values stored are arrays, i.e. multiple chains, then use
-    dataframe.loc[<key>][i] to extract the exact array
-    """
-    means = {}
-    if keys:
-        for key in keys:
-            if key is None:
-                continue
-            else:
-                means[key] = dataframe[key].sum() / len(dataframe.index)
-        return means
-    else:
-        return dataframe.values.sum() / len(dataframe)
 
 
 
