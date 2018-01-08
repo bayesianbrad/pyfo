@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 05. Jan 2018, Tobias Kohn
+# 07. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .graphs import *
@@ -229,6 +229,19 @@ class Compiler(Walker):
             result_expr = e
         return result_graph, result_expr
 
+    def visit_call_conj(self, node: AstFunctionCall):
+        node = self.optimize(node)
+        if isinstance(node, AstFunctionCall) and node.function == 'conj':
+            if len(node.args) == 2:
+                seq_graph, seq_expr = self.optimize(node.args[0]).walk(self)
+                itm_graph, itm_expr = self.optimize(node.args[1]).walk(self)
+                graph = seq_graph.merge(itm_graph)
+                return graph, "{} + [{}]".format(seq_expr, itm_expr)
+            else:
+                raise SyntaxError("'conj' requires two arguments")
+        else:
+            return node.walk(self)
+
     def visit_call_exp(self, node: AstFunctionCall):
         node = self.optimize(node)
         if isinstance(node, AstFunctionCall) and node.function == 'exp':
@@ -247,7 +260,10 @@ class Compiler(Walker):
             if len(args) == 2:
                 seq_graph, seq_expr = args[0].walk(self)
                 idx_graph, idx_expr = args[1].walk(self)
-                if all(['0' <= x <= '9' for x in idx_expr]):
+                if len(seq_expr) > 2 and seq_expr[0] == '[' and seq_expr[-1] == ']' and \
+                        _is_identifier(seq_expr[1:-1]) and idx_expr in ['0', '-1']:
+                    return seq_graph.merge(idx_graph), seq_expr[1:-1]
+                if all(['0' <= x <= '9' for x in idx_expr]) or idx_expr == '-1':
                     return seq_graph.merge(idx_graph), "{}[{}]".format(seq_expr, idx_expr)
                 else:
                     return seq_graph.merge(idx_graph), "{}[int({})]".format(seq_expr, idx_expr)

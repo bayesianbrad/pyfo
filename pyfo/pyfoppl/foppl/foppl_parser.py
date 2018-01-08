@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 05. Jan 2018, Tobias Kohn
+# 07. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -81,24 +81,26 @@ class ExprParser(object):
         elif isinstance(f, Symbol):
             args = [self._parse(arg) for arg in form.tail]
             if f.name == "sample":
-                if len(args) != 1 or not isinstance(args[0], AstDistribution):
-                    raise SyntaxError("'sample' requires exactly one argument, which must be a distribution")
+                if len(args) != 1:
+                    raise SyntaxError("'sample' requires exactly one argument")
                 return AstSample(args[0])
 
             elif f.name == "observe":
-                if len(args) != 2 or not isinstance(args[0], AstDistribution):
-                    raise SyntaxError("'observe' requires exactly two arguments, of which the first must be a distribution")
+                if len(args) != 2:
+                    raise SyntaxError("'observe' requires exactly two arguments")
                 return AstObserve(args[0], args[1])
 
             elif f.name == "vector":
                 return self._parse(Vector(form.data[1:]))
 
-            elif f.name in ["first", "second"]:
+            elif f.name in ["first", "second", "last"]:
                 if len(args) == 1:
                     if f.name == "first":
                         args.append(AstValue(0))
                     elif f.name == "second":
                         args.append(AstValue(1))
+                    elif f.name == "last":
+                        args.append(AstValue(-1))
                     return AstFunctionCall("get", args)
                 else:
                     raise SyntaxError("'{}' expects exactly one argument".format(f.name))

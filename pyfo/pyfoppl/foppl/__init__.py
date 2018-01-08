@@ -37,15 +37,15 @@ class Options(object):
 
     inline_variables = True
 
-    # model_interface = ('object', '')
-    model_interface = ('interface', 'pyfo.utils.interface')
+    model_interface = ('object', '')
+    #model_interface = ('interface', 'pyfo.utils.interface')
 
     model_imports = [
         'import math',
         'import numpy as np',
-        'import torch',
-        'from torch.autograd import Variable',
-        'import pyfo.distributions as dist'
+        # 'import torch',
+        # 'from torch.autograd import Variable',
+        # 'import pyfo.distributions as dist'
     ]
 
     conditional_suffix = '.data[0]'

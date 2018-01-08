@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 24. Dec 2017, Tobias Kohn
-# 05. Jan 2018, Tobias Kohn
+# 07. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from . import Options
@@ -64,6 +64,15 @@ class Optimizer(Walker):
             return items[0]
         else:
             return AstBody(items)
+
+    def visit_call_conj(self, node: AstFunctionCall):
+        if len(node.args) == 2:
+            vector = node.args[0].walk(self)
+            item = node.args[1].walk(self)
+            if isinstance(vector, AstValue) and isinstance(item, AstValue) and type(vector.value) is list:
+                return AstValue(vector.value + [item])
+            return AstFunctionCall(node.function, [vector, item])
+        return node
 
     def visit_call_get(self, node: AstFunctionCall):
         if len(node.args) == 2:

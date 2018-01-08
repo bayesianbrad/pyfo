@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 29. Nov 2017, Tobias Kohn
-# 04. Jan 2018, Tobias Kohn
+# 07. Jan 2018, Tobias Kohn
 #
 from .foppl_objects import *
 
@@ -145,6 +145,9 @@ class CharacterStream(object):
             if c == '.' and is_digit(self.peek(1)):
                 self.skip()
                 value += '.' + self.read_while(is_digit)
+            elif c == '.' and not is_alpha_numeric(self.peek(1)):
+                self.skip()
+                value += '.0'
             elif c not in ['e', 'E']:
                 return sign * int(value)
 
