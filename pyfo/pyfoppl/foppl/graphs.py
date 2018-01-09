@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 05. Jan 2018, Tobias Kohn
+# 08. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -30,7 +30,9 @@ class Graph(object):
     - `observed_conditions` indicates for observed values the condition under which it is actually observed,
     - `original_names` is a mapping from internal names to the variable names used in the original script,
     - `conditional_functions` maps conditional values (`True`/`False`) to their functions, i.e., for `c = f >= 0`
-      we map `c -> f`.
+      we map `c -> f`,
+    - `used_functions` is set that records all functions used inside the code, which have not been recognized by
+      the compiler. These functions need to be provided by other means to the model/Python code.
 
     Graphs are thought to be immutable objects. Use a `GraphBuilder` to create and modify new graphs. There are some
     exceptions, though: the compiler might have to add a specific value or mapping to a newly created graph. That is
@@ -93,6 +95,7 @@ class Graph(object):
         self.cond_vars = set(n for n in vertices
                                 if n in cond_densities
                                 if n.startswith('cond'))
+        self.used_functions = set()
         self.EMPTY = None
 
     def __repr__(self):
@@ -131,6 +134,7 @@ class Graph(object):
         G.observed_conditions = {**self.observed_conditions, **other.observed_conditions}
         G.original_names = {**self.original_names, **other.original_names}
         G.conditional_functions = {**self.conditional_functions, **other.conditional_functions}
+        G.used_functions = set.union(self.used_functions, other.used_functions)
         return G
 
     def add_condition_for_observation(self, obs: str, cond: str):
@@ -150,6 +154,9 @@ class Graph(object):
 
     def add_conditional_function(self, cond_name, function_name):
         self.conditional_functions[cond_name] = function_name
+
+    def add_used_function(self, name):
+        self.used_functions.add(name)
 
     def get_code_for_variable(self, var_name: str):
         if var_name in self.conditional_densities:

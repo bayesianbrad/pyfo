@@ -80,6 +80,9 @@ class Optimizer(Walker):
             index = node.args[1].walk(self)
             if isinstance(vector, AstValue) and isinstance(index, AstValue):
                 return AstValue(vector.value[int(index.value)])
+            if isinstance(index, AstValue) and index.value == -1:
+                if isinstance(vector, AstFunctionCall) and vector.function == 'conj' and len(vector.args) >= 2:
+                    return vector.args[-1]
             return AstFunctionCall(node.function, [vector, index])
         return node
 
@@ -131,6 +134,18 @@ class Optimizer(Walker):
             cond = cond.item
 
         return AstIf(cond, if_body, else_body)
+
+    def visit_loop(self, node: AstLoop):
+        if node.iter_count == 0:
+            return node.arg.walk(self)
+        elif node.iter_count == 1:
+            func = node.function.name if isinstance(node.function, AstSymbol) else node.function
+            result = AstFunctionCall(func, [AstValue(0), node.arg] + node.args)
+            return result.walk(self)
+        else:
+            arg = node.arg.walk(self) if node.arg else None
+            args = [a.walk(self) for a in node.args]
+            return AstLoop(node.iter_count, arg, node.function, args)
 
     def visit_sqrt(self, node: AstSqrt):
         from math import sqrt

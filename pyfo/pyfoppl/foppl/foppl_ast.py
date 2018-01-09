@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 05. Jan 2018, Tobias Kohn
+# 08. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import distribution_params
 from .graphs import *
@@ -148,6 +148,35 @@ class AstDistribution(Node):
         return "dist.{}({})".format(self.name, ', '.join([repr(arg) for arg in self.args]))
 
 
+class AstExpr(Node):
+    """
+    `AstExpr` is a special node: it is not created by the parser but used inside the compiler to wrap already an
+    compiled expression and its associated graph.
+    """
+
+    def __init__(self, graph: Graph, expr: str):
+        self.graph = graph
+        self.expr = expr
+
+    @property
+    def value(self):
+        return self.graph, self.expr
+
+    def __repr__(self):
+        return "(GRAPH, {})".format(self.expr)
+
+
+class AstFor(Node):
+
+    def __init__(self, target, sequence, body: Node):
+        self.target = target
+        self.sequence = sequence
+        self.body = body
+
+    def __repr__(self):
+        return "loop({} in {}: {})".format(self.target, repr(self.sequence), repr(self.body))
+
+
 class AstFunction(Node):
 
     def __init__(self, name, params, body: Node):
@@ -210,6 +239,21 @@ class AstLet(Node):
 
     def __repr__(self):
         return "let({} {})".format(repr(self.bindings), repr(self.body))
+
+
+class AstLoop(Node):
+
+    def __init__(self, iter_count: int, arg: Node, function: Node, args: list):
+        self.iter_count = iter_count
+        self.arg = arg
+        self.function = function
+        if args:
+            self.args = args
+        else:
+            self.args = []
+
+    def __repr__(self):
+        return "loop({}, {}, {})".format(self.iter_count, repr(self.arg), repr(self.function))
 
 
 class AstObserve(Node):

@@ -4,11 +4,12 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 05. Jan 2018, Tobias Kohn
+# 08. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
 from .graphs import Graph
+from .runtime_functions import runtime_functions
 from . import Options
 
 class Model_Generator(object):
@@ -65,10 +66,15 @@ class Model_Generator(object):
         self._output += '# Generated: {}\n'.format(datetime.datetime.now())
         self._output += '#\n'
 
-        # We add the imports and the header of the class...
+        # We add the imports, used functions and the header of the class...
         self._output += '\n'.join(self.imports)
         if len(self.interface_source) > 0:
             self._output += '\nfrom {} import {}'.format(self.interface_source, self.interface_name)
+        if len(self.graph.used_functions) > 0:
+            self._output += '\n\n#Runtime functions:'
+            for f in self.graph.used_functions:
+                if f in runtime_functions:
+                    self._output += '\n' + runtime_functions[f]
         self._output += '\n\nclass {name}({interface}):\n'.format(
             name = self.name,
             interface = self.interface_name

@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 07. Jan 2018, Tobias Kohn
+# 08. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -186,6 +186,12 @@ class Parser(object):
         def parse(self, form: Form):
             return self._parse_function('<lambda>', form[1], form[2:])
 
+    @_register(Symbol.FOR)
+    class ForExpr(FunctionParser):
+
+        def parse(self, form: Form):
+            raise NotImplemented("'for'-loop are not implemented, yet")
+
     @_register(Symbol.IF)
     class IfExpr(ExprParser):
 
@@ -230,13 +236,39 @@ class Parser(object):
             return names, assignments
 
         def parse(self, form: Form):
-            names, assignments = self._parse_bindings(form[1])
+            _, assignments = self._parse_bindings(form[1])
             items = [self._parse(f) for f in form[2:]]
             if len(items) == 1:
                 items = items[0]
             else:
                 items = AstBody(items)
             return AstLet(assignments, items)
+
+    @_register(Symbol.LOOP)
+    class LoopExpr(ExprParser):
+
+        def _parse_step(self, iter_count, function, arg):
+            if iter_count == 0:
+                pass
+            if iter_count > 0:
+                AstFunctionCall(function, arg)
+
+        def parse(self, form: Form):
+            if len(form) >= 4:
+                iter_count = self._parse(form[1])
+                if isinstance(iter_count, AstValue):
+                    iter_count = iter_count.value
+                else:
+                    raise SyntaxError("you must provide a literal value for the number of iterations")
+                arg = self._parse(form[2])
+                function = self._parse(form[3])
+                args = [self._parse(a) for a in form[4:]]
+                if not isinstance(function, AstFunction) and not isinstance(function, AstSymbol):
+                    raise SyntaxError("the third argument must be a function")
+
+                return AstLoop(iter_count, arg, function, args)
+            else:
+                raise SyntaxError("loop requires a vector and a function")
 
     def __init__(self):
         self._parsers = {}

@@ -229,19 +229,6 @@ class Compiler(Walker):
             result_expr = e
         return result_graph, result_expr
 
-    def visit_call_conj(self, node: AstFunctionCall):
-        node = self.optimize(node)
-        if isinstance(node, AstFunctionCall) and node.function == 'conj':
-            if len(node.args) == 2:
-                seq_graph, seq_expr = self.optimize(node.args[0]).walk(self)
-                itm_graph, itm_expr = self.optimize(node.args[1]).walk(self)
-                graph = seq_graph.merge(itm_graph)
-                return graph, "{} + [{}]".format(seq_expr, itm_expr)
-            else:
-                raise SyntaxError("'conj' requires two arguments")
-        else:
-            return node.walk(self)
-
     def visit_call_exp(self, node: AstFunctionCall):
         node = self.optimize(node)
         if isinstance(node, AstFunctionCall) and node.function == 'exp':
@@ -366,12 +353,30 @@ class Compiler(Walker):
         else:
             raise SyntaxError("wrong number of arguments for distribution '{}'".format(node.name))
 
+    def visit_expr(self, node: AstExpr):
+        return node.value
+
     def visit_functioncall(self, node: AstFunctionCall):
+        # NB: some functions are handled directly by visit_call_XXX-methods!
         func = node.function
+        if isinstance(func, AstSymbol):
+            func = func.name
         if type(func) is str:
+            func_name = func
             func = self.scope.find_function(func)
+        else:
+            func_name = None
         if isinstance(func, AstFunction):
             return self.apply_function(func, node.args)
+        elif func_name:
+            exprs = []
+            graph = Graph.EMPTY
+            for a in node.args:
+                g, e = a.walk(self)
+                graph = graph.merge(g)
+                exprs.append(e)
+            graph.add_used_function(func_name)
+            return graph, "{}({})".format(func_name, ", ".join(exprs))
         else:
             raise SyntaxError("'{}' is not a function".format(node.function))
 
@@ -429,6 +434,26 @@ class Compiler(Walker):
         finally:
             self.end_scope()
         return result
+
+    def visit_loop(self, node: AstLoop):
+        node = self.optimize(node)
+        if isinstance(node, AstLoop):
+            if isinstance(node.function, AstSymbol):
+                function = self.scope.find_function(node.function.name)
+            elif isinstance(node.function, AstFunction):
+                function = node.function
+            else:
+                raise SyntaxError("'loop' requires a function")
+            iter_count = node.iter_count
+            i = 0
+            args = [AstExpr(*a.walk(self)) for a in node.args]
+            result = node.arg.walk(self)
+            while i < iter_count:
+                result = self.apply_function(function, [AstValue(i), AstExpr(*result)] + args)
+                i += 1
+            return result
+        else:
+            return node.walk(self)
 
     def visit_observe(self, node: AstObserve):
         dist = node.distribution
