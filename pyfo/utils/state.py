@@ -103,7 +103,7 @@ class State(object):
         for key, value in x.items():
             x[key] = Variable(value.data, requires_grad=True)
 
-    def _log_pdf(self, state, set_leafs= False):
+    def _log_pdf(self, state, set_leafs= False, key=None, embed=False, unembed=False):
         """
         The compiled pytorch function, log_pdf, should automatically
         return the pdf.
@@ -114,8 +114,11 @@ class State(object):
         here? Then they will be passed to gen_logpdf to create the differentiable logpdf
         . Answer: yes, because
         """
+
         if set_leafs:
             state = self._to_leaf(state)
+        if embed:
+            state =self._embed(state,)
 
         return self._gen_logpdf(state)
 
@@ -165,7 +168,7 @@ class State(object):
         :return: log_diff , aux_new (the updated logp)?
 
         """
-        # TO DO: Incorporate j parameter into this. See A3 Notes.
+        # TODO: Incorporate j parameter into this. See A3 Notes.
         update_parameter = disc_params[j]
         state[update_parameter] = state[update_parameter] + step_size
         current_logp = self._gen_logpdf(state)
@@ -225,7 +228,7 @@ class State(object):
         so that we know what to differentiate with respect to
         """
         ancestors = self._ancestors(key) # returns set
-        scalar_field = [] #TO DO
+        scalar_field = [] #TODO Complete scalar field construction
         grad_vec = []
         for ancestor in ancestors:
             grad_vec.append(torch.autograd.grad(scalar_field, ancestor, retain_graph=True))
