@@ -10,6 +10,10 @@ from pyfo.distributions.distribution import Distribution
 from pyfo.distributions.util import log_gamma
 from pyfo.utils.core import VariableCast
 
+def _standard_gamma(alpha):
+    if not isinstance(alpha, Variable):
+        return torch._C._standard_gamma(alpha)
+    return alpha._standard_gamma()
 
 class Gamma(Distribution):
     """
@@ -57,7 +61,6 @@ class Gamma(Distribution):
         """
         event_dim = 1
         return self.alpha.size()[-event_dim:]
-
     def sample(self):
         """
         Ref: :py:meth:`pyro.distributions.distribution.Distribution.sample`
@@ -80,7 +83,7 @@ class Gamma(Distribution):
         ll_1 = -beta * x
         ll_2 = (alpha - 1.0) * torch.log(x)
         ll_3 = alpha * torch.log(beta)
-        ll_4 = -log_gamma(alpha)
+        ll_4 = -torch.lgamma(alpha)
         log_pdf = torch.sum(ll_1 + ll_2 + ll_3 + ll_4, -1)
         batch_log_pdf_shape = self.batch_shape(x) + (1,)
         return log_pdf.contiguous().view(batch_log_pdf_shape)
