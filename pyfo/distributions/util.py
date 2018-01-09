@@ -3,7 +3,8 @@ from __future__ import absolute_import, division, print_function
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
-
+from functools import update_wrapper
+from numbers import Number
 
 def log_gamma(xx):
     gamma_coeff = [
@@ -175,3 +176,44 @@ def get_probs_and_logits(ps=None, logits=None, is_multidimensional=True):
         else:
             logits = torch.log(ps_clamped) - torch.log1p(-ps_clamped)
     return ps, logits
+
+def broadcast_shape(*shapes, **kwargs):
+    """
+    Similar to ``np.broadcast()`` but for shapes.
+    Equivalent to ``np.broadcast(*map(np.empty, shapes)).shape``.
+    :param tuple shapes: shapes of tensors.
+    :param bool strict: whether to use extend-but-not-resize broadcasting.
+    :returns: broadcasted shape
+    :rtype: tuple
+    :raises: ValueError
+    """
+    strict = kwargs.pop('strict', False)
+    reversed_shape = []
+    for shape in shapes:
+        for i, size in enumerate(reversed(shape)):
+            if i >= len(reversed_shape):
+                reversed_shape.append(size)
+            elif reversed_shape[i] == 1 and not strict:
+                reversed_shape[i] = size
+            elif reversed_shape[i] != size and (size != 1 or strict):
+                raise ValueError('shape mismatch: objects cannot be broadcast to a single shape: {}'.format(
+                    ' vs '.join(map(str, shapes))))
+    return tuple(reversed(reversed_shape))
+
+class lazy_property(object):
+    """
+    Used as a decorator for lazy loading of class attributes. This uses a
+    non-data descriptor that calls the wrapped method to compute the property on
+    first call; thereafter replacing the wrapped method into an instance
+    attribute.
+    """
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        update_wrapper(self, wrapped)
+
+    def __get__(self, instance, obj_type=None):
+        if instance is None:
+            return self
+        value = self.wrapped(instance)
+        setattr(instance, self.wrapped.__name__, value)
+        return value

@@ -10,8 +10,8 @@ License: MIT
 from numbers import Number
 import torch
 import math
-from torch.distributions import constraints
-from pyfo.distributions.distribution import Distribution
+from pyfo.distributions import constraints
+from pyfo.distributions.distribution_torch import Distribution
 from pyfo.distributions import Chi2
 from pyfo.distributions.utils import broadcast_all
 
