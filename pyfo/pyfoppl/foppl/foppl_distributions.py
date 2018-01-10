@@ -47,7 +47,7 @@ distribution_map = {
 distribution_params = {
     "Bernoulli": ["ps"],
     "Beta": ["alpha", "beta"],
-    "Categorical": ["ps","vs"],
+    "Categorical": ["ps"],
     "Cauchy": ["mu", "gamma"],
     "Dirichlet": ["alpha"],
     "Exponential": ["lambda"],
