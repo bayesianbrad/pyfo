@@ -14,7 +14,7 @@ import unittest
 import torch
 import numpy as np
 
-class test_variable_cast(unittest.TestCase)
+class test_variable_cast(unittest.TestCase):
     def test_float_size_is_one(self):
         self.assertEqual(VariableCast(1.23).size(0), 1, msg='size does not match')
     def test_row_list_size_is_three(self):

@@ -25,7 +25,7 @@ def VariableCast(value, grad = False, dist=None):
     if value is None:
         return None
     elif isinstance(value, Variable):
-        return value # Should I check if FloatTensor?
+        return value
     elif torch.is_tensor(value):
         return Variable(value, requires_grad = grad)
     elif isinstance(value, np.ndarray):

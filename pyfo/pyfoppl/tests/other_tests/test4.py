@@ -1,3 +1,4 @@
+<<<<<<< HEAD:pyfo/pyfoppl/tests/other_tests/test4.py
 
 from pyfo.pyfoppl.foppl.compiler import *
 from pyfo.pyfoppl.foppl.foppl_parser import *
@@ -5,6 +6,13 @@ from pyfo.pyfoppl.foppl.model_generator import *
 
 from pyfo.pyfoppl.foppl.graphs import *
 
+=======
+from pyfo.pyfoppl.foppl.compiler import *
+from pyfo.pyfoppl.foppl.foppl_parser import *
+from pyfo.pyfoppl.foppl.model_generator import *
+
+from pyfo.pyfoppl.foppl.graphs import *
+>>>>>>> a9dd475eb29e486231ece3d0afd5c2e3322db39b:pyfo/pyfoppl/tests/test4.py
 
 if __name__ == "__main__":
 

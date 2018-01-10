@@ -39,7 +39,11 @@ class Options(object):
 
     # model_interface = ('object', '')
     model_interface = ('interface', 'pyfo.utils.interface')
+<<<<<<< HEAD
 
+=======
+    #
+>>>>>>> a9dd475eb29e486231ece3d0afd5c2e3322db39b
     model_imports = [
         'import math',
         'import numpy as np',

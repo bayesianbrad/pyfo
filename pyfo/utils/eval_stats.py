@@ -94,3 +94,13 @@ def extract_means(dataframe, keys=None):
         return means
     else:
         return dataframe.values.sum() / len(dataframe)
+
+def extract_stats(dataframe):
+    """
+
+    :param dataframe: pandas.DataFrame
+    :param keys: sring of params
+    :return: count, mean, std, min, max and confidence intervals
+
+    """
+    return dataframe.describe()

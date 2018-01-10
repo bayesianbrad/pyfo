@@ -19,7 +19,7 @@ import copy
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
-from pyfo.utils.eval_stats import extract_means
+from pyfo.utils.eval_stats import extract_stats
 
 
 class DHMCSampler(object):
@@ -78,10 +78,11 @@ class DHMCSampler(object):
                 p[key] = self.M * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
         if self._cont_keys is not None:
             for key in self._cont_keys:
-                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))  # in the future make for multiple dims
-        # if self._if_keys is not None:
-        #     for key in self._if_keys:
-        #         p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
+                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
+                # TODO in the future make for multiple dims
+        if self._if_keys is not None:
+            for key in self._if_keys:
+                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
         return p
 
     def coordInt(self,x,p,stepsize,key):
@@ -98,7 +99,7 @@ class DHMCSampler(object):
 
         x_star = copy.copy(x)
         x_star[key] = x_star[key] + stepsize*self.M # Need to change M here again
-        logp_diff = self.log_posterior(x_star, set_leafs=False) - self.log_posterior(x, set_leafs=False)
+        logp_diff = -self.log_posterior(x_star, set_leafs=False) + self.log_posterior(x, set_leafs=False)
         cond = torch.gt(self.M*torch.abs(torch.sign(p[key])),logp_diff)
         if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
@@ -193,9 +194,9 @@ class DHMCSampler(object):
     def _energy(self, x, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
-        :param x: positions
-        :param p: momentums
-        :return: Tensor of total energy
+        :param x:
+        :param p:
+        :return: Tensor
         """
         if self._disc_keys is not None:
             kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
@@ -205,11 +206,6 @@ class DHMCSampler(object):
             kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
-        # if self._if_keys is not None:
-        #     kinetic_cond = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._if_keys]))
-        # else:
-        #     kinetic_cond = VariableCast(0)
-        # kinetic_energy = kinetic_cont + kinetic_disc + kinetic_cond
         kinetic_energy = kinetic_cont + kinetic_disc
         potential_energy = -self.log_posterior(x)
 
@@ -228,7 +224,7 @@ class DHMCSampler(object):
         """
 
         p = self.random_momentum()
-        intial_energy = -self._energy(x0,p)
+        intial_energy = self._energy(x0,p)
         n_feval = 0
         n_fupdate = 0
         x, p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x0,p,stepsize)
@@ -239,24 +235,26 @@ class DHMCSampler(object):
             n_fupdate += n_fupdate_local
 
 
-        final_energy = -self._energy(x,p)
+        final_energy = self._energy(x,p)
         acceptprob  = torch.min(torch.ones(1),torch.exp(final_energy - intial_energy)) # Tensor
-
         if acceptprob[0] < np.random.uniform(0,1):
             x = x0
 
         return x, acceptprob[0], n_feval, n_fupdate
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, print_stats= False):
+        # Note currently not doing anything with burn in
 
-    def sample(self,n_samples= 1000, burn_in= 100, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=12345, n_update=10, print_stats= False):
-        torch.manual_seed(seed)
-        np.random.seed(seed)
+        if seed is not None:
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+        else:
+            print('seed deactivated')
         x = self.init_state
         n_per_update = math.ceil((n_samples + burn_in)/n_update)
         n_feval = 0
         n_fupdate = 0
         x_dicts = []
         accept =[]
-        print('The first debug statement in dhmc.sample()  ', x)
 
         tic = time.process_time()
         print(50*'=')
@@ -269,9 +267,9 @@ class DHMCSampler(object):
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
             accept.append(accept_prob)
-            x_dicts.append(x)
+            x_numpy = copy.copy(x)
+            x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
-                print('The second debug statement in dhmc.sample()', x)
                 print('{:d} iterations have been completed.'.format(i + 1))
         toc = time.process_time()
         time_elapsed = toc - tic
@@ -284,20 +282,20 @@ class DHMCSampler(object):
 
 
 
-        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns')
+        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns').astype(dtype='float')
         all_samples.rename(columns=self._names, inplace=True)
+
         samples =  all_samples.loc[burn_in:, :]
         # here, names.values() are the true keys
-        means = extract_means(samples,self._names.values())
+        stats = extract_stats(samples)
         print(50*'=')
         print('Sampling has now been completed....')
         print(50*'=')
-
-
         # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'means':means, 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
+        stats = {'samples':samples, 'stats':stats, 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed}
+        return stats
 
 
         return stats
