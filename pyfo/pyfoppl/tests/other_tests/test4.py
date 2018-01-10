@@ -1,8 +1,10 @@
-from py_foppl.foppl.compiler import *
-from py_foppl.foppl.foppl_parser import *
-from py_foppl.foppl.model_generator import *
 
-from pyfo.py_foppl.foppl.graphs import *
+from pyfo.pyfoppl.foppl.compiler import *
+from pyfo.pyfoppl.foppl.foppl_parser import *
+from pyfo.pyfoppl.foppl.model_generator import *
+
+from pyfo.pyfoppl.foppl.graphs import *
+
 
 if __name__ == "__main__":
 
@@ -31,6 +33,7 @@ if __name__ == "__main__":
     """
     ast = parse(program)
     print(ast)
+    print("=" * 30)
 
     c = Compiler()
 

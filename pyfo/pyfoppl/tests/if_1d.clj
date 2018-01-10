@@ -2,4 +2,4 @@
   (if (> x 0)
     (observe (normal 1 1) 1)
     (observe (normal -1 1) 1))
-  x1)
+  x)
