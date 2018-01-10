@@ -50,18 +50,11 @@ pgf_with_latex = {                      # setup matplotlib to use latex for outp
 mpl.rcParams.update(pgf_with_latex)
 class Plotting():
 
-    def __init__(self, samples,samples_with_burnin, keys, means, model = None, cov= None):
-        if isinstance(samples, Variable):
-            self.samples = samples.data.numpy()
-        else:
-            self.samples = samples.numpy()
-        if isinstance(samples_with_burnin, Variable):
-            self.samples_with_burnin = samples_with_burnin.data.numpy()
-        else:
-            self.samples_with_burnin  = samples_with_burnin.numpy()
+    def __init__(self, dataframe, keys, means, model = None, variances= None):
+        self.samples = dataframe
         self.mean    = means
-        if cov is not None:
-            self.cov = cov
+        if variances is not None:
+            self.variances = variances
         self.PATH  = sys.path[0]
         os.makedirs(self.PATH, exist_ok=True)
         self.PATH_fig = os.path.join(self.PATH, 'figures')
