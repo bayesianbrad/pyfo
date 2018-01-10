@@ -29,7 +29,7 @@ class State(object):
         self._disc_vars = cls.gen_disc_vars()
         self._if_vars = cls.gen_if_vars()
         self._cond_vars=  cls.gen_cond_vars()
-        self._arcs = cls.get_arcs()
+        # self._arcs = cls.get_arcs()
         self._vertices = cls.get_vertices()
         self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
         self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
@@ -69,11 +69,11 @@ class State(object):
         else:
             return self._cond_vars
 
-    def _return_arcs(self):
-        if len(self._arcs) == 0:
-            return None
-        else:
-            return self._arcs
+    # def _return_arcs(self):
+    #     if len(self._arcs) == 0:
+    #         return None
+    #     else:
+    #         return self._arcs
 
     def _return_vertices(self):
         if len(self._vertices) == 0:
@@ -118,7 +118,7 @@ class State(object):
         if set_leafs:
             state = self._to_leaf(state)
         if embed:
-            state =self._embed(state,)
+            state =self._embed(state,key)
 
         return self._gen_logpdf(state)
 
@@ -235,3 +235,15 @@ class State(object):
 
         return grad_vec
 
+    @staticmethod
+    def convert_dict_vars_to_numpy(state):
+        """
+
+        :param state:
+        :return:
+
+        Converts variables in stat to numpy arrays for plotting purposes
+        """
+        for i in state:
+            state[i] = state[i].data.numpy()
+        return state
