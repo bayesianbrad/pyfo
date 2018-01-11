@@ -238,12 +238,8 @@ class Categorical(Distribution):
         # vs is None, Variable(Tensor), or numpy.array
         self.vs = self._process_data(VariableCast(vs))
         self.log_pdf_mask = log_pdf_mask
-        if vs is not None:
-            warnings.warn('Categorical vs argument is deprecated', UserWarning)
-            vs_shape = self.vs.shape if isinstance(self.vs, np.ndarray) else self.vs.size()
-            if vs_shape != ps.size():
-                raise ValueError("Expected vs.size() or vs.shape == ps.size(), but got {} vs {}"
-                                 .format(vs_shape, ps.size()))
+        if self.vs.size() != ps.size():
+            raise ValueError("Expected vs.size() or vs.shape == ps.size(), but got {} vs {}".format(vs_shape, ps.size()))
         if batch_size is not None:
             if self.ps.dim() != 1:
                 raise NotImplementedError
@@ -290,11 +286,7 @@ class Categorical(Distribution):
         sample_one_hot = torch_zeros_like(self.ps.data).scatter_(-1, sample, 1)
 
         if self.vs is not None:
-            if isinstance(self.vs, np.ndarray):
-                sample_bool_index = sample_one_hot.cpu().numpy().astype(bool)
-                return self.vs[sample_bool_index].reshape(*self.shape())
-            else:
-                return self.vs.masked_select(sample_one_hot.byte())
+            return self.vs.masked_select(sample_one_hot.byte())
         return Variable(sample)
 
     def batch_log_pdf(self, x):
