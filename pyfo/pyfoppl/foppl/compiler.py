@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 07. Jan 2018, Tobias Kohn
+# 11. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .graphs import *
@@ -399,8 +399,9 @@ class Compiler(Walker):
         # Compile if- and else-body (if present). During this compilation step, we push the new condition onto
         # the condition stack, so that expressions and statements within the branches are made aware of being
         # inside a conditional branch.
-        if not cond_graph.is_empty and _is_identifier(cond_name) and cond_name.startswith("cond"):
-            self.begin_condition(cond_name)
+        _cond_name = cond_name[4:] if cond_name.startswith("not ") else cond_name
+        if not cond_graph.is_empty and _is_identifier(_cond_name) and _cond_name.startswith("cond"):
+            self.begin_condition(_cond_name)
             if_graph, if_body = node.if_body.walk(self)
             if node.else_body:
                 else_graph, else_body = node.else_body.walk(self)
@@ -419,7 +420,7 @@ class Compiler(Walker):
         expr = "{} if {} else {}".format(if_body, cond_name, else_body)
         graph = cond_graph
         graph = graph.merge(if_graph.add_condition(cond_name))
-        graph = graph.merge(else_graph.add_condition("not " + cond_name))
+        graph = graph.merge(else_graph.add_condition("not "+cond_name if _cond_name == cond_name else _cond_name))
         graph = graph.merge(Graph({name}, set((v, name) for v in graph.vertices), {name: expr}))
         return graph, name
 

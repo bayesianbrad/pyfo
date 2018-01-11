@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 08. Jan 2018, Tobias Kohn
+# 11. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
@@ -250,7 +250,7 @@ class Model_Generator(object):
 
         # Let's get rid of values, which are computed but never used
         while len(result) > 0 and not result[-1].startswith('p'):
-            del result[-1]
+           del result[-1]
 
         if len(p_vars) > 0:
             result.append("logp = " + (" + ".join(p_vars)))

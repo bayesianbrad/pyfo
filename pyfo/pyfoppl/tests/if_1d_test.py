@@ -12,3 +12,4 @@ if __name__ == "__main__":
     f = open('if_1d_model.py', 'w')
     f.write(test.code)
     f.close()
+
