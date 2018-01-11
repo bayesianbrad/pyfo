@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 24. Dec 2017, Tobias Kohn
-# 07. Jan 2018, Tobias Kohn
+# 11. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from . import Options
@@ -94,7 +94,7 @@ class Optimizer(Walker):
             vector = node.args[0].walk(self)
             if isinstance(vector, AstValue):
                 return AstValue(vector.value[1:])
-            return AstFunctionCall(node.function, vector)
+            return AstFunctionCall(node.function, [vector])
         return node
 
     def visit_compare(self, node: AstCompare):
