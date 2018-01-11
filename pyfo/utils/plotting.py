@@ -28,6 +28,7 @@ mpl.use('pgf')
 from matplotlib import pyplot as plt
 from pandas.plotting import autocorrelation_plot
 from statsmodels.graphics import tsaplots
+import platform
 
 pgf_with_latex = {                      # setup matplotlib to use latex for output
     "pgf.texsystem": "pdflatex",        # change this if using xetex or lautex
@@ -48,13 +49,13 @@ pgf_with_latex = {                      # setup matplotlib to use latex for outp
         ]
     }
 mpl.rcParams.update(pgf_with_latex)
+operating_system = platform.system()
 class Plotting():
-
-    def __init__(self, dataframe, keys, means, model = None, variances= None):
-        self.samples = dataframe
-        self.mean    = means
-        if variances is not None:
-            self.variances = variances
+    def __init__(self, dataframe_samples,dataframe_samples_woburin, keys, burn_in=False):
+        self.samples = dataframe_samples
+        self.samples_withbin = dataframe_samples_woburin
+        self.keys = keys
+        self.burn_in = burn_in
         self.PATH  = sys.path[0]
         os.makedirs(self.PATH, exist_ok=True)
         self.PATH_fig = os.path.join(self.PATH, 'figures')
@@ -70,12 +71,18 @@ class Plotting():
         :param parameters:  Is a list of which parameters to take the traces of
         :return:
         '''
+
         print('Saving trace plots.....')
         fig, ax = plt.subplots()
-        iter = np.arange(0, np.shape(self.samples)[0])
-        for i in range(np.shape(self.samples)[1]):
-            ax.plot(iter, self.samples[:,i], label='Parameter {0} '.format(i))
-            ax.set_title('Trace plot for the parameters')
+        iter = self.samples.count(axis=0)[1]
+        iter_burnin = self.samples.count(axis=0)[1]
+        if self.burn_in:
+            print('Burn in plots')
+
+
+        for key in self.keys:
+            ax.plot(iter, self.samples[key], label='{0} '.format(key))
+            ax.set_title('Trace plot for the parameter')
             ax.set_xlabel('Iterations')
             ax.set_ylabel('Sampled values of the Parameter')
             plt.legend()
