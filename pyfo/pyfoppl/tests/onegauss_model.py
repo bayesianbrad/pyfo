@@ -1,5 +1,5 @@
 #
-# Generated: 2018-01-10 15:38:45.298736
+# Generated: 2018-01-11 17:59:57.327442
 #
 import math
 import numpy as np
@@ -20,7 +20,7 @@ class model(interface):
 	Observed values O:
 	  y20002 -> 7.0
 	"""
-	vertices = {'x20001', 'y20002'}
+	vertices = {'y20002', 'x20001'}
 	arcs = {('x20001', 'y20002')}
 	names = {'x20001': 'x'}
 	cond_functions = {
