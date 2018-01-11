@@ -241,7 +241,7 @@ class DHMCSampler(object):
             x = x0
 
         return x, acceptprob[0], n_feval, n_fupdate
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, print_stats= False):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, print_stats=False , plot=False, plot_burnin=False):
         # Note currently not doing anything with burn in
 
         if seed is not None:
@@ -287,18 +287,27 @@ class DHMCSampler(object):
 
         samples =  all_samples.loc[burn_in:, :]
         # here, names.values() are the true keys
-        stats = extract_stats(samples)
         print(50*'=')
         print('Sampling has now been completed....')
         print(50*'=')
         # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'stats':stats, 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
-                 'time_elapsed':time_elapsed}
-        return stats
+        stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples), 'stats_wo_burnin': extract_stats(all_samples), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
+                 'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
+        if print_stats:
+            print(stats['stats'])
+        if plot:
+            self.create_plots(stats['samples'], stats['samples_wo_burin'], stats['param_names'], )
 
 
         return stats
 
+    def create_plots(stats,keys):
+        """
 
+        :param keys:
+        :return: Generates plots
+        """
+
+        import pyfo.utils.plotting
 
