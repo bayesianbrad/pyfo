@@ -197,7 +197,9 @@ class State(object):
         :return:
         """
         for key in state:
-            state[key] = VariableCast(state[key].data, grad=True)
+            tmp = VariableCast(state[key])
+            state[key] = VariableCast(tmp.data, grad=True)
+            # state[key] = VariableCast(state[key].data, grad=True)
         return state
 
     @staticmethod
