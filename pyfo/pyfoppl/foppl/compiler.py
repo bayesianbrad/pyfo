@@ -260,10 +260,18 @@ class Compiler(Walker):
             return node.walk(self)
 
     def visit_call_map(self, node: AstFunctionCall):
+        node = self.optimize(node)
+        if not (isinstance(node, AstFunctionCall) and node.function == "map"):
+            return node.walk(self)
+
         f = node.args[0]
         args = [self.optimize(arg) for arg in node.args[1:]]
         if all([isinstance(arg, AstValue) for arg in args]):
             args = [arg.value for arg in args]
+        elif isinstance(f, AstSymbol):
+            graph, expr = AstVector(args).walk(self)
+            graph.add_used_function(f.name)
+            return graph, "list(map({}, {}))".format(f.name, expr)
         else:
             raise RuntimeError("Cannot apply 'map' to {}".format(args))
         if len(args) > 0 and isinstance(f, AstFunction):

@@ -9,6 +9,23 @@
 from .foppl_ast import *
 from . import Options
 
+class Scope(object):
+
+    def __init__(self, prev=None):
+        self.prev = prev
+        self.values = {}
+
+    def find(self, name: str):
+        if name in self.values:
+            return self.values[name]
+        elif self.prev:
+            return self.prev.find(name)
+        else:
+            return None
+
+    def add(self, name: str, value):
+        self.values[name] = value
+
 class Optimizer(Walker):
 
     __binary_ops = {
@@ -31,6 +48,30 @@ class Optimizer(Walker):
 
     def __init__(self, compiler=None):
         self.compiler = compiler
+        self.scope = None
+
+    def __begin_scope(self):
+        self.scope = Scope(self.scope)
+
+    def __end_scope(self):
+        if self.scope:
+            self.scope = self.scope.prev
+
+    def __apply_function(self, function: AstFunction, args: list):
+        if isinstance(function, AstFunction) and len(function.params) == len(args) and \
+                all([isinstance(arg, AstValue) for arg in args]):
+            self.__begin_scope()
+            try:
+                for (name, value) in zip(function.params, args):
+                    if isinstance(name, Symbol):
+                        name = name.name
+                    self.scope.add(name, value)
+                result = function.body.walk(self)
+            finally:
+                self.__end_scope()
+            return result
+        else:
+            return None
 
     def visit_node(self, node: Node):
         return node
@@ -87,6 +128,15 @@ class Optimizer(Walker):
         return node
 
     def visit_call_map(self, node: AstFunctionCall):
+        wrap = lambda x: x if isinstance(x, Node) else AstValue(x)
+        if len(node.args) >= 2:
+            function = node.args[0].walk(self)
+            vectors = [arg.walk(self) for arg in node.args[1:]]
+            if all([isinstance(v, AstValue) and type(v.value) is list for v in vectors]):
+                vectors = [[wrap(w) for w in v.value] for v in vectors]
+                vectors = list(zip(*vectors))
+                if all([all([isinstance(v, AstValue) for v in V]) for V in vectors]):
+                    return AstVector([AstFunctionCall(function, list(arg)) for arg in vectors]).walk(self)
         return node
 
     def visit_call_rest(self, node: AstFunctionCall):
@@ -115,6 +165,24 @@ class Optimizer(Walker):
             elif op == '>=':
                 return AstValue(value_l >= value_r)
         return AstCompare(node.op, left, right)
+
+    def visit_functioncall(self, node: AstFunctionCall):
+        function = node.function
+        args = [arg.walk(self) for arg in node.args]
+        if all([isinstance(arg, AstValue) for arg in args]) and self.compiler:
+            if isinstance(function, AstSymbol):
+                f = self.compiler.scope.find_function(function.name)
+                if f is not None:
+                    function = f
+            if isinstance(function, AstFunction):
+                result = self.__apply_function(function, args)
+                if isinstance(result, AstValue):
+                    return result
+
+        if len(args) > 0:
+            return AstFunctionCall(node.function, args)
+        else:
+            return node
 
     def visit_if(self, node: AstIf):
         cond = node.cond.walk(self)
@@ -165,6 +233,10 @@ class Optimizer(Walker):
         return AstSqrt(item)
 
     def visit_symbol(self, node: AstSymbol):
+        if self.scope:
+            result = self.scope.find(node.name)
+            if result:
+                return result
         if self.compiler:
             result = self.compiler.scope.find_value(node.name)
             if result:
