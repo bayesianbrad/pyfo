@@ -20,7 +20,7 @@ import copy
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
 from pyfo.utils.eval_stats import extract_stats
-
+from pyfo.utils.plotting import Plotting as plot
 
 class DHMCSampler(object):
     """
@@ -173,24 +173,6 @@ class DHMCSampler(object):
                 n_feval += 1
             return x, p, n_feval, n_fupdate
 
-    def RRhmc(self,x ,p):
-        """
-
-        :param x:
-        :param p:
-        :return:
-
-        TO DO: Implement the RRHMC algorithm
-        Current methods (nearly) available:
-            State.scalar_field() will calculate the normal vector to the
-            discontinuity boundary.
-        Current method to do:
-            Calculate the unit P_perpedicular component
-            Implement FirstDiscontinuity function
-            Implement 'time tracker function'
-
-
-        """
     def _energy(self, x, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
@@ -241,7 +223,7 @@ class DHMCSampler(object):
             x = x0
 
         return x, acceptprob[0], n_feval, n_fupdate
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, print_stats=False , plot=False, plot_burnin=False):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, save_data=False, plot_burnin=False, plot_ac=False):
         # Note currently not doing anything with burn in
 
         if seed is not None:
@@ -254,6 +236,7 @@ class DHMCSampler(object):
         n_feval = 0
         n_fupdate = 0
         x_dicts = []
+        x_dicts.append(self._state.convert_dict_vars_to_numpy(copy.copy(x)))
         accept =[]
 
         tic = time.process_time()
@@ -290,24 +273,33 @@ class DHMCSampler(object):
         print(50*'=')
         print('Sampling has now been completed....')
         print(50*'=')
-        # WORKs REGARDLESS OF type of params and size. Use samples['param_name'] to extract
+        # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
         stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples), 'stats_wo_burnin': extract_stats(all_samples), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
+
         if print_stats:
             print(stats['stats'])
         if plot:
-            self.create_plots(stats['samples'], stats['samples_wo_burin'], stats['param_names'], )
+            self.create_plots(stats['samples'], stats['samples_wo_burin'], stats['param_names'],lag=lag, save_data=save_data, burn_in=plot_burnin, ac=plot_ac)
 
 
         return stats
 
-    def create_plots(stats,keys):
+    def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, save_data=False, burn_in=False, ac=False):
         """
 
         :param keys:
+        :param ac: bool
         :return: Generates plots
         """
 
-        import pyfo.utils.plotting
+        plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
+
+        if ac:
+            plot_object.auto_corr()
+
+        if save_data:
+            plot_object.save_data()
+
 
