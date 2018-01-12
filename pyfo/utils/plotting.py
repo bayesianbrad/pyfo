@@ -19,15 +19,15 @@ License: MIT
 import numpy as np
 import pandas as pd
 import sys
-import pathlib
+import numpy as np
 import os
 from itertools import cycle
 from torch.autograd import Variable
+# mpl.use('pgf')
 import matplotlib as mpl
-mpl.use('pgf')
 from matplotlib import pyplot as plt
-from pandas.plotting import autocorrelation_plot
-from statsmodels.graphics import tsaplots
+# from pandas.plotting import autocorrelation_plot
+# from statsmodels.graphics import tsaplots
 import platform
 
 pgf_with_latex = {                      # setup matplotlib to use latex for output
@@ -40,8 +40,8 @@ pgf_with_latex = {                      # setup matplotlib to use latex for outp
     "axes.labelsize": 8,               # LaTeX default is 10pt font.
     "font.size": 8,
     "legend.fontsize": 8,               # Make the legend/label fonts a little smaller
-    "xtick.labelsize": 8,
-    "ytick.labelsize": 8,
+    "xtick.labelsize": 5,
+    "ytick.labelsize": 5,
     "figure.figsize": [4,4],     # default fig size of 0.9 textwidth
     "pgf.preamble": [
         r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts becasue your computer can handle it :)
@@ -51,10 +51,12 @@ pgf_with_latex = {                      # setup matplotlib to use latex for outp
 mpl.rcParams.update(pgf_with_latex)
 operating_system = platform.system()
 class Plotting():
-    def __init__(self, dataframe_samples,dataframe_samples_woburin, keys, burn_in=False):
+
+    def __init__(self, dataframe_samples,dataframe_samples_woburin, keys,lag, burn_in=False):
         self.samples = dataframe_samples
         self.samples_withbin = dataframe_samples_woburin
         self.keys = keys
+        self.lag = lag
         self.burn_in = burn_in
         self.PATH  = sys.path[0]
         os.makedirs(self.PATH, exist_ok=True)
@@ -64,21 +66,28 @@ class Plotting():
         os.makedirs(self.PATH_data, exist_ok=True)
     
         self.colors = cycle([ "blue", "green","black", "maroon", "navy", "olive", "purple", "red", "teal"])
-    def plot_trace(self):
-        '''
 
-        :param samples:  an nparray
-        :param parameters:  Is a list of which parameters to take the traces of
+    def plot_trace_histogram(self, all_on_one=False):
+        '''
+        Plots the traces all on one histogram, if flag set to true.
+        Else, plots the trace of each parameter and the corresponding histogram in the cloumn adjacent to it.
+        :param all_on_one type: bool
         :return:
         '''
 
         print('Saving trace plots.....')
-        fig, ax = plt.subplots()
-        iter = self.samples.count(axis=0)[1]
-        iter_burnin = self.samples.count(axis=0)[1]
+        fig, axes = plt.subplots(nrows=2, ncols=len(self.keys))
+        key = copy.copy(self.keys) # stops keys from been deleted from self.keys
+
         if self.burn_in:
             print('Burn in plots')
 
+        for axis in axes.ravel():
+            # https: // stackoverflow.com / questions / 4700614 / how - to - put - the - legend - out - of - the - plot
+            key = key.pop()
+            axis.plot(list(range(0, len(self.samples[key]))), self.samples[key],label=key)
+            axis.legend(loc='upper right')
+            # Here at 12/01/18 15:08 to finish
 
         for key in self.keys:
             ax.plot(iter, self.samples[key], label='{0} '.format(key))
@@ -86,13 +95,9 @@ class Plotting():
             ax.set_xlabel('Iterations')
             ax.set_ylabel('Sampled values of the Parameter')
             plt.legend()
-            fname = 'trace.pgf'
             fname2 = 'trace.pdf'
-            fig.savefig(os.path.join(self.PATH_fig, fname), dpi=400)
             fig.savefig(os.path.join(self.PATH_fig, fname2))
 
-    def histogram(self):
-        print('Saving histogram.....')
         weights = np.ones_like(self.samples) / float(len(self.samples))
         fig, ax = plt.subplots()
         if np.shape(self.samples)[1] > 1:
@@ -103,84 +108,48 @@ class Plotting():
                 ax.set_xlabel(' Samples ')
                 ax.set_ylabel('Density')
             plt.legend()
-            fname = 'histogram.pgf'
-            fname2 = 'histogram.pdf'
+            fname2 = 'parameterplots.pdf'
                 # Ensures directory for this figure exists for model, if not creates it
-            fig.savefig(os.path.join(self.PATH_fig, fname))
             fig.savefig(os.path.join(self.PATH_fig,fname2))
+            path_image = self.PATH_fig + '/' + fname2
+            print(50 * '=')
+            print('Saving trace and histogram plot to {0}'.format(path_image))
+            print(50 * '=')
 
 
-        else:
-            ax.hist(self.samples, bins='auto', normed=1, label= r'$\mu_{\mathrm{emperical}}$' + '=' + '{0}'.format(self.mean.data[0][0]))
-            ax.set_title(
-                'Histogram of samples')
-            ax.set_xlabel(' Samples ')
-            ax.set_ylabel('Density')
-        # plt.axis([40, 160, 0, 0.03])
-            plt.legend()
-        # Ensures directory for this figure exists for model, if not creates it
-            fig.savefig(os.path.join(self.PATH_fig,'histogram.pgf' ), dpi = 400)
-            fig.savefig(os.path.join(self.PATH_fig, 'histogram.pdf'))
-        # plt.show()
     def auto_corr(self):
-        print('Plotting autocorrelation.....')
-        fig, ax = plt.subplots(nrows = 1, ncols = np.shape(self.samples)[1], sharex= True, sharey= True, squeeze=False)
-        #squeeze ensures that we can use size(1) object, and size(n,n) objects.
-        # sub plots spits back on figure object and 1 X np.shape(self.samples)[1] axis objects, stored in ax.
-        i = 0
+        """
+        Plots for each parameter the autocorrelation of the samples for a specified lag.
+        :return:
+        """
+        x = {}
+        fig, axes = plt.subplots(ncols=len(self.keys), sharex=True, sharey=True)
+        fig.text(0.5, 0.04, 'lag', ha='center', va='center')
+        fig.text(0.06, 0.5, 'autocorrelation', ha='center', va='center', rotation='vertical')
+        # fig.suptitle('Autocorrelation')
+        for key in self.keys:
+            x[key] = []
+            for i in range(self.lag):
+                x[key].append(self.samples[key].autocorr(lag=i))
+        for axis in axes.ravel():
+            # https: // stackoverflow.com / questions / 4700614 / how - to - put - the - legend - out - of - the - plot
+            key = self.keys.pop()
+            axis.stem(list(range(0, len(x[key]))), x[key], linestyle='None', markerfmt='.', markersize=0.2,basefmt="None", label=key)
+            axis.legend(loc='upper right')
 
-        def label(ax, string):
-            ax.annotate(string, (1, 1), xytext=(-8, -8), ha='right', va='top',
-                        size=14, xycoords='axes fraction', textcoords='offset points')
-        lag = 50
-        for row in ax:
-            for col in row:
-                tsaplots.plot_acf(self.samples[:,i], ax=col, title= '',lags= lag,alpha=0.05,use_vlines=True)
-                # alpha sets 95% confidence interval, lag - is autocorrelation lag
-                # label(col, '  ')
-                i = i + 1
-
-        plt.xlabel("")
-        plt.ylabel('')
-        plt.suptitle('Autocorrelation for lag {}'.format(lag))
-        fname = 'Autocorrelationplot.pgf'
-        plt.savefig(os.path.join(self.PATH_fig, fname), dpi=400)
         fname2 = 'Autocorrelationplot.pdf'
         plt.savefig(os.path.join(self.PATH_fig, fname2), dpi=400)
+        path_image = self.PATH_fig +'/' +fname2
+        print(50 * '=')
+        print('Saving  autocorrelation plots to: {0}'.format(path_image))
+        print(50 * '=')
 
-        # print('Plotting autocorrelation......')
-        # for i in range(self.samples.shape[1]):
-        #     fig = plt.figure()
-        #     ax = fig.add_subplot(111)
-        #     x = self.samples[:,i].flatten()
-        #     x = x - x.mean()
-        #
-        #     autocorr = np.correlate(x, x, mode='full')
-        #     autocorr = autocorr[x.size:]
-        #     autocorr /= autocorr.max()
-        #     markerline, stemline, sline = ax.stem(autocorr, label = 'Parameter ' + str(i))
-        #     plt.setp(stemline,color= next(self.colors),linewidth= 0.2)
-        #     plt.setp(markerline, markerfacecolor = next(self.colors), markersize =0.3)
-        #     plt.setp(sline, linewidth = 0.2)
-        #     ax.set_title(' Autocorrelation plot')
-        #     ax.set_ylabel('Autocorrelation')
-        #     ax.set_xlabel('Samples')
-        #     ax.legend(loc="best")
-        #     fname = 'Autocorrelation plot_' +'parameter_' +str(i)+ '.png'
-        #     fig.savefig(os.path.join(self.PATH_fig, fname), dpi=400)
-        #     plt.clf()
     def save_data(self):
-        print('Saving data....')
-        df1 = pd.DataFrame(self.samples)
-        df2 = pd.DataFrame(self.samples_with_burnin)
         # Ensures directory for this data exists for model, if not creates it
         path1 =  'samples_after_burnin.csv'
         path2 =  'samples_with_burnin.csv'
-        df1.to_csv(os.path.join(self.PATH_data,path1))
-        df2.to_csv(os.path.join(self.PATH_data,path2))
-
-    def call_all_methods(self):
-        self.plot_trace()
-        self.histogram()
-        self.auto_corr()
-        self.save_data()
+        self.samples.to_csv(os.path.join(self.PATH_data,path1))
+        self.samples_withbin.to_csv(os.path.join(self.PATH_data,path2))
+        print(50*'=')
+        print('Saving data in: {0}'.format(self.PATH_data))
+        print(50 * '=')
