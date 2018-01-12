@@ -12,8 +12,8 @@ import torch
 import math
 from pyfo.distributions import constraints
 from pyfo.distributions.distribution_torch import Distribution
-from pyfo.distributions import Chi2
-from pyfo.distributions.utils import broadcast_all
+from torch.distributions import Chi2
+from torch.distributions.utils import broadcast_all
 
 
 class StudentT(Distribution):
@@ -70,3 +70,8 @@ class StudentT(Distribution):
                 0.5 * (self.df + 1) *
                 (torch.digamma(0.5 * (self.df + 1)) - torch.digamma(0.5 * self.df)) +
                 0.5 * self.df.log() + lbeta)
+    def is_discrete(self):
+        """
+            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
+        """
+        return False
