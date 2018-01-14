@@ -240,7 +240,6 @@ class DHMCSampler(object):
         n_feval = 0
         n_fupdate = 0
         x_dicts = []
-        x_dicts.append(self._state.convert_dict_vars_to_numpy(copy.copy(x)))
         accept =[]
 
         tic = time.process_time()
