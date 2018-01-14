@@ -98,11 +98,12 @@ class DHMCSampler(object):
         """
 
         x_star = copy.copy(x)
-        x_star[key] = x_star[key] + stepsize*self.M # Need to change M here again
-        logp_diff = -self.log_posterior(x_star, set_leafs=False) + self.log_posterior(x, set_leafs=False)
-        cond = torch.gt(self.M*torch.abs(torch.sign(p[key])),logp_diff)
+        x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key])    # Need to change M here again
+        dU = -self.log_posterior(x_star, set_leafs=False) + self.log_posterior(x, set_leafs=False)
+        K_prev = self.M * torch.abs(p[key])
+        cond = torch.gt(K_prev, dU)
         if cond.data[0]:
-            p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
+            p[key] = p[key] - torch.sign(p[key]) * self.M * dU
             return x_star[key], p[key]
         else:
             p[key] = -p[key]
@@ -169,7 +170,7 @@ class DHMCSampler(object):
             if self._cont_keys is not None:
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
-                    p[key] = p[key] + 0.5*stepsize*self._grad_logp(logp, x[key]) # final half step for momentum
+                    p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp, x[key]) # final half step for momentum
                 n_feval += 1
             return x, p, n_feval, n_fupdate
 
@@ -210,11 +211,14 @@ class DHMCSampler(object):
         n_feval = 0
         n_fupdate = 0
         x, p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x0,p,stepsize)
-        for i in range(n_step):
+        debug_x = {}
+        debug_x['step 0'] = x
+        for i in range(n_step):   # ZY, n_step - 1?
             # may have to add inf statement see original code
             x,p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x,p,stepsize)
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
+            debug_x['step '+str(i+1)] = x
 
 
         final_energy = self._energy(x,p)
