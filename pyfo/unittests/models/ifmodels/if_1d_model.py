@@ -51,12 +51,12 @@ class model(interface):
 
 	@classmethod
 	def gen_disc_vars(self):
-		return ['x20001']
+		return []
 
 	@classmethod
 	def gen_if_vars(self):
 		# return ['x20001', 'f20004']  # ZY probabably just want the RVs, not the function
-		return []  #ZY, 2018-01-12
+		return ['x20001']  #ZY, 2018-01-12
 
 	@classmethod
 	def gen_pdf(self, state):

@@ -15,4 +15,4 @@ all_samples = stats['samples_wo_burin'] # type, panda dataframe
 
 print('mean_samples: ', extract_means(samples) , '\n')
 print('mean_all_samples: ', extract_means(all_samples) , '\n')
-print(samples)
+# print(samples)
