@@ -91,7 +91,7 @@ class MultivariateNormal(Distribution):
         if cov_matrix is not None:
             if not cov_matrix.dim() == 2:
                 raise ValueError("The covariance matrix must be a matrix, but got covariance_matrix.size() = {}".format(
-                    self.mu.size()))
+                    cov_matrix.size()))
             self.sigma = VariableCast(cov_matrix)
             self.sigma_cholesky = potrf_compat(cov_matrix)
         else:
