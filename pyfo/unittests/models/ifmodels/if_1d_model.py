@@ -47,11 +47,11 @@ class model(interface):
 
 	@classmethod
 	def gen_cont_vars(self):
-		return ['x20001']
+		return []
 
 	@classmethod
 	def gen_disc_vars(self):
-		return []
+		return ['x20001']
 
 	@classmethod
 	def gen_if_vars(self):

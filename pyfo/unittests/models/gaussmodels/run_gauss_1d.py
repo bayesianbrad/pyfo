@@ -1,4 +1,7 @@
-from pyfo.unittests.models.ifmodels.if_1d_model import model
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from pyfo.unittests.models.gaussmodels.gauss_1d_model import model
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 from pyfo.utils.eval_stats import *
 
@@ -15,4 +18,8 @@ all_samples = stats['samples_wo_burin'] # type, panda dataframe
 
 print('mean_samples: ', extract_means(samples) , '\n')
 print('mean_all_samples: ', extract_means(all_samples) , '\n')
-print(samples)
+
+# samples = stats['samples']
+# means = stats['means']
+# print(means)
+# print(stats['accept_prob'])
