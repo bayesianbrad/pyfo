@@ -73,16 +73,16 @@ class DHMCSampler(object):
         :return:
         """
         p = {}
-        if self._disc_keys is not None:
+        if self._disc_keys:  # not None
             for key in self._disc_keys:
                 p[key] = self.M * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
-        if self._cont_keys is not None:
+        if self._cont_keys:
             for key in self._cont_keys:
                 p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
                 # TODO in the future make for multiple dims
-        if self._if_keys is not None:
+        if self._if_keys:
             for key in self._if_keys:
-                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
+                p[key] = self.M * VariableCast(np.random.laplace(size=1))  # ZY: if-vars, treat as disc for now
         return p
 
     def coordInt(self,x,p,stepsize,key):
@@ -131,12 +131,13 @@ class DHMCSampler(object):
         x = copy.copy(x0)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
-        if self._cont_keys is not None:
+        if self._cont_keys:
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
                 p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key]) # Need to make sure this works
 
-        if self._disc_keys is None:
+        # if self._disc_keys or self._if_keys is None:
+        if not (self._disc_keys or self._if_keys):
             for key in self._cont_keys:
                 x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
             logp = self.log_posterior(x, set_leafs=True)
@@ -145,11 +146,11 @@ class DHMCSampler(object):
             return x, p, n_feval, n_fupdate
 
         else:
-            permuted_keys = permutations(self._disc_keys,1)
+            permuted_keys = permutations(self._disc_keys + self._if_keys,1)
             # permutates all keys into one permutated config. It deletes in memory as each key is called
             # returns a tuple ('key', []), hence to call 'key' requires [0] index.
 
-            if self._cont_keys is not None:
+            if self._cont_keys:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
                 logp = self.log_posterior(x, set_leafs=True)
@@ -163,11 +164,11 @@ class DHMCSampler(object):
                 x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
             n_fupdate += 1
 
-            if self._cont_keys is not None:
+            if self._cont_keys:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key] # final half step for position
 
-            if self._cont_keys is not None:
+            if self._cont_keys:
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp, x[key]) # final half step for momentum
@@ -181,15 +182,19 @@ class DHMCSampler(object):
         :param p:
         :return: Tensor
         """
-        if self._disc_keys is not None:
+        if self._disc_keys: # not None
             kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
         else:
             kinetic_disc = VariableCast(0)
-        if self._cont_keys is not None:
+        if self._if_keys:
+            kinetic_if = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._if_keys]))
+        else:
+            kinetic_if = VariableCast(0)
+        if self._cont_keys:
             kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
-        kinetic_energy = kinetic_cont + kinetic_disc
+        kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if
         potential_energy = -self.log_posterior(x)
 
         return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
@@ -261,7 +266,8 @@ class DHMCSampler(object):
         time_elapsed = toc - tic
         n_feval_per_itr = n_feval / (n_samples + burn_in)
         n_fupdate_per_itr = n_fupdate / (n_samples + burn_in)
-        if self._disc_keys is not None:
+        # if self._disc_keys or self._if_keys is not None:
+        if not (self._disc_keys or self._if_keys):
             print('Each iteration of DHMC on average required '
                 + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
                 + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
