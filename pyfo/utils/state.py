@@ -10,6 +10,8 @@ License: MIT
 import torch
 from torch.autograd import Variable
 from collections import deque
+import copy
+import math
 from pyfo.utils.core import VariableCast
 class State(object):
     """
@@ -127,23 +129,42 @@ class State(object):
 
         :param state:
         :param disc_key: Discrete parameter being embedded
-        :return: state with embedded parameter value
-        If embedded value falls outside of domain of discrete
-        parameter return -inf
+        :return: embedded state with embedded parameter value
+
         else
 
         TO DO
+        embedding : π(n)/ (a(n + 1/2) - a(n)) * I(a_{n-1/2} <  where a(n) = n n \mathbb{Z}^{+}
         """
-
-    def _unembed(self, state, disc_key):
+        embed_state = {}
+        for key in disc_key:
+            embed_state[key] = copy.copy(state[key])
+        return embed_state
+    def _unembed(self, state, disc_keys, support):
         """
 
         :param state:
         :param disc_key:
         :return: state with unembedded value
 
-        TO DO
+        If embedded value falls outside of domain of discrete
+        parameter return -inf
+        simple embedding defined as:
+
         """
+        for key in disc_keys:
+            int_length = len(state[key])
+            upper = int_length + 0.5
+            lower = int_length - 0.5
+
+
+            if state[key] > upper or state[key] < lower:
+                "outside region return -\inf"
+                state[key] = math.inf
+            if state[key] >
+
+
+
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
         Implements the 'f_update' in the coordinate wise integrator, to calculate the
