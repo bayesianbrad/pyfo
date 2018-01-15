@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 11. Jan 2018, Tobias Kohn
+# 15. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
@@ -161,6 +161,13 @@ class Model_Generator(object):
                 '{code}\n').format(name=name, args=args, code=code)
 
     def _gen_vars(self):
+        V = self.graph.sampled_variables
+        if len(V) > 0:
+            return "return ['{}']".format("', '".join(sorted(list(V))))
+        else:
+            return 'return []'
+
+    def _gen_all_keys(self):
         V = self.graph.not_observed_variables
         if len(V) > 0:
             return "return ['{}']".format("', '".join(sorted(list(V))))
@@ -171,25 +178,35 @@ class Model_Generator(object):
         return None
 
     def _gen_cond_vars(self):
-        vars = self.graph.cond_vars
+        vars = self.graph.cond_vars.difference(self.graph.if_vars)
         if len(vars) > 0:
             return "return ['{}']".format("', '".join(vars))
         else:
             return "return []"
 
     def _gen_cont_vars(self):
-        vars = self.graph.cont_vars
+        vars = self.graph.cont_vars.difference(self.graph.if_vars)
         if len(vars) > 0:
             return "return ['{}']".format("', '".join(vars))
         else:
             return "return []"
 
     def _gen_if_vars(self):
-        vars = self.graph.if_vars
+        vars = [v for v in self.graph.if_vars if not v.startswith("f")]
         if len(vars) > 0:
             return "return ['{}']".format("', '".join(vars))
         else:
             return "return []"
+
+    def _gen_if_functions(self):
+        if Options.uniform_conditionals:
+            vars = [v for v in self.graph.if_vars if v.startswith("f")]
+            if len(vars) > 0:
+                return "return ['{}']".format("', '".join(vars))
+            else:
+                return "return []"
+        else:
+            return None
 
     def _gen_disc_vars(self):
         vars = self.graph.disc_vars
@@ -215,7 +232,7 @@ class Model_Generator(object):
 
         result += [
             "state = {}",
-            "for _gv in self.gen_vars():",
+            "for _gv in self.gen_all_keys():",
             "\tstate[_gv] = locals()[_gv]",
             "return state  # dictionary"
         ]

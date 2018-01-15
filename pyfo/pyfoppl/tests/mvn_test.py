@@ -9,7 +9,7 @@ if __name__ == "__main__":
     # print("=" * 50)
     # print(help(test.model))
 
-    # f = open('mvn_model.py', 'w')
-    # f.write(test.code)
-    # f.close()
+    f = open('mvn_model.py', 'w')
+    f.write(test.code)
+    f.close()
 

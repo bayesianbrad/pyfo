@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 08. Jan 2018, Tobias Kohn
+# 15. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -131,6 +131,7 @@ class Graph(object):
         G = Graph(V, A, C, O)
         G.cont_vars = set.union(self.cont_vars, other.cont_vars)
         G.disc_vars = set.union(self.disc_vars, other.disc_vars)
+        G.cond_vars = set.union(self.cond_vars, other.cond_vars)
         G.observed_conditions = {**self.observed_conditions, **other.observed_conditions}
         G.original_names = {**self.original_names, **other.original_names}
         G.conditional_functions = {**self.conditional_functions, **other.conditional_functions}
@@ -174,6 +175,12 @@ class Graph(object):
     def not_observed_variables(self):
         V = self.vertices
         return V.difference(set(self.observed_values.keys()))
+
+    @property
+    def sampled_variables(self):
+        V = self.vertices
+        V = V.difference(set(self.observed_values.keys()))
+        return {v for v in V if self.get_code_for_variable(v).startswith("dist.")}
 
     @property
     def sorted_edges_by_parent(self):
