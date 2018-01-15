@@ -20,6 +20,7 @@ import copy
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
 from pyfo.utils.eval_stats import extract_stats
+from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
 
 class DHMCSampler(object):
@@ -232,7 +233,7 @@ class DHMCSampler(object):
             x = x0
 
         return x, acceptprob[0], n_feval, n_fupdate
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, save_data=False, plot_burnin=False, plot_ac=False):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, save_samples=False, plot_burnin=False, plot_ac=False):
         # Note currently not doing anything with burn in
 
         if seed is not None:
@@ -285,11 +286,12 @@ class DHMCSampler(object):
         # all the samples for a given parameter
         stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples), 'stats_wo_burnin': extract_stats(all_samples), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
-
         if print_stats:
             print(stats['stats'])
+        if save_samples:
+            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
         if plot:
-            self.create_plots(stats['samples'], stats['samples_wo_burin'], stats['param_names'],lag=lag, save_data=save_data, burn_in=plot_burnin, ac=plot_ac)
+            self.create_plots(stats['samples'], stats['samples_wo_burin'], stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
 
 
         return stats
@@ -307,7 +309,5 @@ class DHMCSampler(object):
         if ac:
             plot_object.auto_corr()
 
-        if save_data:
-            plot_object.save_data()
 
 
