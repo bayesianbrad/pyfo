@@ -15,5 +15,5 @@ dhmc_ = dhmc(gauss_1d.model, 1)
 
 stats = dhmc_.sample(n_samples=n_samples, burn_in=burn_in,stepsize_range=stepsize_range,n_step_range=n_step_range, print_stats=True)
 
-samples =  stats['samples']
-all_samples = stats['samples_wo_burin']
+# samples =  stats['samples']
+# all_samples = stats['samples_wo_burin']
