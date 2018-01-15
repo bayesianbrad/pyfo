@@ -10,7 +10,8 @@ License: MIT
 
 
 import numpy as np
-
+import sys
+import os
 
 def auto_correlation_time(x, s, mu, var):
     b, t, d = x.shape
@@ -107,3 +108,19 @@ def extract_stats(dataframe):
 
     """
     return dataframe.describe()
+
+def save_data(samples, all_samples, keys):
+        # Ensures directory for this data exists for model, if not creates it
+    PATH  = sys.path[0]
+    os.makedirs(PATH, exist_ok=True)
+    PATH_data =  os.path.join(PATH, 'data')
+    os.makedirs(PATH_data, exist_ok=True)
+    print(50 * '=')
+    print('Saving data in: {0}'.format(PATH_data))
+    print(50 * '=')
+    for key in keys:
+        path1 =  'samples_after_burnin_' + key +'.csv'
+        path2 =  'samples_with_burnin_' + key + '.csv'
+        samples[key].to_csv(os.path.join(PATH_data,path1), index=False, header=True)
+        all_samples[key].to_csv(os.path.join(PATH_data,path2), index=False, header=True)
+

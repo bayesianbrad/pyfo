@@ -149,13 +149,3 @@ class Plotting():
         print(50 * '=')
         print('Saving  autocorrelation plots to: {0}'.format(path_image))
         print(50 * '=')
-
-    def save_data(self):
-        # Ensures directory for this data exists for model, if not creates it
-        path1 =  'samples_after_burnin.csv'
-        path2 =  'samples_with_burnin.csv'
-        self.samples.to_csv(os.path.join(self.PATH_data,path1))
-        self.samples_withbin.to_csv(os.path.join(self.PATH_data,path2))
-        print(50*'=')
-        print('Saving data in: {0}'.format(self.PATH_data))
-        print(50 * '=')
