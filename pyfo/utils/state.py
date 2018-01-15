@@ -46,27 +46,27 @@ class State(object):
         return self._state_init
 
     def _return_disc_list(self):  #change the return type from None to [], since easier to operate on lists than None with list
-        # if len(self._disc_vars) == 0:
-        #     return None
-        # else:
+        if len(self._disc_vars) == 0:
+            return None
+        else:
             return self._disc_vars
 
     def _return_cont_list(self):
-        # if len(self._cont_vars) == 0:
-        #     return None
-        # else:
+        if len(self._cont_vars) == 0:
+            return None
+        else:
             return self._cont_vars
 
     def _return_if_list(self):
-        # if len(self._if_vars) == 0:
-        #     return None
-        # else:
+        if len(self._if_vars) == 0:
+            return None
+        else:
             return self._if_vars
 
     def _return_cond_list(self):
-        # if len(self._cond_vars) == 0:
-        #     return None
-        # else:
+        if len(self._cond_vars) == 0:
+            return None
+        else:
             return self._cond_vars
 
     # def _return_arcs(self):
@@ -82,9 +82,9 @@ class State(object):
             return self._vertices
 
     def _return_all_list(self):
-        # if len(self._all_vars) == 0:
-        #     return None
-        # else:
+        if len(self._all_vars) == 0:
+            return None
+        else:
             return self._all_vars
 
     def _return_true_names(self):
