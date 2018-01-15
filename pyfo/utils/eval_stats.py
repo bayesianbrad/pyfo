@@ -90,10 +90,13 @@ def extract_means(dataframe, keys=None):
             if key is None:
                 continue
             else:
+                print('Debug statement in utils/eval_stats/means The else branch executed print length of dataframe {0}'.format(print(len(dataframe.index))))
                 means[key] = dataframe[key].sum() / len(dataframe.index)
         return means
     else:
-        return dataframe.values.sum() / len(dataframe)
+        mean = dataframe.values.sum() / len(dataframe)
+        print('Debug statement in utils/eval_stats/extract_stats 2nd else branch executed print mean {0}'.format(mean))
+        return mean
 
 def extract_stats(dataframe):
     """
