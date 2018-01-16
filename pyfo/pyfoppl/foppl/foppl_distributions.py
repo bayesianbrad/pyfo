@@ -9,7 +9,6 @@
 discrete_distributions = {
     "Bernoulli",
     "Categorical",
-    "Discrete",
     "Multinomial",
     "Poisson"
 }
