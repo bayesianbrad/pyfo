@@ -13,6 +13,7 @@ from collections import deque
 import copy
 import math
 from pyfo.utils.core import VariableCast
+from decimal import Decimal
 class State(object):
     """
     Stores the state of the object
@@ -36,7 +37,8 @@ class State(object):
         self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
         self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
         # self._discontinuities = cls.gen_discontinuities()
-
+        self.disc_dist = cls.gen_disc_dist() #TODO Needs adding to the compiled output
+        self.unembedding_map = {'Poisson':unembed_poisson, 'Multinomial':unembed_multino, 'Categorical': unembed_cat,'Binomial':unembed_binomial}
         # True names of parameters
         self._names = cls.names
     def intiate_state(self):
@@ -105,7 +107,7 @@ class State(object):
         for key, value in x.items():
             x[key] = Variable(value.data, requires_grad=True)
 
-    def _log_pdf(self, state, set_leafs= False, key=None, embed=False, unembed=False):
+    def _log_pdf(self, state, set_leafs= False, key=None, unembed=False):
         """
         The compiled pytorch function, log_pdf, should automatically
         return the pdf.
@@ -119,8 +121,10 @@ class State(object):
 
         if set_leafs:
             state = self._to_leaf(state)
-        if embed:
-            state =self._embed(state,key)
+        if unembed:
+            state =self._unembed(state,key)
+            if math.isinf(state):
+                return -math.inf
 
         return self._gen_logpdf(state)
 
@@ -135,38 +139,88 @@ class State(object):
 
         TO DO
         embedding : π(n)/ (a(n + 1/2) - a(n)) * I(a_{n-1/2} <  where a(n) = n n \mathbb{Z}^{+}
+        This embedding essentially just divides by 1. Other embeddings for discrete parameters
+         will be implemented later in the pipeline
         """
         embed_state = {}
         for key in disc_key:
             embed_state[key] = copy.copy(state[key])
         return embed_state
-    def _unembed(self, state, disc_keys, support):
+
+    def _unembed(self, state, disc_keys, support=None, logp=None):
         """
 
         :param state:
         :param disc_key:
+        :param feature to add later, regarding the support of the discrete param
         :return: state with unembedded value
 
         If embedded value falls outside of domain of discrete
         parameter return -inf
         simple embedding defined as:
 
+         "Bernoulli", - support x \in {0,1}
+        "Categorical", - x \in {0, \dots, k-1} where k \in \mathbb{Z}^{+}
+        "Multinomial", - x_{i} \in {0,\dots ,n\}, i \in {0,\dots ,k-1} where sum(x_{i}) =n }
+        "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
+
         """
+
         for key in disc_keys:
-            int_length = len(state[key])
-            upper = int_length + 0.5
-            lower = int_length - 0.5
+            "TODO finish this for loop with the self.unebed_map and self.disc_dist = {'xi' : 'Poisson', etc}" \
+            "calling each of the unebed functions as required. If -inf is returned, it breaks the the loop and " \
+            "returns that as logp. "
 
+    def unembed_poisson(self, state):
+        """
+        unembed a poisson random variable
 
-            if state[key] > upper or state[key] < lower:
-                "outside region return -\inf"
-                state[key] = math.inf
-            if state[key] >
+        :param state:
+        :return:
+        """
 
+    def unembed_cat(self, state):
+        """
 
+        :param state:
+        :return:
+        """
+        int_length = len(state[key])
+        lower = 0.5
+        upper = int_length + lower
+
+        if state[key] > upper or state[key] < lower:
+            "outside region return -\inf"
+            state[key] = -math.inf
+        elif state[key].data == upper:
+            state[key] = state[key]
+            state[key] =
+            temp = state[key] - VariableCast(lower)
+            state[key] = torch.ceil(temp)
+
+    return state
+
+    def unembed_multino(self, state):
+        """
+
+        :param state:
+        :return:
+        """
+
+    def unembed_binomial(self, state):
+        """
+
+        :param state:
+        :return:
+        """
+
+    def to_decimal(self,float):
+        return Decimal('%.2f' % float)
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
+        NOT USED
+
         Implements the 'f_update' in the coordinate wise integrator, to calculate the
         difference in log probabiities.
         def f_update(x, dx, j, aux):
@@ -189,7 +243,6 @@ class State(object):
         :return: log_diff , aux_new (the updated logp)?
 
         """
-        # TODO: Incorporate j parameter into this. See A3 Notes.
         update_parameter = disc_params[j]
         state[update_parameter] = state[update_parameter] + step_size
         current_logp = self._gen_logpdf(state)
