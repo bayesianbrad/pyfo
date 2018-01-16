@@ -291,12 +291,11 @@ class DHMCSampler(object):
         if save_samples:
             save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
         if plot:
-            self.create_plots(stats['samples'], stats['samples_wo_burin'], stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
-
+            self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
 
         return stats
 
-    def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, save_data=False, burn_in=False, ac=False):
+    def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
 
         :param keys:
@@ -305,7 +304,8 @@ class DHMCSampler(object):
         """
 
         plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
-
+        plot_object.plot_density(all_on_one)
+        plot_object.plot_trace(all_on_one)
         if ac:
             plot_object.auto_corr()
 
