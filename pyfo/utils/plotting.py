@@ -21,12 +21,9 @@ import pandas as pd
 import sys
 import numpy as np
 import os
-from itertools import cycle
 import copy
-from torch.autograd import Variable
-# # mpl.use('pgf')
-# import matplotlib as mpl
 from matplotlib import pyplot as plt
+plt.style.use('ggplot')
 # from pandas.plotting import autocorrelation_plot
 # from statsmodels.graphics import tsaplots
 import platform
@@ -53,9 +50,8 @@ import platform
 class Plotting():
 
     def __init__(self, dataframe_samples,dataframe_samples_woburin, keys,lag, burn_in=False):
-        self.samples = dataframe_samples
-        self.samples_withbin = dataframe_samples_woburin
-        self.keys = keys
+        self.samples = dataframe_samples[keys]
+        self.samples_withbin = dataframe_samples_woburin[keys]
         self.lag = lag
         self.burn_in = burn_in
         self.PATH  = sys.path[0]
@@ -65,57 +61,62 @@ class Plotting():
         self.PATH_data =  os.path.join(self.PATH, 'data')
         os.makedirs(self.PATH_data, exist_ok=True)
     
-        self.colors = cycle([ "blue", "green","black", "maroon", "navy", "olive", "purple", "red", "teal"])
+        # self.colors = cycle([ "blue", "green","black", "maroon", "navy", "olive", "purple", "red", "teal"])
 
-    def plot_trace_histogram(self, all_on_one=False):
+    def trace_plot(self):
         '''
-        Plots the traces all on one histogram, if flag set to true.
-        Else, plots the trace of each parameter and the corresponding histogram in the cloumn adjacent to it.
+        Plots the trace
+        :return:
+        '''
+    def plot_trace(self, all_on_one=True):
+        '''
+        Plots the traces for all parameters on one plot, if all_on_one flag is true
+        Else, plots the trace of each parameter.
         :param all_on_one type: bool
         :return:
         '''
-
-        print('Saving trace plots.....')
-        fig, axes = plt.subplots(nrows=2, ncols=len(self.keys))
-        key = copy.copy(self.keys) # stops keys from been deleted from self.keys
-
-        if self.burn_in:
-            print('Burn in plots')
-
-        for axis in axes.ravel():
-            # https: // stackoverflow.com / questions / 4700614 / how - to - put - the - legend - out - of - the - plot
-            key = key.pop()
-            axis.plot(list(range(0, len(self.samples[key]))), self.samples[key],label=key)
-            axis.legend(loc='upper right')
-            # Here at 12/01/18 15:08 to finish
-
-        for key in self.keys:
-            ax.plot(iter, self.samples[key], label='{0} '.format(key))
-            ax.set_title('Trace plot for the parameter')
-            ax.set_xlabel('Iterations')
-            ax.set_ylabel('Sampled values of the Parameter')
-            plt.legend()
-            fname2 = 'trace.pdf'
-            fig.savefig(os.path.join(self.PATH_fig, fname2))
-
-        weights = np.ones_like(self.samples) / float(len(self.samples))
-        fig, ax = plt.subplots()
-        if np.shape(self.samples)[1] > 1:
-            for i in range(np.shape(self.samples_with_burnin)[1]):
-                ax.hist(self.samples[:,i],  bins = 'auto', normed=1, label= r'$\mu_{\mathrm{emperical}}$' + '=' + '{0}'.format(
-                        self.mean.data[0][i]))
-                ax.set_title('Histogram of samples ')
-                ax.set_xlabel(' Samples ')
-                ax.set_ylabel('Density')
-            plt.legend()
-            fname2 = 'parameterplots.pdf'
-                # Ensures directory for this figure exists for model, if not creates it
-            fig.savefig(os.path.join(self.PATH_fig,fname2))
-            path_image = self.PATH_fig + '/' + fname2
+        if all_on_one:
+            fname1 = 'trace_of_parameters.pdf'
+            fname2 = 'trace_of_parameters_wo_burnin.pdf'
+            self.samples.plot(subplots=True, figsize=(6,6))
+            plt.savefig(os.path.join(self.PATH_fig, fname1))
+            self.samples_withbin.plot(subplots=True, figsize=(6,6))
+            plt.savefig(os.path.join(self.PATH_fig,fname2))
+            path_image1 = self.PATH_fig + '/' + fname2
+            path_image2= self.PATH_fig + '/' + fname1
             print(50 * '=')
-            print('Saving trace and histogram plot to {0}'.format(path_image))
+            print('Saving trace of all samples to {0} \n and with burnin to {1}'.format(path_image1,path_image2))
+            print(50 * '=')
+        else:
+            fname1 = 'trace_of_parameters.pdf'
+            fname2 = 'trace_of_parameters_wo_burnin.pdf'
+            self.samples.plot(subplots=True, figsize=(6,6))
+            plt.savefig(os.path.join(self.PATH_fig, fname1))
+            self.samples_withbin.plot(subplots=True, figsie=(6,6))
+            plt.savefig(os.path.join(self.PATH_fig, fname2))
+            path_image2 = self.PATH_fig + '/' + fname2
+            path_image1 = self.PATH_fig + '/' + fname1
+            print(50 * '=')
+            print('Saving trace of all samples to {0} \n and with burnin to {1}'.format(path_image1, path_image2))
             print(50 * '=')
 
+    def plot_density(self, all_on_one=True):
+        """
+        Plots either all the histograms for each param on one plot, or does it indiviually
+        dependent on keys
+        :param all_on_one type: bool
+        :param keys type:list
+        :return:
+        """
+
+        if all_on_one:
+            fname = 'density_plot_of_parameters.pdf'
+            path_image = self.PATH_fig + '/' + fname
+            self.samples.plot(subplots=True, kind='kde')
+            plt.savefig(os.path.join(self.PATH_fig,fname))
+            print(50 * '=')
+            print('Saving desnity of samples w/o burnin plot to {0}'.format(path_image))
+            print(50 * '=')
 
     def auto_corr(self):
         """
