@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 11. Jan 2018, Tobias Kohn
+# 16. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .graphs import *
@@ -496,7 +496,11 @@ class Compiler(Walker):
             return node.walk(self)
 
     def visit_symbol(self, node: AstSymbol):
-        return self.scope.find_symbol(node.name)
+        result = self.scope.find_symbol(node.name)
+        if result:
+            return result
+        else:
+            raise SyntaxError("Unknown symbol: '{}'".format(node.name))
 
     def visit_unary(self, node: AstUnary):
         node = self.optimize(node)

@@ -279,7 +279,7 @@ class Graph(object):
         else:
             return "{}"
 
-    def get_continuous_distributions(self):
+    def get_discrete_distributions(self):
         result = []
         for name in self.cont_vars:
             code = self.get_code_for_variable(name)

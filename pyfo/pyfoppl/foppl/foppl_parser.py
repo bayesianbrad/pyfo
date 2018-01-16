@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 08. Jan 2018, Tobias Kohn
+# 16. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -127,6 +127,9 @@ class ExprParser(object):
         if type(f) is Form and len(form) == 1:
             return self._parse(f)
 
+        elif type(f) is Form:
+            raise SyntaxError("There might be too many parentheses here: '{}'".format(form))
+
         else:
             raise NotImplementedError(form)
 
@@ -230,8 +233,19 @@ class Parser(object):
             while i < len(bindings):
                 name = bindings[i] # get_name(bindings[i])
                 source = bindings[i+1]
-                names.append(get_name(name))
-                assignments.append((name, self._parse(source)))
+                if isinstance(name, Vector):
+                    part_names = [get_name(n) for n in name.data]
+                    overall_name = '_'.join(part_names)
+                    overall_name = "__" + overall_name
+                    names.append(overall_name)
+                    assignments.append((overall_name, self._parse(source)))
+                    overall_name = AstSymbol(overall_name)
+                    for j in range(len(part_names)):
+                        names.append(part_names[j])
+                        assignments.append((part_names[j], AstFunctionCall('get', [overall_name, AstValue(j)])))
+                else:
+                    names.append(get_name(name))
+                    assignments.append((name, self._parse(source)))
                 i += 2
             return names, assignments
 

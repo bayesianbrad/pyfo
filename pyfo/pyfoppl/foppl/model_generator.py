@@ -95,11 +95,18 @@ class Model_Generator(object):
             self._output += repr(self.graph.original_names)
             self._output += '\n\tcond_functions = '
             self._output += self.graph.get_conditional_functions().replace('\n', '\n\t')
-            self._output += '\n\tcont_dists = '
-            self._output += self.graph.get_continuous_distributions().replace('\n', '\n\t')
+            self._output += '\n\tdisc_dists = '
+            self._output += self.graph.get_discrete_distributions().replace('\n', '\n\t')
             self._output += '\n'
             self._output += self._format_method(name='get_vertices', code='return list(self.vertices)')
             self._output += self._format_method(name='get_arcs', code='return list(self.arcs)')
+            self._output += self._format_method(name='get_discrete_distribution', args='name',
+                                                code='return self.disc_dists[name]')
+            self._output += self._format_method(name='get_cond_function', args='name',
+                                                code='f = self.cond_functions[name]\n'
+                                                     'if type(f) is str and f in self.cond_functions:\n'
+                                                     '\tf = self.cond_functions[f]\n'
+                                                     'return f')
 
             # We go through the class and call each method that starts with '_gen_'. The methods are expected
             # to return a string with the code for a function or method to be included
