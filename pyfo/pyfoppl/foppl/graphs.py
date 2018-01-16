@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 15. Jan 2018, Tobias Kohn
+# 16. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -274,7 +274,25 @@ class Graph(object):
             if not target.startswith("lambda "):
                 target = repr(target)
             result.append("'{}': {}".format(name, target))
-        return "{{\n  {}\n}}".format(',\n  '.join(result))
+        if len(result) > 0:
+            return "{{\n  {}\n}}".format(',\n  '.join(result))
+        else:
+            return "{}"
+
+    def get_continuous_distributions(self):
+        result = []
+        for name in self.cont_vars:
+            code = self.get_code_for_variable(name)
+            if code.startswith("dist."):
+                code = code[5:]
+                i = 0
+                while i < len(code) and ('A' <= code[i] <= 'Z' or 'a' <= code[i] <= 'z'):
+                    i += 1
+                result.append("'{}': '{}'".format(name, code[:i]))
+        if len(result) > 0:
+            return "{{\n  {}\n}}".format(',\n  '.join(result))
+        else:
+            return "{}"
 
 
 class GraphBuilder(object):

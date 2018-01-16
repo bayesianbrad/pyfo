@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 15. Jan 2018, Tobias Kohn
+# 16. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
@@ -95,6 +95,8 @@ class Model_Generator(object):
             self._output += repr(self.graph.original_names)
             self._output += '\n\tcond_functions = '
             self._output += self.graph.get_conditional_functions().replace('\n', '\n\t')
+            self._output += '\n\tcont_dists = '
+            self._output += self.graph.get_continuous_distributions().replace('\n', '\n\t')
             self._output += '\n'
             self._output += self._format_method(name='get_vertices', code='return list(self.vertices)')
             self._output += self._format_method(name='get_arcs', code='return list(self.arcs)')
