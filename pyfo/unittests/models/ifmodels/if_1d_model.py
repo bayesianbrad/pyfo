@@ -64,12 +64,18 @@ class model(interface):
 		x20001 = state['x20001']
 		p10000 = dist_x20001.log_pdf(x20001)
 		f20004 = -x20001
-		cond_20003 = state['cond_20003']
+		# The line below has been added as cond_ was not previously updating
+		cond_20003 = (f20004 >= 0).data[0]
+		# cond_20003 = state['cond_20003']
 		dist_y20005 = dist.Normal(mu=1, sigma=1.0)
 		p10001 = dist_y20005.log_pdf(1) if not cond_20003 else 0
 		dist_y20006 = dist.Normal(mu=-1, sigma=1.0)
 		p10002 = dist_y20006.log_pdf(1) if cond_20003 else 0
 		logp = p10000 + p10001 + p10002
+		# this has changed
+		for key in state:
+			if key in locals():
+				state[key] = locals()[key]
 		return logp
 
 	@classmethod
