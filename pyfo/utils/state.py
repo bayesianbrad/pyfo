@@ -37,8 +37,8 @@ class State(object):
         self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
         self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
         # self._discontinuities = cls.gen_discontinuities()
-        self.disc_dist = cls.gen_disc_dist() #TODO Needs adding to the compiled output
-        self.unembedding_map = {'Poisson':unembed_poisson, 'Multinomial':unembed_multino, 'Categorical': unembed_cat,'Binomial':unembed_binomial}
+        # self.disc_dist = cls.gen_disc_dist() #TODO Needs adding to the compiled output
+        # self.unembedding_map = {'Poisson':unembed_poisson, 'Multinomial':unembed_multino, 'Categorical': unembed_cat,'Binomial':unembed_binomial}
         # True names of parameters
         self._names = cls.names
     def intiate_state(self):
@@ -179,7 +179,7 @@ class State(object):
         :return:
         """
 
-    def unembed_cat(self, state):
+    def unembed_cat(self, state, key):
         """
 
         :param state:
@@ -189,16 +189,16 @@ class State(object):
         lower = 0.5
         upper = int_length + lower
 
-        if state[key] > upper or state[key] < lower:
-            "outside region return -\inf"
-            state[key] = -math.inf
-        elif state[key].data == upper:
-            state[key] = state[key]
-            state[key] =
-            temp = state[key] - VariableCast(lower)
-            state[key] = torch.ceil(temp)
-
-    return state
+        # if state[key] > upper or state[key] < lower:
+        #     "outside region return -\inf"
+        #     state[key] = -math.inf
+        # elif state[key].data == upper:
+        #     state[key] = state[key]
+        #     state[key] =
+        #     temp = state[key] - VariableCast(lower)
+        #     state[key] = torch.ceil(temp)
+        #
+        # return state
 
     def unembed_multino(self, state):
         """
