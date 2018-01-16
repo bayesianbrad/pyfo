@@ -101,7 +101,7 @@ class Model_Generator(object):
             self._output += self._format_method(name='get_vertices', code='return list(self.vertices)')
             self._output += self._format_method(name='get_arcs', code='return list(self.arcs)')
             self._output += self._format_method(name='get_discrete_distribution', args='name',
-                                                code='return self.disc_dists[name]')
+                                                code='return self.disc_dists')
             self._output += self._format_method(name='get_cond_function', args='name',
                                                 code='f = self.cond_functions[name]\n'
                                                      'if type(f) is str and f in self.cond_functions:\n'
@@ -201,7 +201,7 @@ class Model_Generator(object):
             return "return []"
 
     def _gen_if_vars(self):
-        vars = [v for v in self.graph.if_vars if not v.startswith("f")]
+        vars = [v for v in self.graph.if_vars if not v.startswith("f") and not v.startswith("cond_")]
         if len(vars) > 0:
             return "return ['{}']".format("', '".join(vars))
         else:
@@ -268,9 +268,6 @@ class Model_Generator(object):
                 p_vars.append("p{p_index}".format(p_index=p_index))
                 p_index += 1
 
-            elif v.startswith("cond"):
-                result.append("{v} = state['{v}']".format(v=v))
-
             else:
                 result.append("{} = {}".format(v, code))
 
@@ -278,6 +275,8 @@ class Model_Generator(object):
         while len(result) > 0 and not result[-1].startswith('p'):
            del result[-1]
 
+        result.append("_lcls = locals()")
+        result.append("for key in state:\n\tif key in _lcls:\n\t\tstate[key] = _lcls[key]")
         if len(p_vars) > 0:
             result.append("logp = " + (" + ".join(p_vars)))
             result.append("return logp")

@@ -6,7 +6,6 @@
 # 21. Dec 2017, Tobias Kohn
 # 08. Jan 2018, Tobias Kohn
 #
-from .foppl_distributions import distribution_params
 from .graphs import *
 from .foppl_objects import Symbol
 

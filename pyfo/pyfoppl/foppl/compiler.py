@@ -13,6 +13,7 @@ from .foppl_parser import parse
 from .foppl_reader import is_alpha, is_alpha_numeric
 from .optimizers import Optimizer
 from .function_compiler import FunctionCompiler
+from .foppl_distributions import distribution_params
 from . import Options
 
 
