@@ -32,13 +32,14 @@ class State(object):
         self._disc_vars = cls.gen_disc_vars()
         self._if_vars = cls.gen_if_vars()
         self._cond_vars=  cls.gen_cond_vars()
-        # self._arcs = cls.get_arcs()
+        self._arcs = cls.get_arcs()
         self._vertices = cls.get_vertices()
         self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
         self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
         # self._discontinuities = cls.gen_discontinuities()
-        # self.disc_dist = cls.gen_disc_dist() #TODO Needs adding to the compiled output
-        # self.unembedding_map = {'Poisson':unembed_poisson, 'Multinomial':unembed_multino, 'Categorical': unembed_cat,'Binomial':unembed_binomial}
+        self.disc_dist = cls.get_discrete_distribution()
+        self.dist_arg_size = cls.get_dist_parameter_size
+
         # True names of parameters
         self._names = cls.names
     def intiate_state(self):
@@ -107,11 +108,11 @@ class State(object):
         for key, value in x.items():
             x[key] = Variable(value.data, requires_grad=True)
 
-    def _log_pdf(self, state, set_leafs= False, key=None, unembed=False):
+    def _log_pdf(self, state, set_leafs= False, keys=None, unembed=False):
         """
         The compiled pytorch function, log_pdf, should automatically
         return the pdf.
-        :param
+        :param keys type: list of discrete embedded discrete parameters
         :return: log_pdf
 
         Do I need to convert the variables within state, to requires grad = True
@@ -122,9 +123,11 @@ class State(object):
         if set_leafs:
             state = self._to_leaf(state)
         if unembed:
-            state =self._unembed(state,key)
-            if math.isinf(state):
+            _temp =self._unembed(state,self.disc_arg_size,keys)
+            if math.isinf(_temp):
                 return -math.inf
+            else:
+                state = _temp
 
         return self._gen_logpdf(state)
 
@@ -170,52 +173,6 @@ class State(object):
             "TODO finish this for loop with the self.unebed_map and self.disc_dist = {'xi' : 'Poisson', etc}" \
             "calling each of the unebed functions as required. If -inf is returned, it breaks the the loop and " \
             "returns that as logp. "
-
-    def unembed_poisson(self, state):
-        """
-        unembed a poisson random variable
-
-        :param state:
-        :return:
-        """
-
-    def unembed_cat(self, state, key):
-        """
-
-        :param state:
-        :return:
-        """
-        int_length = len(state[key])
-        lower = 0.5
-        upper = int_length + lower
-
-        # if state[key] > upper or state[key] < lower:
-        #     "outside region return -\inf"
-        #     state[key] = -math.inf
-        # elif state[key].data == upper:
-        #     state[key] = state[key]
-        #     state[key] =
-        #     temp = state[key] - VariableCast(lower)
-        #     state[key] = torch.ceil(temp)
-        #
-        # return state
-
-    def unembed_multino(self, state):
-        """
-
-        :param state:
-        :return:
-        """
-
-    def unembed_binomial(self, state):
-        """
-
-        :param state:
-        :return:
-        """
-
-    def to_decimal(self,float):
-        return Decimal('%.2f' % float)
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
