@@ -362,6 +362,18 @@ class Compiler(Walker):
         else:
             raise SyntaxError("wrong number of arguments for distribution '{}'".format(node.name))
 
+    def visit_distribution_categorical(self, node: AstDistribution):
+        if len(node.args) >= 1 and isinstance(node.args[0], AstValue):
+            ps = node.args[0].value
+            if type(ps) is list and all([type(i) is list for i in ps]):
+                size = len(ps), min([len(i) for i in ps])
+            elif type(ps) is list and all([type(i) in [int, float] for i in ps]):
+                size = (len(ps), 0)
+            else:
+                size = (0, 0)
+            node.size = size
+        return self.visit_distribution(node)
+
     def visit_expr(self, node: AstExpr):
         return node.value
 
@@ -470,6 +482,8 @@ class Compiler(Walker):
         name = self.gen_symbol('y')
         node.id = name
         graph, expr = dist.walk(self)
+        if hasattr(dist, 'size'):
+            graph.add_distribution_size(name, dist.size)
         _, obs_expr = node.value.walk(self)
         graph = graph.merge(Graph({name}, set((v, name) for v in graph.vertices), {name: expr}, {name: obs_expr}))
         cond = self.current_condition()
@@ -482,6 +496,8 @@ class Compiler(Walker):
         name = self.gen_symbol('x')
         node.id = name
         graph, expr = dist.walk(self)
+        if hasattr(dist, 'size'):
+            graph.add_distribution_size(name, dist.size)
         graph = graph.merge(Graph({name}, set((v, name) for v in graph.vertices), {name: expr}))
         cond = self.current_condition()
         if cond:

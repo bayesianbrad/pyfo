@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 16. Jan 2018, Tobias Kohn
+# 17. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -33,6 +33,7 @@ class Graph(object):
       we map `c -> f`,
     - `used_functions` is set that records all functions used inside the code, which have not been recognized by
       the compiler. These functions need to be provided by other means to the model/Python code.
+    - `distribution_sizes` keeps a record of the "size" various distributions in the code have.
 
     Graphs are thought to be immutable objects. Use a `GraphBuilder` to create and modify new graphs. There are some
     exceptions, though: the compiler might have to add a specific value or mapping to a newly created graph. That is
@@ -96,6 +97,7 @@ class Graph(object):
                                 if n in cond_densities
                                 if n.startswith('cond'))
         self.used_functions = set()
+        self.distribution_sizes = {}
         self.EMPTY = None
 
     def __repr__(self):
@@ -136,6 +138,7 @@ class Graph(object):
         G.original_names = {**self.original_names, **other.original_names}
         G.conditional_functions = {**self.conditional_functions, **other.conditional_functions}
         G.used_functions = set.union(self.used_functions, other.used_functions)
+        G.distribution_sizes = {**self.distribution_sizes, **other.distribution_sizes}
         return G
 
     def add_condition_for_observation(self, obs: str, cond: str):
@@ -149,6 +152,9 @@ class Graph(object):
             for obs in self.observed_values.keys():
                 self.add_condition_for_observation(obs, cond)
         return self
+
+    def add_distribution_size(self, name, size):
+        self.distribution_sizes[name] = size
 
     def add_original_name(self, original_name, new_name):
         self.original_names[new_name] = original_name
@@ -290,6 +296,15 @@ class Graph(object):
                     i += 1
                 result.append("'{}': '{}'".format(name, code[:i]))
         if len(result) > 0:
+            return "{{\n  {}\n}}".format(',\n  '.join(result))
+        else:
+            return "{}"
+
+    def get_distribution_sizes(self):
+        if len(self.distribution_sizes) > 0:
+            result = []
+            for name in self.distribution_sizes:
+                result.append("'{}': {}".format(name, self.distribution_sizes[name]))
             return "{{\n  {}\n}}".format(',\n  '.join(result))
         else:
             return "{}"
