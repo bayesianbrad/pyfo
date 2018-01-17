@@ -83,6 +83,51 @@ class interface():
         raise NotImplementedError
 
     @classmethod
+    def get_cond_functions(self) -> Dict[str,Variable]:
+        """
+        Returns a variable that represents the  of the predicate and the string representing which 'if'
+        condition it represents
+
+        Example:
+        X1 ~ Normal(0,1)
+        if (fX1 = X1 - a > 0):
+            'do something'
+
+        This if statement is has the name  'cond_1'
+
+        :return:
+        """
+
+        raise NotImplementedError
+    @classmethod
+    def get_discrete_distribution(self) -> Dict[Variable,str]:
+        """
+        Returns the strings of the discrete parameters. I.e if x ~ Poission(1)
+        then this is a dictionary of {x : 'Poisson'}
+        :return:
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def get_dist_parameter_size(self, name: str) -> tuple:
+        """
+        Used for understanding the size of the support, so that the unembedding is
+        :param name: Represents discrete param name type: str
+        :return: tuple of size (n,m)
+
+        Example
+
+        dist_sizes = {}
+        if name in dist_sizes:
+            return dist_sizes[name]
+        else:
+            return None
+
+
+        """
+
+        raise NotImplementedError
+    @classmethod
     def get_vertices(self) -> List[str]:
         """
         Returns all vertices of the graphical model as a list of
