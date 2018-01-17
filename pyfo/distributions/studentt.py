@@ -54,7 +54,7 @@ class StudentT(Distribution):
         Y = X * torch.rsqrt(Z / self.df)
         return self.loc + self.scale * Y
 
-    def log_prob(self, value):
+    def log_pdf(self, value):
         self._validate_log_prob_arg(value)
         y = (value - self.loc) / self.scale
         Z = (self.scale.log() +
