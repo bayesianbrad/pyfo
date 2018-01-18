@@ -25,6 +25,9 @@ class Unembed():
     def __init__(self, disc_dist, dist_arg_size):
         self.dist_dist = disc_dist
         self.size = dist_arg_size
+        print('Debug statement in Unembed class __init__: Print \n'
+              ' self.size {0} and type {1} '.format(dist_arg_size, type(dist_arg_size)
+        ))
 
     def unembed_poisson(self, state,key):
         """
@@ -34,7 +37,12 @@ class Unembed():
         :return:
         """
         lower = VariableCast(-0.5)
-        if torch.lt(state[key].data, lower.data)
+        if torch.lt(state[key].data, lower.data).data[0]:
+            "outside region return -\inf"
+            return -math.inf
+        else:
+            state[key] = torch.round(state[key])
+        return state
 
     def unembed_cat(self, state, key):
         """
@@ -51,9 +59,12 @@ class Unembed():
             "outside region return -\inf"
             return -math.inf
         if torch.lt(state[key].data, lower.data).data[0]:
+            "outside region return -\inf"
             return -math.inf
+        if torch.lt(state[key],upper).data[0] and torch.gt(state[key],upper + 2*lower).data[0]:
+            state[key] = torch.round(state[key]) #equiv to torch.round(upper)
         else:
-            state[key] = torch.ceil(state[key] + lower)
+            state[key] = torch.round(state[key] - lower)
         return state
 
     def unembed_multino(self, state):
