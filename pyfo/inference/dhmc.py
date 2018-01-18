@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import torch
 import copy
+from torch.autograd import Variable
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
@@ -64,7 +65,7 @@ class DHMCSampler(object):
         self._all_keys = self._state._return_all_list()
 
         # True latent variable names
-        self._names = self._state._return_true_names()
+        # self._names = self._state._return_true_names()
 
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0
@@ -95,7 +96,7 @@ class DHMCSampler(object):
                 p[key] = self.M * VariableCast(np.random.laplace(size=1))
         return p
 
-    def coordInt(self,x,p,stepsize,key):
+    def coordInt(self,x,p,stepsize,key, unembed=False):
         """
         Performs the coordinate wise update. The permutation is done before the
         variables are executed within the function.
@@ -104,19 +105,28 @@ class DHMCSampler(object):
         :param p: Dict of state of momentum
         :param stepsize: Float
         :param key: unique parameter String
+        :param unembed: type: bool If if statement which is continous, in the models we currently run, it will not
+         need to be embedded. # TODO in the future if_keys may be discrete and will need embedding.
+         To resolve this issue add another check before calling the coordinate wise integrator, to see if the key exists
+         in the self._if_cont_vars or self._if_disc_vars
         :return: Updated x and p indicies
         """
 
         x_star = copy.copy(x)
         x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key]) # Need to change M here again
-        logp_diff = self.log_posterior(x_star, set_leafs=False) - self.log_posterior(x, set_leafs=False)
+
+        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
+        # If the discrete parameter is outside of the support, returns -inf and breaks loop and integrator.
+        if math.isinf(logp_diff.data[0]):
+            return x[key], p[key], logp_diff.data[0]
+
         cond = torch.gt(self.M*torch.abs(p[key]),-logp_diff)
         if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
-            return x_star[key], p[key]
+            return x_star[key], p[key], []
         else:
             p[key] = -p[key]
-            return x[key],p[key]
+            return x[key],p[key], []
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize, aux= None):
         """
@@ -151,7 +161,7 @@ class DHMCSampler(object):
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
                 p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
-            return x, p, n_feval, n_fupdate
+            return x, p, n_feval, n_fupdate, []
 
         else:
             permuted_keys_list = []
@@ -166,15 +176,17 @@ class DHMCSampler(object):
             if self._cont_keys is not None:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
-                logp = self.log_posterior(x, set_leafs=True)
 
-            # Uncomment this statement when correct transforms have
-            # been impleemnted.
-            # if math.isinf(logp):
-            #     return x, p, n_feval, n_fupdate
-
+            logp = self.log_posterior(x, set_leafs=True, unembed=True)
+            if math.isinf(logp):
+                return x, p, n_feval, n_fupdate, logp
             for key in permuted_keys:
-                x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
+                if key in self._if_keys:
+                    x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=False)
+                else:
+                    x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=True)
+                if math.isinf(_):
+                    return x, p, n_feval, n_fupdate, _
             n_fupdate += 1
 
             if self._cont_keys is not None:
@@ -186,7 +198,7 @@ class DHMCSampler(object):
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp, x[key]) # final half step for momentum
                 n_feval += 1
-            return x, p, n_feval, n_fupdate
+            return x, p, n_feval, n_fupdate, []
 
     def _energy(self, x, p):
         """
@@ -231,7 +243,9 @@ class DHMCSampler(object):
         x, p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x0,p,stepsize)
         for i in range(n_step-1):
             # may have to add inf statement see original code
-            x,p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x,p,stepsize)
+            x,p, n_feval_local, n_fupdate_local, _ = self.gauss_laplace_leapfrog(x,p,stepsize)
+            if math.isinf(_):
+                break
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
 
