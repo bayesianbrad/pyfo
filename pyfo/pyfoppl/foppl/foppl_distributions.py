@@ -49,7 +49,7 @@ distribution_params = {
     "Categorical": ["ps"],
     "Cauchy": ["mu", "gamma"],
     "Dirichlet": ["alpha"],
-    "Exponential": ["lambda"],
+    "Exponential": ["lam"],   #ZY
     "LogNormal": ["mu", "sigma"],
     "Gamma": ["alpha", "beta"],
     "HalfCauchy": ["mu", "gamma"],
