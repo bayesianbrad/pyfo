@@ -100,7 +100,7 @@ class interface():
 
         raise NotImplementedError
     @classmethod
-    def get_discrete_distribution(self) -> Dict[Variable,str]:
+    def get_discrete_distributions(self) -> Dict[Variable,str]:
         """
         Returns the strings of the discrete parameters. I.e if x ~ Poission(1)
         then this is a dictionary of {x : 'Poisson'}
@@ -108,6 +108,13 @@ class interface():
         """
         raise NotImplementedError
 
+    @classmethod
+    def get_continuous_distributions(self) -> Dict[str,str]:
+        """
+        Returns a map of the continous parameter distribution names
+        :return:
+        """
+        raise NotImplementedError
     @classmethod
     def get_dist_parameter_size(self, name: str) -> tuple:
         """
@@ -127,6 +134,7 @@ class interface():
         """
 
         raise NotImplementedError
+
     @classmethod
     def get_vertices(self) -> List[str]:
         """
