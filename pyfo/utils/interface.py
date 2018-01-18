@@ -165,8 +165,8 @@ class interface():
 
         :return child_parent_relationships type: Dict[str, Set[str]]
         """
-        result = { u: [] for u in self.vertices }
-        for (u, v) in self.arcs:
+        result = { u: [] for u in self.get_vertices()}
+        for (u, v) in self.get_arcs:
             if v in result:
                 result[v].append(u)
             else:
@@ -187,5 +187,3 @@ class interface():
             return edges[var_name]
         else:
             return set()
-
-    # need to know which if branch we have gone down and what
