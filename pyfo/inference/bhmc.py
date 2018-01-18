@@ -2,15 +2,6 @@
 # -*- coding: utf-8 -*-
 '''
 Author: Bradley Gram-Hansen
-Time created:  23:07
-Date created:  17/01/2018
-
-License: MIT
-'''
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Author: Bradley Gram-Hansen
 Time created:  11:08
 Date created:  08/12/2017
 
@@ -32,7 +23,7 @@ from pyfo.utils.eval_stats import extract_stats
 from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
 
-class DHMCSampler(object):
+class BHMCSampler(object):
     """
     In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>

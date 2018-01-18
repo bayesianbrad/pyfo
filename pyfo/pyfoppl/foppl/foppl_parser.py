@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 16. Jan 2018, Tobias Kohn
+# 17. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -71,7 +71,7 @@ class ExprParser(object):
                     if not (isinstance(right, AstValue) and right.value == 0):
                         left = AstBinary('-', left, right)
                         right = AstValue(0)
-                    return AstUnary('not ', AstCompare(Symbol.GE, left, right))
+                    return AstUnary('not', AstCompare(Symbol.GE, left, right))
 
             if not (isinstance(right, AstValue) and right.value == 0):
                 left = AstBinary('-', left, right)

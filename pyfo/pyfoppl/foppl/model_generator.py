@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 16. Jan 2018, Tobias Kohn
+# 18. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
@@ -87,26 +87,38 @@ class Model_Generator(object):
 
         # We add all the vertices and edges of the graph to our model
         if self.graph:
-            self._output += '\tvertices = '
-            self._output += str(self.graph.vertices)
-            self._output += '\n\tarcs = '
-            self._output += str(self.graph.arcs)
-            self._output += '\n\tnames = '
-            self._output += repr(self.graph.original_names)
-            self._output += '\n\tcond_functions = '
-            self._output += self.graph.get_conditional_functions().replace('\n', '\n\t')
-            self._output += '\n\tdisc_dists = '
-            self._output += self.graph.get_discrete_distributions().replace('\n', '\n\t')
-            self._output += '\n'
-            self._output += self._format_method(name='get_vertices', code='return list(self.vertices)')
-            self._output += self._format_method(name='get_arcs', code='return list(self.arcs)')
-            self._output += self._format_method(name='get_discrete_distribution', args='name',
-                                                code='return self.disc_dists')
-            self._output += self._format_method(name='get_cond_function', args='name',
-                                                code='f = self.cond_functions[name]\n'
-                                                     'if type(f) is str and f in self.cond_functions:\n'
-                                                     '\tf = self.cond_functions[f]\n'
-                                                     'return f')
+            #self._output += '\tvertices = '
+            #self._output += str(self.graph.vertices)
+            #self._output += '\n\tarcs = '
+            #self._output += str(self.graph.arcs)
+            #self._output += '\n\tnames = '
+            #self._output += repr(self.graph.original_names)
+            #self._output += '\n\tcond_functions = '
+            #self._output += self.graph.get_conditional_functions().replace('\n', '\n\t')
+            #self._output += '\n\tdisc_dists = '
+            #self._output += self.graph.get_discrete_distributions().replace('\n', '\n\t')
+            #self._output += '\n'
+            self._output += self._format_method(name='get_vertices',
+                                                code='vertices = {}\n'.format(str(self.graph.vertices)) +
+                                                     'return list(vertices)')
+            self._output += self._format_method(name='get_arcs',
+                                                code='arcs = {}\n'.format(str(self.graph.arcs)) +
+                                                     'return list(arcs)')
+            self._output += self._format_method(name='get_discrete_distributions',
+                                                code='disc_dists = {}\n'.format(self.graph.get_discrete_distributions()) +
+                                                     'return disc_dists')
+            self._output += self._format_method(name='get_continuous_distributions',
+                                                code='cont_dists = {}\n'.format(self.graph.get_continuous_distributions()) +
+                                                     'return cont_dists')
+            self._output += self._format_method(name='get_cond_functions',
+                                                code='cond_functions = {}\n'.format(self.graph.get_conditional_functions()) +
+                                                     'return cond_functions')
+            self._output += self._format_method(name='get_dist_parameter_size', args='name',
+                                                code='dist_sizes = {}\n'.format(self.graph.get_distribution_sizes()) +
+                                                     'if name in dist_sizes:\n'
+                                                     '\treturn dist_sizes[name]\n'
+                                                     'else:\n'
+                                                     '\treturn None')
 
             # We go through the class and call each method that starts with '_gen_'. The methods are expected
             # to return a string with the code for a function or method to be included
@@ -272,8 +284,8 @@ class Model_Generator(object):
                 result.append("{} = {}".format(v, code))
 
         # Let's get rid of values, which are computed but never used
-        while len(result) > 0 and not result[-1].startswith('p'):
-           del result[-1]
+        #while len(result) > 0 and not result[-1].startswith('p'):
+        #   del result[-1]
 
         result.append("_lcls = locals()")
         result.append("for key in state:\n\tif key in _lcls:\n\t\tstate[key] = _lcls[key]")

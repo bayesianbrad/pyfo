@@ -1,5 +1,5 @@
 from pyfo.pyfoppl.foppl import imports  # useful!
-import pyfo.pyfoppl.tests.onegauss as test
+import pyfo.pyfoppl.tests.hmm as test
 
 if __name__ == "__main__":
     print("=" * 50)
