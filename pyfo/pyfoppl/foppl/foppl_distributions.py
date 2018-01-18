@@ -4,11 +4,12 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 07. Jan 2018, Tobias Kohn
+# 18. Jan 2018, Tobias Kohn
 #
 discrete_distributions = {
     "Bernoulli",
     "Categorical",
+    "Discrete",
     "Multinomial",
     "Poisson"
 }

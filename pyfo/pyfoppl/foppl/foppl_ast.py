@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 08. Jan 2018, Tobias Kohn
+# 17. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .foppl_objects import Symbol
@@ -63,6 +63,9 @@ class Walker(object):
             return root.walk(self)
         else:
             return None
+
+    def walk_all(self, items: list):
+        return [item.walk(self) for item in items]
 
 ###################################################################################################
 
