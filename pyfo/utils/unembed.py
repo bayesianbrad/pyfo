@@ -41,7 +41,7 @@ class Unembed():
             "outside region return -\inf"
             return -math.inf
         else:
-            state[key] = torch.round(state[key])
+            state[key] = torch.round(state[key] - lower)
         return state
 
     def unembed_cat(self, state, key):
@@ -73,6 +73,7 @@ class Unembed():
         :param state:
         :return:
         """
+        raise NotImplementedError
 
     def unembed_binomial(self, state):
         """
@@ -80,6 +81,6 @@ class Unembed():
         :param state:
         :return:
         """
-
+        raise NotImplementedError
     def to_decimal(self,float):
         return deci('%.2f' % float)
