@@ -14,6 +14,7 @@ import copy
 import math
 from pyfo.utils.core import VariableCast
 from decimal import Decimal
+from pyfo.utils.unembed import Unembed
 class State(object):
     """
     Stores the state of the object
@@ -37,11 +38,12 @@ class State(object):
         self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
         self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
         # self._discontinuities = cls.gen_discontinuities()
-        self.disc_dist = cls.get_discrete_distribution()
-        self.dist_arg_size = cls.get_dist_parameter_size
-
+        self._disc_dist = cls.get_discrete_distributions()
+        self._dist_arg_size = cls.get_dist_parameter_size
+        self._cont_disc  = cls.get_continuous_distributions()
+        self._unembed_state = Unembed(self._dist_arg_size)
         # True names of parameters
-        self._names = cls.names
+        # self._names = cls.names
     def intiate_state(self):
         """
         A dictionary of the state.
@@ -108,7 +110,7 @@ class State(object):
         for key, value in x.items():
             x[key] = Variable(value.data, requires_grad=True)
 
-    def _log_pdf(self, state, set_leafs= False, keys=None, unembed=False):
+    def _log_pdf(self, state, set_leafs=False, unembed=False, partial_uembed=False, key=None):
         """
         The compiled pytorch function, log_pdf, should automatically
         return the pdf.
@@ -120,14 +122,21 @@ class State(object):
         . Answer: yes, because
         """
 
-        if set_leafs:
-            state = self._to_leaf(state)
         if unembed:
-            _temp =self._unembed(state,self.disc_arg_size,keys)
-            if math.isinf(_temp):
-                return -math.inf
+            _temp =self._unembed(state)
+            if math.isinf(_temp.data[0]):
+                return _temp
             else:
                 state = _temp
+        if partial_uembed:
+            _temp = self._partial_unembed(state, key)
+            if math.isinf(_temp.data[0]):
+                return _temp
+            else:
+               state[key] = _temp
+
+        if set_leafs:
+            state = self._to_leaf(state)
 
         return self._gen_logpdf(state)
 
@@ -150,7 +159,29 @@ class State(object):
             embed_state[key] = copy.copy(state[key])
         return embed_state
 
-    def _unembed(self, state, disc_keys, support=None, logp=None):
+    def _partial_unembed(self, state, key):
+        """
+        Un-embeds only one parameter, to save on computation within the coordinate wise
+        integrator.
+        :param state:
+        :param disc_key:
+        :param feature to add later, regarding the support of the discrete param
+        :return: state with unembedded value
+
+        If embedded value falls outside of domain of discrete
+        parameter return -inf
+        simple embedding defined as:
+
+         "Bernoulli", - support x \in {0,1}
+        "Categorical", - x \in {0, \dots, k-1} where k \in \mathbb{Z}^{+}
+        "Multinomial", - x_{i} \in {0,\dots ,n\}, i \in {0,\dots ,k-1} where sum(x_{i}) =n }
+        "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
+
+        """
+        dist_name = 'unembed_' + self._disc_dist[key]
+        state = getattr(self._unembed_state, dist_name)(state[key])
+        return state
+    def _unembed(self,state):
         """
 
         :param state:
@@ -169,10 +200,10 @@ class State(object):
 
         """
 
-        for key in disc_keys:
-            "TODO finish this for loop with the self.unebed_map and self.disc_dist = {'xi' : 'Poisson', etc}" \
-            "calling each of the unebed functions as required. If -inf is returned, it breaks the the loop and " \
-            "returns that as logp. "
+        for key in self._disc_keys:
+            dist_name = 'unembed_'+self._disc_dist[key]
+            state = getattr(self._unembed_state, dist_name)(state[key])
+        return state
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
