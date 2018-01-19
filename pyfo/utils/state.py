@@ -180,8 +180,8 @@ class State(object):
 
         """
         dist_name = 'unembed_' + self._disc_dist[key]
-        state = getattr(self._unembed_state, dist_name)(state[key])
-        return state
+        unembed_var = getattr(self._unembed_state, dist_name)(var, key)
+        return unembed_var
     def _unembed(self,state):
         """
 
@@ -205,7 +205,7 @@ class State(object):
 ##      TODO will have to append this function to deal with discrete if vars at a later date
         for key in self._disc_vars:
             dist_name = 'unembed_'+self._disc_dist[key]
-            state = getattr(self._unembed_state, dist_name)(state[key])
+            state = getattr(self._unembed_state, dist_name)(state, key)
         return state
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
