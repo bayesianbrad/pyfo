@@ -5,8 +5,8 @@
 </div>
 
 
-`Pyfo` enables one to write a model in the flexiable first order probabilistic programming framework
-that is FOPPL <sup>[1](#fn1)</sup>. FOPPLs base language is Clojure, which enables the syntax to be neat, yet completely expressive.
+`Pyfo` enables one to write a model in the flexible first order probabilistic programming framework
+that is FOPPL <sup>[1](#fn1)</sup>. FOPPL's base language is Clojure, which enables the syntax to be neat, yet completely expressive.
 What is great about `pyfo` is that one does not even need to install Clojure, nor need to understand how to use the REPL.
 Simply write your model in Clojure, or alternatively you can write the model in pure Python code in accordance with the
 [interface](https://github.com/bradleygramhansen/pyfo/blob/master/pyfo/utils/interface.py), and`pyfo` does the rest.
