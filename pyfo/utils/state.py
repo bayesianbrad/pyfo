@@ -43,7 +43,7 @@ class State(object):
         self._cont_disc  = cls.get_continuous_distributions()
         self._unembed_state = Unembed(self._dist_arg_size)
         # True names of parameters
-        # self._names = cls.names
+        self._names = cls.get_original_names()
     def intiate_state(self):
         """
         A dictionary of the state.
@@ -110,7 +110,7 @@ class State(object):
         for key, value in x.items():
             x[key] = Variable(value.data, requires_grad=True)
 
-    def _log_pdf(self, state, set_leafs=False, unembed=False, partial_uembed=False, key=None):
+    def _log_pdf(self, state, set_leafs=False, unembed=False, partial_unembed=False, key=None):
         """
         The compiled pytorch function, log_pdf, should automatically
         return the pdf.
@@ -124,13 +124,13 @@ class State(object):
 
         if unembed:
             _temp =self._unembed(state)
-            if math.isinf(_temp.data[0]):
+            if isinstance(_temp, Variable) and math.isinf(_temp.data[0]):
                 return _temp
             else:
                 state = _temp
-        if partial_uembed:
+        if partial_unembed:
             _temp = self._partial_unembed(state, key)
-            if math.isinf(_temp.data[0]):
+            if isinstance(_temp, Variable) and math.isinf(_temp.data[0]):
                 return _temp
             else:
                state[key] = _temp
@@ -163,6 +163,7 @@ class State(object):
         """
         Un-embeds only one parameter, to save on computation within the coordinate wise
         integrator.
+
         :param state:
         :param disc_key:
         :param feature to add later, regarding the support of the discrete param
@@ -184,6 +185,8 @@ class State(object):
     def _unembed(self,state):
         """
 
+        Un-embeds the entire state
+
         :param state:
         :param disc_key:
         :param feature to add later, regarding the support of the discrete param
@@ -199,15 +202,15 @@ class State(object):
         "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
 
         """
-
-        for key in self._disc_keys:
+##      TODO will have to append this function to deal with discrete if vars at a later date
+        for key in self._disc_vars:
             dist_name = 'unembed_'+self._disc_dist[key]
             state = getattr(self._unembed_state, dist_name)(state[key])
         return state
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
-        NOT USED
+        NOT USED Currently
 
         Implements the 'f_update' in the coordinate wise integrator, to calculate the
         difference in log probabiities.
@@ -239,9 +242,6 @@ class State(object):
 
     def _grad_logp(self, logp, param):
         """
-        TO DO: Test, as this will only work for individual
-        parameters. Will need to pass through an adapted version
-        of state.
         Returns the gradient of the log pdf, with respect for
         each parameter
         :param state:
@@ -279,6 +279,7 @@ class State(object):
 
     def _gradient_field(self, key, state):
         """
+        For RRHMC
 
         :param state: dict of all latent variables
         :param key: the value of predicate
