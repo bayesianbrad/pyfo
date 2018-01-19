@@ -174,15 +174,15 @@ def extract_means(dataframe, keys=None):
         print('Debug statement in utils/eval_stats/extract_stats 2nd else branch executed print mean {0}'.format(mean))
         return mean
 
-def extract_stats(dataframe):
+def extract_stats(dataframe,keys):
     """
 
     :param dataframe: pandas.DataFrame
-    :param keys: sring of params
+    :param keys: sring of required params
     :return: count, mean, std, min, max and confidence intervals
 
     """
-    return dataframe.describe()
+    return dataframe[keys].describe()
 
 def save_data(samples, all_samples, keys):
         # Ensures directory for this data exists for model, if not creates it
