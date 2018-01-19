@@ -82,7 +82,7 @@ class Categorical(Distribution):
 
         if self.vs is not None:
             return self.vs.masked_select(sample_one_hot.byte())
-        return Variable(sample)
+        return VariableCast(sample.type(torch.FloatTensor))
 
     def batch_log_pdf(self, x):
         """
