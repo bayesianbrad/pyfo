@@ -83,6 +83,11 @@ class interface():
         raise NotImplementedError
 
     @classmethod
+    def get_original_names(self) -> Dict[str,str]:
+        """ Returns dictionary user model names and their pyfoppl counterpart  """
+        raise NotImplementedError
+
+    @classmethod
     def get_cond_functions(self) -> Dict[str,Variable]:
         """
         Returns a variable that represents the  of the predicate and the string representing which 'if'

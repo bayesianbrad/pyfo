@@ -32,7 +32,7 @@ def VariableCast(value, grad = False, dist=None):
         tensor = torch.from_numpy(value).float()
         return Variable(tensor, requires_grad = grad)
     elif isinstance(value,list):
-        return Variable(torch.FloatTensor([value]).squeeze(), requires_grad = grad)
+        return Variable(torch.FloatTensor(value), requires_grad=grad)
     else:
         return Variable(torch.FloatTensor([value]), requires_grad = grad)
 
@@ -110,12 +110,3 @@ def my_import(name):
         mod = getattr(mod, comp)
     return mod
 
-# def print_stats(data, keys):
-#
-#     """
-#
-#     :param data:
-#     :param keys:
-#     :return:
-#     """
-#

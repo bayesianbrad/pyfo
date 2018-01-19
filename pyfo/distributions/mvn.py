@@ -101,14 +101,17 @@ class MultivariateNormal(Distribution):
                                      self.mu.size()))
             self.sigma = torch.mm(scale_tri.transpose(0, 1), scale_tri)
             self.sigma_cholesky = scale_tri
+
         if self.mu.dim() > 1:
-            raise ValueError("The mean must be a vector, but got mu.size() = {}".format(self.mu.size()))
+            self.mu = self.mu.squeeze()
+            # raise ValueError("The mean must be a vector, but got mu.size() = {}".format(self.mu.size()))
 
         super(MultivariateNormal, self).__init__(*args, **kwargs)
 
     def batch_shape(self, x=None):
-        mu = self.mu.expand(self.batch_size, *self.mu.size()).squeeze(0)
+        # mu = self.mu.expand(self.batch_size, *self.mu.size()).squeeze(0)
         X = VariableCast(x)
+        mu = self.mu
         if X is not None:
             if X.size()[-1] != mu.size()[-1]:
                 raise ValueError("The event size for the data and distribution parameters must match.\n"
@@ -142,10 +145,14 @@ class MultivariateNormal(Distribution):
         if not self.normalized and self.sigma_cholesky.requires_grad:
             raise NotImplementedError("Differentiation is not supported (yet) if normalized=False.")
         X =VariableCast(x)
-
+        print('This is x in batch_log', X)
+        print('Tjis is X-Mu in batch log', X-self.mu)
         batch_size = X.size()[0] if len(X.size()) > len(self.mu.size()) else 1
         batch_log_pdf_shape = self.batch_shape(X) + (1,)
-        X = X.view(batch_size, *self.mu.size())
+        # X = X.view(batch_size, *self.mu.size())
+
+        print('This is mu in batch log' , self.mu)
+        print('This is the cholesky deco ', self.sigma_cholesky)
         # TODO Implement the gradient of the normalization factor if normalized=False
         normalization_factor = torch.log(
             self.sigma_cholesky.diag()).sum() + (self.mu.size()[0] / 2) * np.log(2 * np.pi) if self.normalized else 0

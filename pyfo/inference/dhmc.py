@@ -65,7 +65,7 @@ class DHMCSampler(object):
         self._all_keys = self._state._return_all_list()
 
         # True latent variable names
-        # self._names = self._state._return_true_names()
+        self._names = self._state._return_true_names()
 
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0
@@ -123,10 +123,10 @@ class DHMCSampler(object):
         cond = torch.gt(self.M*torch.abs(p[key]),-logp_diff)
         if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
-            return x_star[key], p[key], []
+            return x_star[key], p[key], 0
         else:
             p[key] = -p[key]
-            return x[key],p[key], []
+            return x[key],p[key], 0
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize, aux= None):
         """
@@ -161,7 +161,7 @@ class DHMCSampler(object):
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
                 p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
-            return x, p, n_feval, n_fupdate, []
+            return x, p, n_feval, n_fupdate, 0
 
         else:
             permuted_keys_list = []
@@ -181,7 +181,10 @@ class DHMCSampler(object):
             if math.isinf(logp):
                 return x, p, n_feval, n_fupdate, logp
             for key in permuted_keys:
-                if key in self._if_keys:
+                # print('Debug statement in dhmc.gauss_leapfrog() \n'
+                #       'print the permuted_key : {0} \n'
+                #       'and key[0]: {1}'.format(key, key[0]))
+                if self._if_keys is not None and key[0] in self._if_keys:
                     x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=False)
                 else:
                     x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=True)
@@ -198,7 +201,7 @@ class DHMCSampler(object):
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp, x[key]) # final half step for momentum
                 n_feval += 1
-            return x, p, n_feval, n_fupdate, []
+            return x, p, n_feval, n_fupdate, 0
 
     def _energy(self, x, p):
         """
@@ -240,9 +243,8 @@ class DHMCSampler(object):
         intial_energy = self._energy(x0,p)
         n_feval = 0
         n_fupdate = 0
-        x, p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x0,p,stepsize)
-        for i in range(n_step-1):
-            # may have to add inf statement see original code
+        x = copy.copy(x0)
+        for i in range(n_step):
             x,p, n_feval_local, n_fupdate_local, _ = self.gauss_laplace_leapfrog(x,p,stepsize)
             if math.isinf(_):
                 break
@@ -307,7 +309,7 @@ class DHMCSampler(object):
         print(50*'=')
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples), 'stats_wo_burnin': extract_stats(all_samples), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
+        stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
         if print_stats:
             print(stats['stats'])
@@ -327,7 +329,7 @@ class DHMCSampler(object):
         """
 
         plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
-        plot_object.plot_density(all_on_one)
+        # plot_object.plot_density(all_on_one)
         plot_object.plot_trace(all_on_one)
         if ac:
             plot_object.auto_corr()
