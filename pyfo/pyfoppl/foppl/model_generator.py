@@ -191,7 +191,7 @@ class Model_Generator(object):
             return 'return []'
 
     def _gen_all_keys(self):
-        V = self.graph.not_observed_variables
+        V = self.graph.vertices
         if len(V) > 0:
             return "return ['{}']".format("', '".join(sorted(list(V))))
         else:
