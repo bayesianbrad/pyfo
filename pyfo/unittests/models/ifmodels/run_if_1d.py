@@ -4,11 +4,10 @@ import if_1d as test
 
 print(test.code)
 from pyfo.inference.dhmc import DHMCSampler as dhmc
-from pyfo.utils.eval_stats import *
 
 dhmc_ = dhmc(test.model)
-burn_in = 10
-n_sample = 100
+burn_in = 100
+n_sample = 1000
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 
