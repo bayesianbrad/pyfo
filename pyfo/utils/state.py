@@ -133,7 +133,7 @@ class State(object):
             if isinstance(_temp, Variable) and math.isinf(_temp.data[0]):
                 return _temp
             else:
-               state[key] = _temp
+               state[key] = _temp[key]
 
         if set_leafs:
             state = self._to_leaf(state)
@@ -180,7 +180,7 @@ class State(object):
 
         """
         dist_name = 'unembed_' + self._disc_dist[key]
-        unembed_var = getattr(self._unembed_state, dist_name)(var, key)
+        unembed_var = getattr(self._unembed_state, dist_name)(state, key)
         return unembed_var
     def _unembed(self,state):
         """
