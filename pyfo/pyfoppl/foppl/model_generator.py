@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 18. Jan 2018, Tobias Kohn
+# 19. Jan 2018, Tobias Kohn
 #
 import datetime
 import importlib
@@ -119,6 +119,8 @@ class Model_Generator(object):
                                                      '\treturn dist_sizes[name]\n'
                                                      'else:\n'
                                                      '\treturn None')
+            self._output += self._format_method(name='get_original_names',
+                                                code='return {}'.format(repr(self.graph.original_names)))
 
             # We go through the class and call each method that starts with '_gen_'. The methods are expected
             # to return a string with the code for a function or method to be included
@@ -269,7 +271,8 @@ class Model_Generator(object):
             if code.startswith('dist.'):
                 result.append("dist_{v} = {code}".format(v=v, code=code))
                 if graph.is_observed_variable(v):
-                    # result.append("{} = {}".format(v, graph.observed_values[v]))
+                    #result.append("{} = {}".format(v, graph.observed_values[v]))
+                    result.append("{v} = state['{v}']".format(v=v))
                     s = "p{p_index} = dist_{v}.log_pdf({w})".format(p_index=p_index, v=v, w=graph.observed_values[v])
                 else:
                     result.append("{v} = state['{v}']".format(v=v))
