@@ -181,7 +181,10 @@ class DHMCSampler(object):
             if math.isinf(logp):
                 return x, p, n_feval, n_fupdate, logp
             for key in permuted_keys:
-                if key[0] in self._if_keys:
+                # print('Debug statement in dhmc.gauss_leapfrog() \n'
+                #       'print the permuted_key : {0} \n'
+                #       'and key[0]: {1}'.format(key, key[0]))
+                if self._if_keys is not None and key[0] in self._if_keys:
                     x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=False)
                 else:
                     x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=True)
@@ -240,12 +243,8 @@ class DHMCSampler(object):
         intial_energy = self._energy(x0,p)
         n_feval = 0
         n_fupdate = 0
-        x, p, n_feval_local, n_fupdate_local, _ = self.gauss_laplace_leapfrog(x0,p,stepsize)
-        # if math.isinf(_):
-        # TODO Add correct math.isinf statememnt to break out of loop
-        #     x, acceptprob[0], n_feval, n_fupdate = hmc()
-        for i in range(n_step-1):
-            # may have to add inf statement see original code
+        x = copy.copy(x0)
+        for i in range(n_step):
             x,p, n_feval_local, n_fupdate_local, _ = self.gauss_laplace_leapfrog(x,p,stepsize)
             if math.isinf(_):
                 break
@@ -330,7 +329,7 @@ class DHMCSampler(object):
         """
 
         plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
-        plot_object.plot_density(all_on_one)
+        # plot_object.plot_density(all_on_one)
         plot_object.plot_trace(all_on_one)
         if ac:
             plot_object.auto_corr()
