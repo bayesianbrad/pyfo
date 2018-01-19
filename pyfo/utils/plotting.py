@@ -80,6 +80,7 @@ class Plotting():
             fname2 = 'trace_of_parameters_wo_burnin.pdf'
             self.samples.plot(subplots=True, figsize=(6,6))
             plt.savefig(os.path.join(self.PATH_fig, fname1))
+            plt.clf()
             self.samples_withbin.plot(subplots=True, figsize=(6,6))
             plt.savefig(os.path.join(self.PATH_fig,fname2))
             path_image1 = self.PATH_fig + '/' + fname2
@@ -92,6 +93,7 @@ class Plotting():
             fname2 = 'trace_of_parameters_wo_burnin.pdf'
             self.samples.plot(subplots=True, figsize=(6,6))
             plt.savefig(os.path.join(self.PATH_fig, fname1))
+            plt.clf()
             self.samples_withbin.plot(subplots=True, figsie=(6,6))
             plt.savefig(os.path.join(self.PATH_fig, fname2))
             path_image2 = self.PATH_fig + '/' + fname2
