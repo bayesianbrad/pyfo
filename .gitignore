@@ -27,7 +27,7 @@
 *.mpg
 *.csv
 Thumbs.db
-
+*.csv
 
 # latex ignores:
 *.aux
@@ -50,3 +50,5 @@ pyfo.egg-info/
 #FOPPL/anglican-compiler-pytorch/target/
 env/
 .idea/
+*/data/
+*/figures/
