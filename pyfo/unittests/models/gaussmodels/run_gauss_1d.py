@@ -5,7 +5,7 @@ import gauss_1d as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 from pyfo.utils.eval_stats import *
 print(test.code)
-dhmc_ = dhmc(test.model)
+dhmc_ = dhmc(test)
 burn_in = 10 ** 1
 n_sample = 10 ** 3
 stepsize_range = [0.03,0.15]

@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 '''
 Author: Bradley Gram-Hansen
-Time created:  11:29
-Date created:  19/01/2018
+Time created:  11:07
+Date created:  20/01/2018
 
 License: MIT
 '''
+
 from pyfo.pyfoppl.foppl import imports
-import gmm_1d_2k as test
+import hmm as test
 
 
 print(test.code)
@@ -16,7 +17,7 @@ from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
 burn_in = 100
-n_sample = 5000
+n_sample = 500
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 
