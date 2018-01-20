@@ -4,9 +4,20 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 18. Jan 2018, Tobias Kohn
+# 19. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
+
+# Try to import `networkx` and `matplotlib` so we can draw the graphs
+try:
+    import networkx as nx
+except ModuleNotFoundError:
+    nx = None
+
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    plt = None
 
 class Graph(object):
     """
@@ -323,6 +334,34 @@ class Graph(object):
             return "{{\n  {}\n}}".format(',\n  '.join(result))
         else:
             return "{}"
+
+    def draw_graph(self):
+        if nx and plt:
+            G = nx.DiGraph()
+            for v in self.vertices:
+                G.add_node(v)
+            for (u, v) in self.arcs:
+                G.add_edge(u, v)
+            try:
+                from networkx.drawing.nx_agraph import graphviz_layout
+                pos = graphviz_layout(G, prog='dot')
+            except ModuleNotFoundError:
+                from networkx.drawing.layout import shell_layout
+                pos = shell_layout(G)
+            plt.subplot(111)
+            plt.axis('off')
+            nx.draw_networkx_nodes(G, pos,
+                                   node_color='r', alpha=0.75,
+                                   nodelist=self.sampled_variables)
+            nx.draw_networkx_nodes(G, pos,
+                                   node_color='b', alpha=0.75,
+                                   nodelist=self.vertices.difference(self.sampled_variables))
+            nx.draw_networkx_edges(G, pos, arrows=False, width=0.5)
+            nx.draw_networkx_labels(G, pos)
+            plt.show()
+            return True
+        else:
+            return False
 
 
 class GraphBuilder(object):

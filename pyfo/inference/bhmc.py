@@ -22,7 +22,7 @@ from pyfo.utils.core import VariableCast
 from pyfo.utils.eval_stats import extract_stats
 from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
-
+#TODO Complete this integrator
 class BHMCSampler(object):
     """
     In general model will be the output of the foppl compiler, it is not entirely obvious yet where this

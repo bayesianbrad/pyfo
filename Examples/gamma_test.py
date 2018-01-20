@@ -29,6 +29,7 @@ class model(interface):
     vertices = {'x20001'}
     arcs = set()
     names = {'x20001': 'x1'}
+    disc_params = {'x20001': 'Poisson'}
     cond_functions = {
 
     }
