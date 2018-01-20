@@ -16,7 +16,7 @@
 (defn get-obs-dist [k]
   (nth (vector (normal -1. 1.)
                (normal  1. 1.)
-               (normal  0. 1.)) k))   ; have some problem in tf when indexing obj
+               (normal  0. 1.)) k))
 
 ;; Function to step through HMM and sample latent state
 (defn hmm-step [n states]

@@ -39,7 +39,7 @@ class DHMCSampler(object):
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
     """
 
-    def __init__(self, cls, chains=1,  scale=None):
+    def __init__(self, object, chains=1,  scale=None):
 
         # Note for self:
         ## state is a class that contains a dictionary of the system.
@@ -54,8 +54,8 @@ class DHMCSampler(object):
         #4 TH NOTE
         ## Need to deal with a M matrix. I may  just set it to 1 everywhere, inferring the identity.
 
-        self.model =cls() # instantiates model
-        self._state = state.State(cls)
+        self.model_graph =object # instantiates model
+        self._state = state.State(object.model())
 
         # Parameter keys
         self._disc_keys = self._state._return_disc_list()
@@ -255,7 +255,7 @@ class DHMCSampler(object):
             x = x0
 
         return x, acceptprob[0], n_feval, n_fupdate
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, save_samples=False, plot_burnin=False, plot_ac=False):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         # Note currently not doing anything with burn in
 
         if seed is not None:
@@ -282,7 +282,8 @@ class DHMCSampler(object):
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
             accept.append(accept_prob)
-            x_numpy = copy.copy(x)
+            x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
+            #  using the whole dataframe series. It will require processing a whole byte vector
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
                 print('{:d} iterations have been completed.'.format(i + 1))
@@ -290,21 +291,27 @@ class DHMCSampler(object):
         time_elapsed = toc - tic
         n_feval_per_itr = n_feval / (n_samples + burn_in)
         n_fupdate_per_itr = n_fupdate / (n_samples + burn_in)
-        # if self._disc_keys or self._if_keys is not None:
-        #     print('Each iteration of DHMC on average required '
-        #         + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keysgit s))
-        #         + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+        if self._disc_keys is not None and self._if_keys is not None:
+            print('Each iteration of DHMC on average required '
+                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / (len(self._disc_keys)+ len(self._if_keys)))
+                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+        if self._disc_keys is None and self._if_keys is not None:
+            print('Each iteration of DHMC on average required '
+                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._if_keys))
+                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+        if self._disc_keys is not None and self._if_keys is None:
+            print('Each iteration of DHMC on average required '
+                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
+                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
 
-
-
-        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns').astype(dtype='float')
-        all_samples.rename(columns=self._names, inplace=True)
-
-        samples =  all_samples.loc[burn_in:, :]
-        # here, names.values() are the true keys
         print(50*'=')
         print('Sampling has now been completed....')
         print(50*'=')
+
+        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns').astype(dtype='float')
+        all_samples.rename(columns=self._names, inplace=True)
+        # here, names.values() are the true keys
+        samples =  all_samples.loc[burn_in:, :]
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
         stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
@@ -316,7 +323,8 @@ class DHMCSampler(object):
             save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
         if plot:
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
-
+        if plot_graphmodel:
+            self.model_graph.graph.draw_graph()
         return stats
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
