@@ -1,4 +1,6 @@
-
+/dist/
+/build/
+/pytorch*
 *.bak
 *.pyc
 *.xml
