@@ -26,7 +26,8 @@ class Normal(Distribution):
     reparameterized = True
     def __init__(self, mu, sigma, batch_size=None, log_pdf_mask=None, *args, **kwargs):
         self.mu = VariableCast(mu)
-        self.sigma = VariableCast(sigma)
+        sigma_temp = VariableCast(sigma)
+        self.sigma = torch.sqrt(sigma_temp)
         self.log_pdf_mask = log_pdf_mask
         if self.mu.size() != self.sigma.size():
             raise ValueError("Expected mu.size() == sigma.size(), but got {} vs {}".format(self.mu.size(), self.sigma.size()))
