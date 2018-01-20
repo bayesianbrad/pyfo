@@ -49,3 +49,4 @@ pyfo.egg-info/
 #FOPPL/anglican-compiler-pytorch/target/
 env/
 .idea/
+*/data/
