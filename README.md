@@ -22,7 +22,7 @@ discontinuities. This allows one to perform inference in models containing discr
  * pytorch
 
 # Installation instructions
- * Instructions for pytorch can be found here: [http://pytorch.org/]
+ * Instructions for pytorch can be found here: [http://pytorch.org/] ( You will need the distribution classes and will have to install from source (for now))
  * Pyfo can be installed via pip.
   ```python
     pip install pyfo
@@ -50,23 +50,24 @@ inference script.
 
 ```python
 from pyfo.pyfoppl.foppl import imports # this uses a loader and finder module.
-import <model_name> # when we do this `imports` is triggered, compiles the modle automatically and loads it as a module.
+import <model_name> as model # when we do this `imports` is triggered, compiles the modle automatically and loads it as a module.
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
-burn_in = 1000
-n_samples = 10 ** 4
+print(model.code)
+dhmc_ = dhmc(model.model)
+burn_in = 10 ** 2
+n_sample = 10 ** 3
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 
-dhmc_    = dhmc(<model_name>.model, n_chains)
+stats = dhmc_.sample(n_samples=n_sample,burn_in=burn_in,stepsize_range=stepsize_range,n_step_range=n_step_range, print_stats=True,plot=True, save_samples=True)
 
-stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range)
-# parameters = stats['all_params'] # returns all the keys for the parameters
-# cont_params = stats['cont_params'] # returns continuous keys
-# disc_params = stats['disc_params'] # returns discrete keys
+samples =  stats['samples']
+all_samples = stats['samples_wo_burin'] # type, panda dataframe
 
-samples = stats['samples'] # returns dataframe of all samples. To get all samples for a given parameter simply do: samples_param = samples[<param_name>]
-means = stats['means'] # returns dictionary key:value, where key - parameter , value = mean of parameter
+# means = stats['means']
+# print(means)
+
 ```
 
 ## Contributors

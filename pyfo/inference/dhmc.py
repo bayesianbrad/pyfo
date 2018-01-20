@@ -311,6 +311,7 @@ class DHMCSampler(object):
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
         if print_stats:
             print(stats['stats'])
+            print('The acceptance ratio is: {0}'.format(stats['accept_prob']))
         if save_samples:
             save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
         if plot:
