@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pyfo.unittests.models.gaussmodels.gauss_2d_model import model
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from pyfo.inference.bhmc import BHMCSampler as dhmc
 from pyfo.utils.eval_stats import *
 
 dhmc_ = dhmc(model)

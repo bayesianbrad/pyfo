@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'''
+Author: Bradley Gram-Hansen
+Time created:  23:48
+Date created:  19/01/2018
+
+License: MIT
+'''
 from pyfo.pyfoppl.foppl import imports
-import gauss_1d as test
+import poisson as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 from pyfo.utils.eval_stats import *
 print(test.code)
 dhmc_ = dhmc(test.model)
-burn_in = 10 ** 1
+burn_in = 10 ** 2
 n_sample = 10 ** 3
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
