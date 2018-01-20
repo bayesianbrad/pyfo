@@ -31,12 +31,12 @@ class Unembed():
         :param state:
         :return:
         """
-        lower = VariableCast(-0.5)
-        if torch.lt(state[key].data, lower.data).data[0]:
+        lower = VariableCast(0)
+        if torch.lt(state[key], lower).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
         else:
-            state[key] = torch.round(state[key] - lower)
+            state[key] = torch.floor(state[key])
         return state
 
     def unembed_Categorical(self, state, key):
@@ -49,11 +49,11 @@ class Unembed():
         lower = VariableCast(-0.5)
         upper = VariableCast(int_length) + lower
 
-        # Assumes each parameter represents 1-latent dimension
-        print("Debug statement in unembed.unembed_Categorical \n"
-              "The type of upper is: {0}  \n"
-              "The type of state[{2}] is: {1} \n"
-              "The value of state[{2}] is: {3} ".format(type(upper), type(state[key]), key, state[key]))
+        # # Assumes each parameter represents 1-latent dimension
+        # print("Debug statement in unembed.unembed_Categorical \n"
+        #       "The type of upper is: {0}  \n"
+        #       "The type of state[{2}] is: {1} \n"
+        #       "The value of state[{2}] is: {3} ".format(type(upper), type(state[key]), key, state[key]))
         if torch.gt(state[key],upper).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
