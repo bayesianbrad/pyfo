@@ -13,8 +13,20 @@ from collections import deque
 import copy
 import math
 from pyfo.utils.core import VariableCast
-from decimal import Decimal
 from pyfo.utils.unembed import Unembed
+
+
+"""
+Each vertex has the following helper functions:
+
+vertex.is_conditional
+vertex.is_continuous
+vertex.is_discrete
+vertex.is_observed
+vertex.is_sampled
+vertex.get_all_ancestors
+
+"""
 class State(object):
     """
     Stores the state of the object
@@ -26,24 +38,62 @@ class State(object):
 
         :param cls: this is the interface cls of the model.
         """
-
+        ### These functions still exists
         self._state_init = cls.gen_prior_samples()
         self._gen_logpdf = cls.gen_pdf # returns logp
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
         self._disc_vars = cls.gen_disc_vars()
         self._if_vars = cls.gen_if_vars()
         self._cond_vars=  cls.gen_cond_vars()
-        self._arcs = cls.get_arcs()
         self._vertices = cls.get_vertices()
-        self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
-        self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
-        # self._discontinuities = cls.gen_discontinuities()
+        self._arcs = cls.get_arcs()
         self._disc_dist = cls.get_discrete_distributions()
-        self._dist_arg_size = cls.get_dist_parameter_size
-        self._cont_disc  = cls.get_continuous_distributions()
+        self._cont_disc = cls.get_continuous_distributions()
+        #####
+        # self._discontinuities = cls.gen_discontinuities()
         self._unembed_state = Unembed(self._dist_arg_size)
         # True names of parameters
+
+    def get_support(self, key):
+        """
+        Returns the support of the parameter
+
+        vetex.support_size
+        self._disc_dist
+        :param key:
+        :return:
+        """
+    def gen_vars(self):
+        """
+
+        :return:
+        """
+        return [vertex.name for vertex in self._vertices if vertex.is_sampled]
+    def get_ancestors(self):
+        """
+        object.dist_ancestors only direct parents of variable , does not include the predicate.
+        object.ancestors includes only direct parents of the ancestor history including predicate itself
+        object.get_all_ancestors - includes the entire history of the variable, includes the predicate aswell
+
+        :return:
+        """
+        ancestors = {}
+        for vertex in self._vertices:
+            ancestors[self._vertices.name] = vertex.get_all_ancestors
+
+    def get_original_names(self, keys):
+        """
+
+        :param keys:
+        :return:
+        """
+        names = {}
+        for vertex in self._vertices:
+            names[vertex] = vertex.original_name
         self._names = cls.get_original_names()
+        # for
+        #     for self.
+
     def intiate_state(self):
         """
         A dictionary of the state.
