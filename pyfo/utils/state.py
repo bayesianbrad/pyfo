@@ -40,7 +40,9 @@ class State(object):
         """
         ### These functions still exists
         self._state_init = cls.gen_prior_samples()
+        self._debug_prior = cls.gen_prior_samples
         self._gen_logpdf = cls.gen_pdf # returns logp
+        self._debug_pdf = cls.gen_pdf_code
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
         self._disc_vars = cls.gen_disc_vars()
         self._if_vars = cls.gen_if_vars()
@@ -50,9 +52,19 @@ class State(object):
         self._disc_dist = cls.get_discrete_distributions()
         self._cont_disc = cls.get_continuous_distributions()
         #####
-        # self._discontinuities = cls.gen_discontinuities()
-        self._unembed_state = Unembed(self._dist_arg_size)
-        # True names of parameters
+        # self._unembed_state = Unembed(self._dist_arg_size)
+
+    def debug(self):
+        """
+        Prints both the prior in code and the pdf in code
+        """
+        print(50*'='+'\n'
+                     'Now generating prior python code \n'
+              '{}'.format(self._debug_prior))
+        print(50 * '=' + '\n'
+                         'Now generating posterior python code \n'
+                         '{}'.format(self._debug_pdf))
+        print(50*'=')
 
     def get_support(self, key):
         """
@@ -63,8 +75,10 @@ class State(object):
         :param key:
         :return:
         """
+
     def gen_vars(self):
         """
+        Generates all the variables on which inference is performed
 
         :return:
         """
@@ -81,18 +95,19 @@ class State(object):
         for vertex in self._vertices:
             ancestors[self._vertices.name] = vertex.get_all_ancestors
 
-    def get_original_names(self, keys):
+    def get_original_names(self):
         """
 
         :param keys:
         :return:
         """
+        all_vars = self.gen_vars()
         names = {}
         for vertex in self._vertices:
-            names[vertex] = vertex.original_name
-        self._names = cls.get_original_names()
-        # for
-        #     for self.
+            if vertex.name in all_vars:
+                names[vertex.name] = vertex.original_name
+        print(names)
+        return names
 
     def intiate_state(self):
         """
@@ -126,11 +141,11 @@ class State(object):
         else:
             return self._cond_vars
 
-    # def _return_arcs(self):
-    #     if len(self._arcs) == 0:
-    #         return None
-    #     else:
-    #         return self._arcs
+    def _return_arcs(self):
+        if len(self._arcs) == 0:
+            return None
+        else:
+            return self._arcs
 
     def _return_vertices(self):
         if len(self._vertices) == 0:

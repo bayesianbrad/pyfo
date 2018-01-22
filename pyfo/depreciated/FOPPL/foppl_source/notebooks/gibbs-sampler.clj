@@ -1,12 +1,12 @@
 ;; gorilla-repl.fileformat = 1
 
 ;; **
-;;; # Testing Gibbs sampling inference for basic FOPPL models 
+;;; # Testing Gibbs sampling inference for basic FOPPL models
 ;; **
 
 ;; @@
 (ns foppl-bugs
-  (:require [gorilla-plot.core :as plot]
+  (:require ;;[gorilla-plot.core :as plot]
             [foppl.desugar :refer :all]
             [foppl.core :as foppl :refer [foppl-query print-graph]]
             [foppl.gibbs :as gibbs]
@@ -55,9 +55,9 @@
 ;; @@
 ;; ->
 ;;; Vertices V: #{x34290 y34320 x34287 y34345 y34299 y34395 y34370 y34420}
-;;; 
+;;;
 ;;; Arcs A: #{[x34290 y34299] [x34287 y34299] [x34287 y34395] [x34290 y34345] [x34290 y34395] [x34287 y34370] [x34290 y34420] [x34287 y34320] [x34287 y34345] [x34287 y34420] [x34290 y34370] [x34290 y34320]}
-;;; 
+;;;
 ;;; Conditional densities P:
 ;;; x34287 -&gt; (fn [] (normal 0.0 10.0))
 ;;; x34290 -&gt; (fn [] (normal 0.0 10.0))
@@ -67,7 +67,7 @@
 ;;; y34370 -&gt; (fn [x34290 x34287] (normal (+ (* x34287 4.0) x34290) 1.0))
 ;;; y34395 -&gt; (fn [x34290 x34287] (normal (+ (* x34287 5.0) x34290) 1.0))
 ;;; y34420 -&gt; (fn [x34290 x34287] (normal (+ (* x34287 6.0) x34290) 1.0))
-;;; 
+;;;
 ;;; Observed values O:
 ;;; y34299 -&gt; 2.1
 ;;; y34320 -&gt; 3.9
@@ -75,7 +75,7 @@
 ;;; y34370 -&gt; 7.7
 ;;; y34395 -&gt; 10.2
 ;;; y34420 -&gt; 12.9
-;;; 
+;;;
 ;; <-
 ;; =>
 ;;; {"type":"list-like","open":"<span class='clj-record'>#foppl.core.ClojureFunction{</span>","close":"<span class='clj-record'>}</span>","separator":" ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-keyword'>:args</span>","value":":args"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-symbol'>x34290</span>","value":"x34290"},{"type":"html","content":"<span class='clj-symbol'>x34287</span>","value":"x34287"}],"value":"[x34290 x34287]"}],"value":"[:args [x34290 x34287]]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-keyword'>:body</span>","value":":body"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-symbol'>x34287</span>","value":"x34287"},{"type":"html","content":"<span class='clj-symbol'>x34290</span>","value":"x34290"}],"value":"[x34287 x34290]"}],"value":"[:body [x34287 x34290]]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-keyword'>:fn</span>","value":":fn"},{"type":"html","content":"<span class='clj-unkown'>#object[foppl_bugs$eval34432$fn__34433 0x6ab943b8 &quot;foppl_bugs$eval34432$fn__34433@6ab943b8&quot;]</span>","value":"#object[foppl_bugs$eval34432$fn__34433 0x6ab943b8 \"foppl_bugs$eval34432$fn__34433@6ab943b8\"]"}],"value":"[:fn #object[foppl_bugs$eval34432$fn__34433 0x6ab943b8 \"foppl_bugs$eval34432$fn__34433@6ab943b8\"]]"}],"value":"#foppl.core.ClojureFunction{:args [x34290 x34287], :body [x34287 x34290], :fn #object[foppl_bugs$eval34432$fn__34433 0x6ab943b8 \"foppl_bugs$eval34432$fn__34433@6ab943b8\"]}"}
@@ -118,8 +118,8 @@
 
 ;; **
 ;;; ## Beta-Bernoulli coin flip.
-;;; 
-;;; The true posterior distribution in this example should be a distribution Beta(2, 1), with mean 0.66. 
+;;;
+;;; The true posterior distribution in this example should be a distribution Beta(2, 1), with mean 0.66.
 ;; **
 
 ;; @@
@@ -134,16 +134,16 @@
 ;; @@
 ;; ->
 ;;; Vertices V: #{y34509 x34508}
-;;; 
+;;;
 ;;; Arcs A: #{[x34508 y34509]}
-;;; 
+;;;
 ;;; Conditional densities P:
 ;;; x34508 -&gt; (fn [] (beta 1 1))
 ;;; y34509 -&gt; (fn [x34508] (bernoulli x34508))
-;;; 
+;;;
 ;;; Observed values O:
 ;;; y34509 -&gt; 1
-;;; 
+;;;
 ;; <-
 ;; =>
 ;;; {"type":"html","content":"<span class='clj-nil'>nil</span>","value":"nil"}
@@ -166,7 +166,7 @@
 
 ;; @@
 (def hmm-points [0.9 0.8 0.7 0.0 -0.025
-                 5.0 2.0 0.1 0.0 0.13 
+                 5.0 2.0 0.1 0.0 0.13
                  0.45 6.0 0.2 0.3 -1.0 -1.0])
 
 (def hidden-markov-model
@@ -209,7 +209,7 @@
 
 ;; **
 ;;; This plot shows the marginal probability of being in each state at each timestep.
-;;; 
+;;;
 ;;; *TODO* need to check whether these are actually correct marginals.
 ;; **
 
@@ -229,41 +229,64 @@
 ;;; ## Gaussian mixture model.
 ;; **
 
-;; @@
-(def gaussian-mixture-model
-  (foppl-query
-    (defn sample-likelihoods [_ likes]
-      (let [precision (sample (gamma 1.0 1.0))
-            mean (sample (normal 0.0 precision))
-            sigma (/ (sqrt precision))]
-        (conj likes
-              (normal mean sigma))))
+;; ;; @@
+;; (def gaussian-mixture-model
+;;   (foppl-query
+;;     (defn sample-likelihoods [_ likes]
+;;       (let [precision (sample (gamma 1.0 1.0))
+;;             mean (sample (normal 0.0 precision))
+;;             sigma (/ (sqrt precision))]
+;;         (conj likes
+;;               (normal mean sigma))))
 
-    (defn sample-components [_ zs prior]
-      (let [z (sample prior)]
-        (conj zs z)))
+;;     (defn sample-components [_ zs prior]
+;;       (let [z (sample prior)]
+;;         (conj zs z)))
 
-    (defn observe-data [n _ ys zs likes]
-      (let [y (nth ys n)
-            z (nth zs n)]
-        (observe (nth likes z) y)
-        nil))
+;;     (defn observe-data [n _ ys zs likes]
+;;       (let [y (nth ys n)
+;;             z (nth zs n)]
+;;         (observe (nth likes z) y)
+;;         nil))
 
-    (let [ys (vector 1.1 2.1 2.0 1.9 0.0 -0.1 -0.05)
-          z-prior (discrete 
-                    (sample (dirichlet (vector 1.0 1.0 1.0))))
-          zs (loop 7 (vector) sample-components z-prior)
-          likes (loop 3 (vector) sample-likelihoods)]
-      (loop 7 nil observe-data ys zs likes)
-      zs)))
+;;     (let [ys (vector 1.1 2.1 2.0 1.9 0.0 -0.1 -0.05)
+;;           z-prior (discrete
+;;                     (sample (dirichlet (vector 1.0 1.0 1.0))))
+;;           zs (loop 7 (vector) sample-components z-prior)
+;;           likes (loop 3 (vector) sample-likelihoods)]
+;;       (loop 7 nil observe-data ys zs likes)
+;;       zs)))
 
 (foppl/print-graph (first gaussian-mixture-model))
+(def gaussian-mixture-model
+  (foppl-query
+    (defn sample-components [_ zs pi]
+      (let [z (sample (categorical pi))]
+        (conj zs z)))
+
+    (defn observe-data [n _ ys zs mus]
+      (let [y (get ys n)
+            z (get zs n)
+            mu (get mus z)]
+        (observe (normal mu 2) y)
+        nil))
+
+    (let [ys  (vector -2.0  -2.5  -1.7  -1.9  -2.2
+                          1.5  2.2  3  1.2  2.8)
+          pi  [0.5 0.5]
+          zs  (loop 10 (vector sample-components) pi)
+          mus (vector (sample (normal 0 2))
+                      (sample (normal 0 2)))]
+      (loop 10 nil observe-data ys zs mus)
+      (vector mus zs))))
+
+
 ;; @@
 ;; ->
 ;;; Vertices V: #{x35233 x35236 x35224 x35239 y35285 x35221 x35249 y35299 x35250 x35261 x35227 y35271 y35292 x35242 x35262 x35230 x35255 x35256 y35306 y35278 y35313}
-;;; 
+;;;
 ;;; Arcs A: #{[x35255 y35313] [x35255 x35256] [x35250 y35299] [x35255 y35299] [x35261 y35306] [x35249 x35250] [x35250 y35278] [x35255 y35306] [x35262 y35313] [x35242 y35313] [x35221 x35230] [x35227 y35278] [x35249 y35285] [x35261 y35313] [x35256 y35299] [x35261 y35271] [x35261 y35292] [x35256 y35306] [x35249 y35278] [x35255 y35271] [x35250 y35292] [x35262 y35299] [x35221 x35236] [x35236 y35299] [x35256 y35292] [x35255 y35285] [x35230 y35285] [x35250 y35306] [x35250 y35313] [x35261 y35278] [x35250 y35271] [x35249 y35313] [x35221 x35227] [x35262 y35292] [x35262 y35271] [x35221 x35233] [x35233 y35292] [x35249 y35306] [x35261 y35285] [x35224 y35271] [x35262 y35306] [x35239 y35306] [x35262 y35278] [x35256 y35271] [x35221 x35242] [x35256 y35278] [x35250 y35285] [x35255 y35292] [x35261 y35299] [x35249 y35299] [x35256 y35313] [x35221 x35224] [x35249 y35271] [x35221 x35239] [x35256 y35285] [x35249 y35292] [x35261 x35262] [x35255 y35278] [x35262 y35285]}
-;;; 
+;;;
 ;;; Conditional densities P:
 ;;; x35233 -&gt; (fn [x35221] (discrete x35221))
 ;;; x35236 -&gt; (fn [x35221] (discrete x35221))
@@ -286,7 +309,7 @@
 ;;; y35306 -&gt; (fn [x35239 x35250 x35255 x35261 x35262 x35249 x35256] (nth [(normal x35250 (/ (sqrt x35249))) (normal x35256 (/ (sqrt x35255))) (normal x35262 (/ (sqrt x35261)))] x35239))
 ;;; y35278 -&gt; (fn [x35227 x35250 x35255 x35261 x35262 x35249 x35256] (nth [(normal x35250 (/ (sqrt x35249))) (normal x35256 (/ (sqrt x35255))) (normal x35262 (/ (sqrt x35261)))] x35227))
 ;;; y35313 -&gt; (fn [x35242 x35250 x35255 x35261 x35262 x35249 x35256] (nth [(normal x35250 (/ (sqrt x35249))) (normal x35256 (/ (sqrt x35255))) (normal x35262 (/ (sqrt x35261)))] x35242))
-;;; 
+;;;
 ;;; Observed values O:
 ;;; y35271 -&gt; 1.1
 ;;; y35278 -&gt; 2.1
@@ -295,7 +318,7 @@
 ;;; y35299 -&gt; 0.0
 ;;; y35306 -&gt; -0.1
 ;;; y35313 -&gt; -0.05
-;;; 
+;;;
 ;; <-
 ;; =>
 ;;; {"type":"html","content":"<span class='clj-nil'>nil</span>","value":"nil"}
@@ -303,13 +326,13 @@
 
 ;; **
 ;;; *TODO* figure out what to check here, to see if inference works. Note that this Gibbs sampler is not likely to mix well.
-;;; 
+;;;
 ;;; Right now, just making a histogram over the number of included components in the model...
 ;; **
 
 ;; @@
-(def gmm-num-components 
-  (map #(count (set %)) 
+(def gmm-num-components
+  (map #(count (set %))
        (take 1000 (take-nth 10 (drop 500 (gibbs/gibbs-seq gaussian-mixture-model))))))
 
 (into (sorted-map) (frequencies gmm-num-components))
@@ -320,7 +343,7 @@
 
 ;; **
 ;;; # More examples to come
-;;; 
+;;;
 ;;; In particular, we need to test on an example in which observe statements interact with control flow.
 ;; **
 
@@ -344,9 +367,9 @@
 ;; @@
 ;; ->
 ;;; Vertices V: #{y35468 x35474 x35471 x35464 x35467 y35475 x35461}
-;;; 
+;;;
 ;;; Arcs A: #{[x35464 y35468] [x35474 y35475] [x35467 y35475] [x35471 x35474] [x35467 y35468] [x35461 x35464] [x35471 y35475] [x35461 y35468]}
-;;; 
+;;;
 ;;; Conditional densities P:
 ;;; x35461 -&gt; (fn [] (gamma 1.0 1.0))
 ;;; x35464 -&gt; (fn [x35461] (normal 0.0 (/ (/ (sqrt x35461)) 0.31622776601683794)))
@@ -355,11 +378,11 @@
 ;;; x35471 -&gt; (fn [] (gamma 1.0 1.0))
 ;;; x35474 -&gt; (fn [x35471] (normal 1.0 (/ (/ (sqrt x35471)) 0.31622776601683794)))
 ;;; y35475 -&gt; (fn [x35474 x35471 x35467] (if (not (= x35467 0)) (normal x35474 (/ (sqrt x35471)))))
-;;; 
+;;;
 ;;; Observed values O:
 ;;; y35468 -&gt; 0.5
 ;;; y35475 -&gt; 0.5
-;;; 
+;;;
 ;; <-
 ;; =>
 ;;; {"type":"html","content":"<span class='clj-nil'>nil</span>","value":"nil"}

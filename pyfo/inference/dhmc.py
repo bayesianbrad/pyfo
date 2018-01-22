@@ -45,27 +45,22 @@ class DHMCSampler(object):
         ## state is a class that contains a dictionary of the system.
         ## to get log_posterior and log_update call the methods on the
         ## state
-        # 2nd Note:
-        ## Rather than dealing with the 'indicies' of parameters we deal instead with the keys
-        # 3rd Note
-        ## When generating the mometum dictionary we need the discrete params to have their
-        ## momentum drawn from the laplacian, and the continuous params to be drawn from
-        ## gaussian
-        #4 TH NOTE
-        ## Need to deal with a M matrix. I may  just set it to 1 everywhere, inferring the identity.
+        # Note:
+        ## Need to deal with a M matrix. Using the identity matrix for now.
 
-        self.model_graph =object # instantiates model
-        self._state = state.State(object.model())
+        self.model_graph =object # i graphical model object
+        self._state = state.State(object.model)
 
+        ## Debugging:::
+        #####
+        self._state.debug()
         # Parameter keys
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         self._cond_keys = self._state._return_cond_list()
         self._if_keys = self._state._return_if_list()
-        self._all_keys = self._state._return_all_list()
-
         # True latent variable names
-        self._names = self._state._return_true_names()
+        self._names = self._state.get_original_names()
 
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0

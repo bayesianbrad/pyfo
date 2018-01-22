@@ -68,24 +68,6 @@ Both computations are facilitated by the methods `update` and `update_pdf` of th
 from . import Options, runtime
 from .foppl_distributions import distributions
 from .basic_imports import *
-import math
-
-####################################################################################################
-
-def update_distributions(distributions=None):
-    """
-    In order to compile, we need `dist` pointing to a namespace providing the distributions such
-    as `Normal`, etc. If no such distribution-namespace is provided, a fallback of "test"-distributions
-    is used, allowing the compiler/frontend to be tested without the full backend.
-
-    :param distributions:  A possible namespace providing the distributions.
-    """
-    from . import test_distributions
-    global dist
-    if distributions is None:
-        dist = getattr(Options, 'dist', test_distributions.dist)
-    else:
-        dist = distributions
 
 ####################################################################################################
 
@@ -161,7 +143,7 @@ class ConditionNode(GraphNode):
             name = self.__class__.__gen_symbol__('cond_')
         if ancestors is None:
             ancestors = set()
-        if function:
+        if function is not None:
             if op == '?':
                 op = '>='
             if condition is None:
@@ -171,7 +153,9 @@ class ConditionNode(GraphNode):
         self.op = op
         self.condition = condition
         self.function = function
-        self.code = _LAMBDA_PATTERN_.format(condition.to_py() if condition else "None") + Options.conditional_suffix
+        code = (condition.to_py() + Options.conditional_suffix if condition else "None")
+        self.code = _LAMBDA_PATTERN_.format(code)
+        self.full_code = "state['{}'] = {}".format(self.name, code)
         self.function_code = _LAMBDA_PATTERN_.format(function.to_py() if function else "None")
         self.evaluate = eval(self.code)
         self.evaluate_function = eval(self.function_code)
@@ -181,9 +165,9 @@ class ConditionNode(GraphNode):
                 a._add_dependent_condition(self)
 
     def __repr__(self):
-        if self.function:
+        if self.function is not None:
             result = "{f} {o} 0\n\tFunction: {f}".format(f=repr(self.function), o=self.op)
-        elif self.condition:
+        elif self.condition is not None:
                 result = repr(self.condition)
         else:
             result = "???"
@@ -192,7 +176,7 @@ class ConditionNode(GraphNode):
         if Options.debug:
             result += "\n\tRelation: {}".format(self.op)
             result += "\n\tCode:          {}".format(self.code)
-            if self.function:
+            if self.function is not None:
                 result += "\n\tFunction-Code: {}".format(self.function_code)
             if self.line_number >= 0:
                 result += "\n\tLine: {}".format(self.line_number)
@@ -203,7 +187,7 @@ class ConditionNode(GraphNode):
         return self.function is not None
 
     def update(self, state: dict):
-        if self.function:
+        if self.function is not None:
             f_result = self.evaluate_function(state)
             result = f_result >= 0
             state[self.name + ".function"] = f_result
@@ -228,6 +212,7 @@ class DataNode(GraphNode):
         self.code = _LAMBDA_PATTERN_.format(repr(self.data))
         self.evaluate = eval(self.code)
         self.line_number = line_number
+        self.full_code = "state['{}'] = {}".format(self.name, repr(self.data))
 
     def __repr__(self):
         return "{} = {}".format(self.name, repr(self.data))
@@ -299,6 +284,8 @@ class Vertex(GraphNode):
       vertex in their `get_all_ancestors`-set.
     `sample_size`:
       The dimension of the samples drawn from this distribution.
+    `support_size`:
+      Used for the 'categorical' distribution; basically the length of the vector/list in the first argument.
     `code`:
       The original code for the `evaluate`-method as a string. This is mostly used for debugging.
     """
@@ -307,9 +294,9 @@ class Vertex(GraphNode):
                  ancestor_graph=None, conditions:list=None, line_number:int=-1):
         from . import code_types
         if name is None:
-            name = self.__class__.__gen_symbol__('y' if observation else 'x')
-        if ancestor_graph:
-            if ancestors:
+            name = self.__class__.__gen_symbol__('y' if observation is not None else 'x')
+        if ancestor_graph is not None:
+            if ancestors is not None:
                 ancestors = ancestors.union(ancestor_graph.vertices)
             else:
                 ancestors = ancestor_graph.vertices
@@ -337,17 +324,23 @@ class Vertex(GraphNode):
         self.dependent_conditions = set()
         self.distribution_name = distribution.name
         self.distribution_type = distributions.get(distribution.name, 'unknown')
+        self.support_size = distribution.get_support_size()
         code_type = self.distribution.code_type
         self.sample_size = code_type.size if isinstance(code_type, code_types.ListType) else 1
         self.code = _LAMBDA_PATTERN_.format(self.distribution.to_py())
         self.evaluate = eval(self.code)
-        if self.observation:
+        if self.observation is not None:
             obs = self.observation.to_py()
             self.evaluate_observation = eval(_LAMBDA_PATTERN_.format(obs))
             self.evaluate_observation_pdf = eval("lambda state, dist: dist.log_pdf({})".format(obs))
+            self.full_code = "state['{}'] = {}".format(self.name, obs)
+            self.full_code_pdf = self._get_cond_code("log_pdf += {}.log_pdf({})".format(self.distribution.to_py(), obs))
         else:
             self.evaluate_observation = None
             self.evaluate_observation_pdf = None
+            code = self.distribution.to_py()
+            self.full_code = "state['{}'] = {}.sample()".format(self.name, code)
+            self.full_code_pdf = self._get_cond_code("log_pdf += {}.log_pdf(state['{}'])".format(code, self.name))
         self.line_number = line_number
 
     def __repr__(self):
@@ -358,7 +351,7 @@ class Vertex(GraphNode):
                                                repr(self.distribution))
         if len(self.conditions) > 0:
             result += "\tConditions: {}\n".format(', '.join(["{} == {}".format(c.name, v) for c, v in self.conditions]))
-        if self.observation:
+        if self.observation is not None:
             result += "\tObservation: {}\n".format(repr(self.observation))
         if Options.debug:
             result += "\tDependent Conditions: {}\n".format(', '.join(sorted([c.name for c in self.dependent_conditions])))
@@ -368,6 +361,8 @@ class Vertex(GraphNode):
                 self.code,
                 self.sample_size
             )
+            if self.support_size is not None:
+                result += "\tSupport-size: {}\n".format(self.support_size)
             if self.line_number >= 0:
                 result += "\tLine: {}\n".format(self.line_number)
         return result
@@ -377,6 +372,7 @@ class Vertex(GraphNode):
         for a in self.ancestors:
             a._add_dependent_condition(cond)
 
+    @property
     def get_all_ancestors(self):
         result = []
         for a in self.ancestors:
@@ -419,7 +415,7 @@ class Vertex(GraphNode):
                 return 0.0
 
         distr = self.evaluate(state)
-        if self.evaluate_observation_pdf:
+        if self.evaluate_observation_pdf is not None:
             log_pdf = self.evaluate_observation_pdf(state, distr)
         elif self.name in state:
             log_pdf = distr.log_pdf(state[self.name])
@@ -428,6 +424,17 @@ class Vertex(GraphNode):
 
         state['log_pdf'] = state.get('log_pdf', 0.0) + log_pdf
         return log_pdf
+
+    def _get_cond_code(self, body:str):
+        conds = []
+        result = []
+        for cond, truth_value in self.conditions:
+            conds.append(cond.full_code)
+            result.append("state['{}'] == {}".format(cond.name, truth_value))
+        if len(result) > 0:
+            return "{}\nif {}:\n\t{}".format("\n".join(conds), " and ".join(result), body.replace("\n", "\n\t"))
+        else:
+            return body
 
 
 ####################################################################################################
@@ -533,7 +540,7 @@ class Graph(object):
         """
         from .foppl_model import Model
         compute_nodes = self.get_ordered_list_of_all_nodes()
-        if result_expr:
+        if result_expr is not None:
             if hasattr(result_expr, 'to_py'):
                 result_expr = result_expr.to_py()
             result_function = eval(_LAMBDA_PATTERN_.format(result_expr))

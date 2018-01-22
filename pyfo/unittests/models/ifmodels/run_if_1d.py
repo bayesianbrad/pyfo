@@ -2,7 +2,7 @@ from pyfo.pyfoppl.foppl import imports
 import if_1d as test
 
 
-print(test.code)
+print(test.model)
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)

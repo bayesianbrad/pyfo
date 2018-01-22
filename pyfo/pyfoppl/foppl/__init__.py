@@ -27,7 +27,6 @@ class Options(object):
         Print out additional information, e. g., about the nodes in the graph.
     """
 
-
     eager_conditionals = True
 
     uniform_conditionals = True

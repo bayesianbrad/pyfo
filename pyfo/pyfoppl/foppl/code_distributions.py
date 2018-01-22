@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 17. Jan 2018, Tobias Kohn
-# 20. Jan 2018, Tobias Kohn
+# 22. Jan 2018, Tobias Kohn
 #
 from .code_types import *
 
@@ -41,6 +41,8 @@ class DistributionTypes(object):
     def categorical(cls, args: list):
         if len(args) == 1:
             arg = args[0]
+            if isinstance(arg, ListType) and isinstance(arg.item_type, ListType):
+                return ListType(IntegerType, arg.size)
             if isinstance(arg, SequenceType):
                 return IntegerType()
         cls.__arg_count_error('categorical', args)

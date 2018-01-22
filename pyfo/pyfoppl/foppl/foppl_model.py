@@ -8,7 +8,7 @@
 #
 from . import runtime
 from .basic_imports import *
-import math
+
 # We try to import `networkx` and `matplotlib`. If present, these packages can be used to get a visual
 # representation of the graph. But neither of these packages is actually needed.
 try:
@@ -34,14 +34,13 @@ class Model(object):
 
     def __init__(self, *, vertices: set, arcs: set, data: set, conditionals: set, compute_nodes: list,
                  result_function = None):
-        from .graphs import update_distributions
         self.vertices = vertices
         self.arcs = arcs
         self.data = data
         self.conditionals = conditionals
         self.compute_nodes = compute_nodes
         self.result_function = result_function
-        update_distributions()
+        self.nodes = { v.name: v for v in self.compute_nodes }
 
     def __repr__(self):
         V = '  '.join(sorted([repr(v) for v in self.vertices]))
@@ -49,10 +48,11 @@ class Model(object):
         C = '\n  '.join(sorted([repr(v) for v in self.conditionals])) if len(self.conditionals) > 0 else "-"
         D = '\n  '.join([repr(u) for u in self.data]) if len(self.data) > 0 else "-"
         graph = "Vertices V:\n  {V}\nArcs A:\n  {A}\n\nConditions C:\n  {C}\n\nData D:\n  {D}\n".format(V=V, A=A, C=C, D=D)
-        model = "\nContinuous:  {}\nDiscrete:    {}\nConditional: {}\n".format(
-            ', '.join(sorted([v.name for v in self.gen_cont_vars()])),
-            ', '.join(sorted([v.name for v in self.gen_disc_vars()])),
-            ', '.join(sorted([v.name for v in self.gen_if_vars()])),
+        model = "\nContinuous:  {}\nDiscrete:    {}\nConditional: {}\nConditions: {}\n".format(
+            ', '.join(sorted(self.gen_cont_vars())),
+            ', '.join(sorted(self.gen_disc_vars())),
+            ', '.join(sorted(self.gen_if_vars())),
+            ', '.join(sorted(self.gen_cond_vars()))
         )
         return graph + model
 
@@ -119,20 +119,38 @@ class Model(object):
     def get_vertices(self):
         return self.vertices
 
+    def get_vertices_names(self):
+        return [v.name for v in self.vertices]
+
     def get_arcs(self):
         return self.arcs
 
+    def get_arcs_names(self):
+        return [(u.name, v.name) for (u, v) in self.arcs]
+
+    def get_map_of_nodes(self):
+        return self.nodes
+
+    def get_continuous_distributions(self):
+        return set([v.distribution_name for v in self.vertices if v.is_continuous])
+
+    def get_discrete_distributions(self):
+        return set([v.distribution_name for v in self.vertices if v.is_discrete])
+
+    def gen_cond_vars(self):
+        return [c.name for c in self.conditionals]
+
     def gen_if_vars(self):
-        return [v for v in self.vertices if v.is_conditional]
+        return [v.name for v in self.vertices if v.is_conditional and v.is_sampled]
 
     def gen_cont_vars(self):
-        return [v for v in self.vertices if v.is_continuous and not v.is_conditional]
+        return [v.name for v in self.vertices if v.is_continuous and not v.is_conditional and v.is_sampled]
 
     def gen_disc_vars(self):
-        return [v for v in self.vertices if v.is_discrete and not v.is_conditional]
+        return [v.name for v in self.vertices if v.is_discrete and not v.is_conditional and v.is_sampled]
 
     def gen_vars(self):
-        return [v for v in self.vertices if v.is_sampled]
+        return [v.name for v in self.vertices if v.is_sampled]
 
     def gen_prior_samples(self):
         state = {}
@@ -141,6 +159,13 @@ class Model(object):
         if self.result_function is not None:
             state['result'] = self.result_function(state)
         return state
+
+    def gen_prior_samples_code(self):
+        result = []
+        for node in self.compute_nodes:
+            result.append("# {}".format(node.name))
+            result.append(node.full_code)
+        return '\n'.join(result)
 
     def gen_pdf(self, state):
         for node in self.compute_nodes:
@@ -151,3 +176,13 @@ class Model(object):
             return state['log_pdf']
         else:
             return 0.0
+
+    def gen_pdf_code(self):
+        result = []
+        for node in self.compute_nodes:
+            result.append("# {}".format(node.name))
+            if hasattr(node, 'full_code_pdf'):
+                result.append(node.full_code_pdf)
+            else:
+                result.append(node.full_code)
+        return '\n'.join(result)
