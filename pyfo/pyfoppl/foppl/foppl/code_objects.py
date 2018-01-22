@@ -79,10 +79,21 @@ class CodeDistribution(CodeObject):
     def to_py(self):
         return "dist.{}({})".format(self.name, ', '.join([a.to_py() for a in self.args]))
 
-
-class CodeFunction(CodeObject):
-
-    pass
+    def get_support_size(self):
+        arg = self.args[0]
+        if isinstance(arg, CodeValue) and type(arg.value) is list:
+            if all([type(item) is list for item in arg.value]):
+                return max([len(item) for item in arg.value])
+            else:
+                return len(arg.value)
+        elif isinstance(arg, CodeVector) and len(arg.items) > 0:
+            _is_vector = lambda v: isinstance(v, CodeVector) or (isinstance(v, CodeValue) and type(v.value) is list)
+            if all([_is_vector(item) for item in arg.items]):
+                return max([len(item) for item in arg.items])
+            else:
+                return len(arg.items)
+        else:
+            return None
 
 
 class CodeFunctionCall(CodeObject):
@@ -285,6 +296,12 @@ class CodeValue(CodeObject):
         self.value = value
         self.code_type = get_code_type_for_value(value)
 
+    def __len__(self):
+        if type(self.value) is list:
+            return len(self.value)
+        else:
+            return 0
+
     def __repr__(self):
         return repr(self.value)
 
@@ -294,6 +311,9 @@ class CodeVector(CodeObject):
     def __init__(self, items):
         self.items = items
         self.code_type = ListType.fromList([i.code_type for i in items])
+
+    def __len__(self):
+        return len(self.items)
 
     def __repr__(self):
         return "[{}]".format(', '.join([repr(i) for i in self.items]))

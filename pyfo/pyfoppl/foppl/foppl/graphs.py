@@ -68,24 +68,6 @@ Both computations are facilitated by the methods `update` and `update_pdf` of th
 from . import Options, runtime
 from .foppl_distributions import distributions
 from .basic_imports import *
-import math
-
-####################################################################################################
-
-def update_distributions(distributions=None):
-    """
-    In order to compile, we need `dist` pointing to a namespace providing the distributions such
-    as `Normal`, etc. If no such distribution-namespace is provided, a fallback of "test"-distributions
-    is used, allowing the compiler/frontend to be tested without the full backend.
-
-    :param distributions:  A possible namespace providing the distributions.
-    """
-    from . import test_distributions
-    global dist
-    if distributions is None:
-        dist = getattr(Options, 'dist', test_distributions.dist)
-    else:
-        dist = distributions
 
 ####################################################################################################
 
@@ -299,6 +281,8 @@ class Vertex(GraphNode):
       vertex in their `get_all_ancestors`-set.
     `sample_size`:
       The dimension of the samples drawn from this distribution.
+    `support_size`:
+      Used for the 'categorical' distribution; basically the length of the vector/list in the first argument.
     `code`:
       The original code for the `evaluate`-method as a string. This is mostly used for debugging.
     """
@@ -337,6 +321,7 @@ class Vertex(GraphNode):
         self.dependent_conditions = set()
         self.distribution_name = distribution.name
         self.distribution_type = distributions.get(distribution.name, 'unknown')
+        self.support_size = distribution.get_support_size()
         code_type = self.distribution.code_type
         self.sample_size = code_type.size if isinstance(code_type, code_types.ListType) else 1
         self.code = _LAMBDA_PATTERN_.format(self.distribution.to_py())
@@ -368,6 +353,8 @@ class Vertex(GraphNode):
                 self.code,
                 self.sample_size
             )
+            if self.support_size:
+                result += "\tSupport-size: {}\n".format(self.support_size)
             if self.line_number >= 0:
                 result += "\tLine: {}\n".format(self.line_number)
         return result
@@ -377,6 +364,7 @@ class Vertex(GraphNode):
         for a in self.ancestors:
             a._add_dependent_condition(cond)
 
+    @property
     def get_all_ancestors(self):
         result = []
         for a in self.ancestors:
