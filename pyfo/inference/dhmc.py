@@ -48,8 +48,8 @@ class DHMCSampler(object):
         # Note:
         ## Need to deal with a M matrix. Using the identity matrix for now.
 
-        self.model_graph =object # i graphical model object
-        self._state = state.State(object.model)
+        self.model_graph =object.model # i graphical model object
+        self._state = state.State(self.model_graph)
 
         ## Debugging:::
         #####
@@ -319,7 +319,7 @@ class DHMCSampler(object):
         if plot:
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
-            self.model_graph.graph.draw_graph()
+            self.model_graph.display_graph()
         return stats
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):

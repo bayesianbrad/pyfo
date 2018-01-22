@@ -11,4 +11,7 @@ Change this file to provide all the necessary imports and namespaces for the fun
 model.
 """
 import math
-from .test_distributions import dist   # Used as a stand-in to test the models
+import numpy as np
+import torch
+from torch.autograd import Variable
+import pyfo.distributions as dist

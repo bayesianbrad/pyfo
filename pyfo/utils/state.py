@@ -49,10 +49,10 @@ class State(object):
         self._cond_vars=  cls.gen_cond_vars()
         self._vertices = cls.get_vertices()
         self._arcs = cls.get_arcs()
-        self._disc_dist = cls.get_discrete_distributions()
-        self._cont_disc = cls.get_continuous_distributions()
+        self.get_continuous_dist_names()
+        self.get_discrete_dist_names()
         #####
-        # self._unembed_state = Unembed(self._dist_arg_size)
+        self._unembed_state = Unembed(self._vertices)
 
     def debug(self):
         """
@@ -66,15 +66,37 @@ class State(object):
                          '{}'.format(self._debug_pdf))
         print(50*'=')
 
-    def get_support(self, key):
+    def get_discrete_dist_names(self):
         """
-        Returns the support of the parameter
+        A map from a discrete latent variable to a discrete distribution
+        that depends on it.
 
-        vetex.support_size
-        self._disc_dist
-        :param key:
         :return:
         """
+        all_vars = self.gen_vars()
+        disc_names = {}
+        for vertex in self._vertices:
+            if vertex.is_discrete:
+                if vertex.name in all_vars:
+                    disc_names[vertex.name] = vertex.distribution_name
+
+        self._disc_dist = disc_names
+
+    def get_continuous_dist_names(self):
+        """
+        A map from a discrete latent variable to a discrete distribution
+        that depends on it.
+
+        :return:
+        """
+        all_vars  = self.gen_vars()
+        cont_names = {}
+        for vertex in self._vertices:
+            if vertex.is_continuous:
+                if vertex.name in all_vars:
+                    cont_names[vertex.name] = vertex.distribution_name
+        self._cont_dist =  cont_names
+
 
     def gen_vars(self):
         """
@@ -106,7 +128,6 @@ class State(object):
         for vertex in self._vertices:
             if vertex.name in all_vars:
                 names[vertex.name] = vertex.original_name
-        print(names)
         return names
 
     def intiate_state(self):
@@ -267,7 +288,7 @@ class State(object):
         "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
 
         """
-##      TODO will have to append this function to deal with discrete if vars at a later date
+##      TODO will have to append this function to deal with discrete if vars at a later date - not necessarily true in the new framework
         for key in self._disc_vars:
             dist_name = 'unembed_'+self._disc_dist[key]
             state = getattr(self._unembed_state, dist_name)(state, key)

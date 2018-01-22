@@ -21,8 +21,8 @@ class Unembed():
     "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
 
     """
-    def __init__(self, dist_arg_size):
-        self.size = dist_arg_size
+    def __init__(self, vertices):
+        self._vertices = vertices
 
     def unembed_Poisson(self, state,key):
         """
@@ -47,7 +47,8 @@ class Unembed():
         """
         print('Debug statement in Unembed.unembed.unembed_Categorical\n'
               'Print self.size of disc parameter : {0} '.format(self.size(key)))
-        int_length = self.size(key)[0]
+
+        int_length = self._vertices[key].support_size
         lower = VariableCast(-0.5)
         upper = VariableCast(int_length) + lower
 
