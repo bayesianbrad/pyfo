@@ -40,7 +40,7 @@ class State(object):
         """
         ### These functions still exists
         self._state_init = cls.gen_prior_samples()
-        self._debug_prior = cls.gen_prior_samples
+        self._debug_prior = cls.gen_prior_samples_code
         self._gen_logpdf = cls.gen_pdf # returns logp
         self._debug_pdf = cls.gen_pdf_code
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
@@ -49,6 +49,7 @@ class State(object):
         self._cond_vars=  cls.gen_cond_vars()
         self._vertices = cls.get_vertices()
         self._arcs = cls.get_arcs()
+        self.all_vars = self.gen_vars()
         self.get_continuous_dist_names()
         self.get_discrete_dist_names()
         #####
@@ -60,10 +61,10 @@ class State(object):
         """
         print(50*'='+'\n'
                      'Now generating prior python code \n'
-              '{}'.format(self._debug_prior))
+              '{}'.format(self._debug_prior()))
         print(50 * '=' + '\n'
                          'Now generating posterior python code \n'
-                         '{}'.format(self._debug_pdf))
+                         '{}'.format(self._debug_pdf()))
         print(50*'=')
 
     def get_discrete_dist_names(self):
@@ -89,11 +90,10 @@ class State(object):
 
         :return:
         """
-        all_vars  = self.gen_vars()
         cont_names = {}
         for vertex in self._vertices:
             if vertex.is_continuous:
-                if vertex.name in all_vars:
+                if vertex.name in self.all_vars:
                     cont_names[vertex.name] = vertex.distribution_name
         self._cont_dist =  cont_names
 
@@ -104,7 +104,7 @@ class State(object):
 
         :return:
         """
-        return [vertex.name for vertex in self._vertices if vertex.is_sampled]
+        return  [vertex.name for vertex in self._vertices if vertex.is_sampled]
     def get_ancestors(self):
         """
         object.dist_ancestors only direct parents of variable , does not include the predicate.
@@ -123,10 +123,9 @@ class State(object):
         :param keys:
         :return:
         """
-        all_vars = self.gen_vars()
         names = {}
         for vertex in self._vertices:
-            if vertex.name in all_vars:
+            if vertex.name in self.all_vars:
                 names[vertex.name] = vertex.original_name
         return names
 
@@ -386,8 +385,7 @@ class State(object):
 
         return grad_vec
 
-    @staticmethod
-    def convert_dict_vars_to_numpy(state):
+    def convert_dict_vars_to_numpy(self,state):
         """
 
         :param state:
@@ -395,7 +393,7 @@ class State(object):
 
         Converts variables in stat to numpy arrays for plotting purposes
         """
-        for i in state:
-            state[i] =  VariableCast(state[i]).data.numpy()
+        for i in self.all_vars:
+            state[i] =  state[i].data.numpy()
             # state[i] = state[i].data.numpy()
         return state

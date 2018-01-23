@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Jan 2018, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 import math as _math
 import random as _random
@@ -31,6 +31,8 @@ class dist(object):
     Binomial = Dummy
     Dirichlet = Dummy
     Gamma = Dummy
+    MultivariateNormal = Dummy
+    Poisson = Dummy
 
     class Categorical(object):
 

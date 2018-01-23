@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 21. Jan 2018, Tobias Kohn
+# 22. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .foppl_objects import Symbol
@@ -206,9 +206,15 @@ class AstFunctionCall(Node):
     def walk(self, walker):
         name = self.function
         if type(name) is str:
-            method_name = "visit_call_" + name
+            method_name = "visit_call_" + name.replace('/', '_').replace('.', '_')
             if hasattr(walker, method_name):
                 return getattr(walker, method_name)(self)
+
+            if '/' in name:
+                method_name = "visit_call_{}_functions".format(name[:name.index('/')])
+                if hasattr(walker, method_name):
+                    return getattr(walker, method_name)(self)
+
         return super(AstFunctionCall, self).walk(walker)
 
     def __repr__(self):

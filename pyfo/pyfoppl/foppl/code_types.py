@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 20. Jan 2018, Tobias Kohn
+# 22. Jan 2018, Tobias Kohn
 #
 class AnyType(object):
 
@@ -49,6 +49,9 @@ class AnyType(object):
             cls2 = cls2.__base__
         return AnyType()
 
+    def dimension(self):
+        return 0
+
 def __instantiate__(tp):
     if type(tp) is list:
         return [__instantiate__(t) for t in tp]
@@ -59,7 +62,19 @@ def __instantiate__(tp):
     else:
         raise TypeError("'{}' is not a valid type".format(repr(tp)))
 
+
 AnyType.__singleton__ = AnyType()
+
+
+def union(*types):
+    if len(types) > 0:
+        result = types[0]
+        for t in types[1:]:
+            result = result.union(t)
+        return result
+    else:
+        return AnyType()
+
 
 ######### BASE CLASSES #########
 
@@ -125,6 +140,16 @@ class SequenceType(AnyType):
             else:
                 return SequenceType(item_type, size)
         return super(SequenceType, self).union(other)
+
+    def dimension(self):
+        d = self.item_type.dimension()
+        if type(d) is tuple:
+            return (self.size, *d)
+        elif d > 0:
+            return (self.size, d)
+        else:
+            return self.size
+
 
 class TupleType(AnyType):
     pass

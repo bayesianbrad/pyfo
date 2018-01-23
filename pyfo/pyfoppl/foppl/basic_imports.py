@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 22. Jan 2018, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 """
 Change this file to provide all the necessary imports and namespaces for the functions and distributions used in the
@@ -15,3 +15,5 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 import pyfo.distributions as dist
+# from .test_distributions
+from . import foppl_linalg as matrix

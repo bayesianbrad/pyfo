@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 import math
 from . import foppl_objects
@@ -104,7 +104,14 @@ class Compiler(Walker):
         '**': lambda x, y: x ** y,
         'and': lambda x, y: x & y,
         'or':  lambda x, y: x | y,
-        'xor': lambda x, y: x ^ y
+        'xor': lambda x, y: x ^ y,
+    }
+
+    __vector_ops = {
+        'add': lambda x, y: x + y,
+        'sub': lambda x, y: x - y,
+        'mul': lambda x, y: x * y,
+        'div': lambda x, y: x / y,
     }
 
     def __init__(self):
@@ -407,6 +414,48 @@ class Compiler(Walker):
         else:
             return graph, CodeVector([item for _, item in vec])
 
+    def visit_call_matrix_functions(self, node: AstFunctionCall):
+        name = node.function[7:]
+        if name in self.__vector_ops and len(node.args) == 2:
+            op = self.__vector_ops[name]
+            args = [arg.walk(self) for arg in node.args]
+            graph = merge(*[g for g, _ in args])
+            first, second = args
+            first, second = first[1], second[1]
+            if isinstance(first.code_type, SequenceType) and isinstance(second.code_type, SequenceType) and \
+                    first.code_type.size == second.code_type.size:
+
+                if isinstance(first, CodeValue) and isinstance(second, CodeValue):
+                    return graph, CodeValue([op(u, v) for u, v in zip(first.value, second.value)])
+
+                if (isinstance(first, CodeValue) or isinstance(first, CodeVector)) and \
+                        (isinstance(second, CodeValue) or isinstance(second, CodeVector)):
+                    left = first.value if isinstance(first, CodeValue) else first.items
+                    right = second.value if isinstance(second, CodeValue) else second.items
+                    return CodeVector([makeBinary(u, name, v) for u, v in zip(left, right)])
+
+            elif isinstance(first.code_type, SequenceType) and isinstance(second.code_type, NumericType):
+
+                if isinstance(first, CodeValue) and isinstance(second, CodeValue):
+                    right = second.value
+                    return graph, CodeValue([op(u, right) for u in first.value])
+
+                if isinstance(first, CodeValue) or isinstance(first, CodeVector):
+                    left = first.value if isinstance(first, CodeValue) else first.items
+                    return CodeVector([makeBinary(u, name, second) for u in left])
+
+            elif isinstance(first.code_type, NumericType) and isinstance(second.code_type, SequenceType):
+
+                if isinstance(first, CodeValue) and isinstance(second, CodeValue):
+                    left = second.value
+                    return graph, CodeValue([op(left, u) for u in second.value])
+
+                if isinstance(second, CodeValue) or isinstance(second, CodeVector):
+                    right = second.value if isinstance(second, CodeValue) else second.items
+                    return CodeVector([makeBinary(first, name, u) for u in right])
+
+        return self.visit_functioncall(node)
+
     def visit_call_print(self, node: AstFunctionCall):
         # This is actually for debugging purposes
         print(', '.join([repr(arg.walk(self)[1]) for arg in node.args]))
@@ -638,8 +687,9 @@ class Compiler(Walker):
 
     def visit_value(self, node: AstValue):
         value = node.value
-        if type(value) is list:
+        if type(value) is list and (len(value) > 3 or any([type(item) is list for item in value])):
             value = DataNode(data=value)
+            self._merge_graph(Graph(set(), data={value}))
             return Graph(set(), data={value}), CodeDataSymbol(value)
         else:
             return Graph.EMPTY, CodeValue(node.value)

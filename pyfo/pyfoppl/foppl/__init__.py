@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 ##
 # 19. Dec 2017, Tobias Kohn
-# 21. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 from . import test_distributions
 
@@ -35,12 +35,14 @@ class Options(object):
 
     debug = False
 
-    dist = test_distributions.dist
 
 # Stubs to make the Python-IDE happy
-
-def normal(mu, sigma): pass
 
 def sample(distr): return 0
 
 def observe(distr, value): pass
+
+def binomial(p): pass
+
+def normal(mu, sigma): pass
+

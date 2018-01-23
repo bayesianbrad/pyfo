@@ -4,10 +4,18 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 20. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .code_types import *
+
+##############################################################################
+
+def is_vector(item):
+    return isinstance(item, CodeVector) or (isinstance(item, CodeValue) and type(item.value) is list)
+
+
+##############################################################################
 
 class CodeObject(object):
 
@@ -103,13 +111,90 @@ class CodeFunctionCall(CodeObject):
             args = [args]
         self.name = name
         self.args = args
-        self.code_type = AnyType()
+        self.code_type = self._get_code_type()
 
     def __repr__(self):
         return "{}({})".format(self.name, ', '.join([repr(a) for a in self.args]))
 
+    def _get_code_type(self):
+        name = "_type_" + self.name.lower().replace('/', '_').replace('.', '_')
+        method = getattr(self, name, None)
+        if method is not None:
+            return method()
+        else:
+            return AnyType()
+
     def to_py(self):
-        return "{}({})".format(self.name, ', '.join([a.to_py() for a in self.args]))
+        name = self.name.replace('/', '.')
+        return "{}({})".format(name, ', '.join([a.to_py() for a in self.args]))
+
+    def _type_elementwise_ops(self):
+        if len(self.args) == 0:
+            return AnyType()
+        elif len(self.args) == 1:
+            return self.args[0].code_type
+        elif len(self.args) == 2:
+            left = self.args[0].code_type
+            right = self.args[1].code_type
+            if isinstance(left, SequenceType) and isinstance(right, NumericType):
+                return left
+            if isinstance(left, NumericType) and isinstance(right, SequenceType):
+                return right
+            if left == right:
+                return left
+
+        if all([is_vector(arg) for arg in self.args]):
+            return union(*[arg.code_type for arg in self.args])
+        return AnyType()
+
+    def _type_elementwise_unary(self):
+        if len(self.args) == 1:
+            arg = self.args[0].code_type
+            if isinstance(arg, SequenceType):
+                return ListType(FloatType, arg.size)
+            else:
+                return arg
+        else:
+            raise TypeError("too many arguments for '{}'".format(self.name))
+
+    def _type_elementwise_compare(self):
+        return self._type_elementwise_ops()
+
+    def _type_matrix_add(self):
+        return self._type_elementwise_ops()
+
+    def _type_matrix_sub(self):
+        return self._type_elementwise_ops()
+    
+    def _type_matrix_mul(self):
+        return self._type_elementwise_ops()
+
+    def _type_matrix_div(self):
+        return self._type_elementwise_ops()
+
+    def _type_matrix_exp(self):
+        return self._type_elementwise_unary()
+
+    def _type_matrix_log(self):
+        return self._type_elementwise_unary()
+
+    def _type_matrix_ge(self):
+        return self._type_elementwise_compare()
+
+    def _type_matrix_mmul(self):
+        is_tuple = lambda t: type(t) is tuple and len(t) == 2
+
+        if len(self.args) == 2:
+            d0, d1 = [arg.code_type.dimension() for arg in self.args]
+            if is_tuple(d0) and is_tuple(d1):
+                if d0[1] == d1[0] or d0[1] is None or d1[0] is None:
+                    return ListType(ListType(FloatType(), d1[0]), d0[0])
+
+            elif is_tuple(d0) and type(d1) is int:
+                if d0[1] == d1 or d0[1] is None or d1 is None:
+                    return ListType(FloatType(), d0[0])
+
+        return AnyType()
 
 
 class CodeIf(CodeObject):
@@ -302,6 +387,12 @@ class CodeValue(CodeObject):
         else:
             return 0
 
+    def dimension(self):
+        if type(self.value) is list:
+            pass
+        else:
+            return ()
+
     def __repr__(self):
         return repr(self.value)
 
@@ -335,6 +426,59 @@ class CodeVector(CodeObject):
 
 
 #################################################################################################33
+
+_binary_ops = {
+    '+': lambda x, y: x + y,
+    '-': lambda x, y: x - y,
+    '*': lambda x, y: x * y,
+    '/': lambda x, y: x / y,
+    '**': lambda x, y: x ** y,
+    'and': lambda x, y: x & y,
+    'or': lambda x, y: x | y,
+    'xor': lambda x, y: x ^ y,
+    'add': lambda x, y: x + y,
+    'sub': lambda x, y: x - y,
+    'mul': lambda x, y: x * y,
+    'div': lambda x, y: x / y,
+}
+
+
+def makeBinary(left, op: str, right):
+    if type(left) in [int, float] and isinstance(right, CodeValue) and right.value in [int, float]:
+        return CodeValue(_binary_ops[op](left, right.value))
+
+    if type(right) in [int, float] and isinstance(left, CodeValue) and left.value in [int, float]:
+        return CodeValue(_binary_ops[op](left.value, right))
+
+    if type(left) in [int, float] and type(right) in [int, float]:
+        return CodeValue(_binary_ops[op](left, right))
+
+    if not isinstance(left, CodeObject):
+        left = CodeValue(left)
+
+    if not isinstance(right, CodeObject):
+        right = CodeValue(right)
+
+    if isinstance(left, CodeValue) and isinstance(right, CodeValue) and op in _binary_ops:
+        L, R = left.value, right.value
+        if type(L) in [int, float] and type(R) in [int, float]:
+            return CodeValue(_binary_ops[op](L, R))
+
+    if isinstance(left, CodeValue) and left.value in [0, 1]:
+        if left.value == 0 and op in ['+', 'add']:
+            return right
+        if left.value == 1 and op in ['*', 'mul']:
+            return right
+        if op == '**':
+            return left
+
+    if isinstance(right, CodeValue) and right.value in [0, 1]:
+        if right.value == 0 and op in ['+', '-', 'add', 'sub']:
+            return left
+        if right.value == 1 and op in ['*', '/', 'mul', 'div', '**']:
+            return left
+
+    return CodeBinary(left, op, right)
 
 def makeSubscript(seq, index):
     if not isinstance(index.code_type, IntegerType):
