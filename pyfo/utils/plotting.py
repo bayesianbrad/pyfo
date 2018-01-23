@@ -54,6 +54,7 @@ class Plotting():
         self.samples_withbin = dataframe_samples_woburin[keys]
         self.lag = lag
         self.burn_in = burn_in
+        self.keys = keys
         self.PATH  = sys.path[0]
         os.makedirs(self.PATH, exist_ok=True)
         self.PATH_fig = os.path.join(self.PATH, 'figures')

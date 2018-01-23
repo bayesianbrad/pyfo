@@ -126,7 +126,6 @@ class BHMCSampler(object):
         else:
             p[key] = -p[key]
             return x_embed[key],p[key], 0
-
     def append_keys(self, if_cont=False, if_disc=False):
         if if_cont:
             if self._if_cont_keys is not None:
@@ -170,6 +169,7 @@ class BHMCSampler(object):
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
                 p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+
 
         if self._disc_keys is None and self._if_keys is None:
             for key in self._cont_keys:
@@ -300,8 +300,6 @@ class BHMCSampler(object):
             accept.append(accept_prob)
             x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
             #  using the whole dataframe series. It will require processing a whole byte vector
-            if i == 60:
-                print('Debug statement')
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
                 print('{:d} iterations have been completed.'.format(i + 1))
