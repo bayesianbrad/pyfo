@@ -9,6 +9,6 @@
   (if (> x1 0)
     (if (> x2 1)
       (observe (normal x1 1) y1)
-      (observe (normal (+ x1 x2) 2) y1))
+      (observe (normal (+ x1 x2) 4) y1))
     (observe (normal x2 1) y1) )
   [x1 x2])
