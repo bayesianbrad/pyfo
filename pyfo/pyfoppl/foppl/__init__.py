@@ -44,5 +44,8 @@ def observe(distr, value): pass
 
 def binomial(p): pass
 
+def categorical(ps): pass
+
 def normal(mu, sigma): pass
 
+def interleave(a, b): return a

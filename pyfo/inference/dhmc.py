@@ -279,8 +279,6 @@ class DHMCSampler(object):
             accept.append(accept_prob)
             x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
             #  using the whole dataframe series. It will require processing a whole byte vector
-            if i == 60:
-                print('Debug statement')
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
                 print('{:d} iterations have been completed.'.format(i + 1))
@@ -306,6 +304,7 @@ class DHMCSampler(object):
         print(50*'=')
         all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns', dtype=float)
         all_samples = all_samples[self._state.all_vars]
+        print(self._state.all_vars)
         all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
         samples =  all_samples.loc[burn_in:, :]

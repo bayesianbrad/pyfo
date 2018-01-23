@@ -228,6 +228,20 @@ class Parser(object):
                     body = AstFor(target, source, body)
                 return body
 
+    @_register(Symbol.MULTI_FOR)
+    class ForExpr(FunctionParser):
+
+        def parse(self, form: Form):
+            items = [self._parse(f) for f in form[2:]]
+            if len(items) == 1:
+                body = items[0]
+            else:
+                body = AstBody(items)
+            _, assignments = self._parse_bindings(form[1])
+            targets = [t for t, _ in assignments]
+            sources = [s for _, s in assignments]
+            return AstMultiFor(targets, sources, body)
+
     @_register(Symbol.IF)
     class IfExpr(ExprParser):
 

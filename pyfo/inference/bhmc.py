@@ -61,11 +61,7 @@ class BHMCSampler(object):
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         self._cond_keys = self._state._return_cond_list()
-
-        ################
-        # Do not exist in state yet
-        self._if_disc_keys = self._state._return_if_disc_list()
-        self._if_cont_keys = self._state._return_if_cont_list()
+        self._if_cont_keys = self._state._return_if_list()
         ##################
         self._all_keys = self._state._return_all_list()
 

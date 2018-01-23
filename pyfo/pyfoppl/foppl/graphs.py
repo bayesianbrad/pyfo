@@ -438,7 +438,7 @@ class Vertex(GraphNode):
             state['log_pdf'] = state.get('log_pdf', 0.0) + log_pdf
             return log_pdf
         except:
-            print("ERROR in {}:\n ".format(self.name), self.full_code)
+            print("ERROR in {}:\n ".format(self.name), self.full_code_pdf)
             raise
 
     def _get_cond_code(self, body:str):

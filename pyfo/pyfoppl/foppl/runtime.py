@@ -4,9 +4,17 @@
 # License: MIT (see LICENSE.txt)
 #
 # 08. Jan 2018, Tobias Kohn
-# 19. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 __all__ = ['conj']
 
 def conj(seq, *items):
     return seq + list(items)
+
+def index(idx):
+    if type(idx) is int:
+        return idx
+    if hasattr(idx, 'data'):
+        return int(idx.data[0])
+    else:
+        return int(idx)

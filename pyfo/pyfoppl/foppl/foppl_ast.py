@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .foppl_objects import Symbol
@@ -265,6 +265,17 @@ class AstLoop(Node):
 
     def __repr__(self):
         return "loop({}, {}, {})".format(self.iter_count, repr(self.arg), repr(self.function))
+
+
+class AstMultiFor(Node):
+
+    def __init__(self, targets, sources, body: Node):
+        self.targets = targets
+        self.sources = sources
+        self.body = body
+
+    def __repr__(self):
+        return "multi-for({} in {}: {})".format(repr(self.targets), repr(self.sources), repr(self.body))
 
 
 class AstObserve(Node):

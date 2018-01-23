@@ -6,10 +6,10 @@ print(test.model)
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
-burn_in = 10
-n_sample = 100
+burn_in = 40000
+n_sample = 10000
 stepsize_range = [0.03,0.15]
-n_step_range = [1, 4]
+n_step_range = [4, 15]
 
 stats = dhmc_.sample(n_samples=n_sample,burn_in=burn_in,stepsize_range=stepsize_range,n_step_range=n_step_range,plot=True, print_stats=True, save_samples=True)
 

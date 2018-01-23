@@ -53,7 +53,8 @@ class State(object):
         self.get_continuous_dist_names()
         self.get_discrete_dist_names()
         #####
-        self._unembed_state = Unembed(self._vertices)
+        support_size = self.gen_support_size()
+        self._unembed_state = Unembed(support_size)
 
     def debug(self):
         """
@@ -116,6 +117,7 @@ class State(object):
         ancestors = {}
         for vertex in self._vertices:
             ancestors[self._vertices.name] = vertex.get_all_ancestors
+        return ancestors
 
     def get_original_names(self):
         """
@@ -128,6 +130,18 @@ class State(object):
             if vertex.name in self.all_vars:
                 names[vertex.name] = vertex.original_name
         return names
+
+    def gen_support_size(self):
+        """
+        Returns a vector of a support sizes for the discrete parameters
+        :return:
+
+        """
+        support_size = {}
+        for vertex in self._vertices:
+            if vertex.is_discrete:
+                support_size[vertex.name] = vertex.support_size
+        return support_size
 
     def intiate_state(self):
         """
