@@ -15,8 +15,8 @@ import gmm2 as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
-burn_in = 10
-n_sample = 50
+burn_in = 2000
+n_sample = 2000
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 

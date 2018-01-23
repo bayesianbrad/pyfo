@@ -304,7 +304,8 @@ class DHMCSampler(object):
         print(50*'=')
         all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns', dtype=float)
         all_samples = all_samples[self._state.all_vars]
-        print(self._state.all_vars)
+        print(all_samples)
+        print(self._names)
         all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
         samples =  all_samples.loc[burn_in:, :]

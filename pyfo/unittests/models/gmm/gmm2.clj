@@ -46,8 +46,9 @@
                       1.5  2.2  3  1.2  2.8)
       pi [0.5 0.5]
       zs  (loop 10 (vector) sample-components pi)
-      mus (vector (sample (normal 0 100))   ; std = 10
-                  (sample (normal 0 100)))]
+      mu1 (sample (normal 0 100))   ; std = 10
+      mu2 (sample (normal 0 100))
+      mus (vector mu1 mu2)]
   (loop 10 nil observe-data ys zs mus)
   (vector mus zs))
 
