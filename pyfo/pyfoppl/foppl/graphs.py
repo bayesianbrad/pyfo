@@ -4,130 +4,494 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 19. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
-from .foppl_distributions import continuous_distributions, discrete_distributions
+"""
+# PyFOPPL: Vertices and Graph
 
-# Try to import `networkx` and `matplotlib` so we can draw the graphs
-try:
-    import networkx as nx
-except ModuleNotFoundError:
-    nx = None
+The graph and its vertices, as provided in this module, form the backbone of the graphical model.
 
-try:
-    import matplotlib.pyplot as plt
-except ModuleNotFoundError:
-    plt = None
+## The Graphical Model
+
+The probabilistic model is compiled into a graph, where each vertex corresponds to the sampling of a distribution, or
+an observation of a stochastic value, respectively. Any dependencies between these stochastic vertices are captured by
+the edges (called `arcs`). Consider the (abstract) example:
+```
+x1 = sample(normal(0, 1))
+x2 = sample(normal(x1, 4))
+x = x1 + x2 / 2
+y = observe(normal(x, 1), 3)
+```
+Here, we have three vertices: `x1` and `x2` are sampled values, and the third vertex is the observation `y` on the last
+line. Obviously, `x2` depends on `x1`, and `y` depends on both `x1` and `x2`. The value `x` is not a vertex as it does
+not do any sampling or observation on its own. The graphical model then looks as follows:
+
+  [x1] --> [x2]
+    \     /
+     \   /
+      v v
+      [y]
+
+The variable `x` is eliminated during the compilation process and completely inlined into `y`.
+
+## The Graph Around the Graphical Model
+
+In addition to the vertices above, there are additional nodes, which are not part of the graphical model itself. On the
+one hand, we put data items (vectors/lists/tables/tensors) into data nodes to simplify the generated code, and not
+having to inline large amounts of data. On the other hand, conditional `if`-statements are also expressed as special
+nodes.
+
+In other words: we embed the graphical model with its vertices and arcs into a graph of additional nodes and edges.
+Each node is a fully fledged object of its own, providing a rich set of information for further analysis.
+
+## Computation
+
+The actual computation associated with any node is encoded in a `evaluate(state)` function. Here, the `state` is a
+dictionary holding variables, in particular the values computed by other nodes. The example above is -- in principle --
+rewritten to:
+```
+state['x1'] = dist.Normal(0, 1).sample()
+state['x2'] = dist.Normal(state['x1'], 4).sample()
+state['y'] = 3   # The observed value
+```
+Using the `state`-dictionary allows us to carry the state across different nodes and complete the entire computation.
+In addition, the model can also compute the log-pdf by a rewrite as follows (based upon a prior sampling to compute
+initial values for the variables in the `state`-dictionary):
+```
+log_pdf = 0.0
+log_pdf += dist.Normal(0, 1).log_pdf(state['x1'])
+log_pdf += dist.Normal(state['x1'], 4).log_pdf(state['x2'])
+log_pdf += dist.Normal((state['x1'] + state['x2'])/2, 1).log_pdf(3)
+```
+Both computations are facilitated by the methods `update` and `update_pdf` of the node.
+"""
+from . import Options, runtime
+from .foppl_distributions import distributions
+from .basic_imports import *
+
+####################################################################################################
+
+class GraphNode(object):
+    """
+    The base class for all nodes, including the actual graph vertices, but also conditionals, data, and possibly
+    parameters.
+
+    Each node has a name, which is usually generated automatically. The generation of the name is based on a simple
+    counter. This generated name (i.e. the counter value inside the name) is used later on to impose a compute order
+    on the nodes (see the method `get_ordered_list_of_all_nodes` in the `graph`). Hence, you should not change the
+    naming scheme unless you know exactly what you are doing!
+
+    The set of ancestors provides the edges for the graph and the graphical model, respectively. Note that all
+    ancestors are always vertices. Conditions, parameters, data, etc. are hold in other fields. This ensures that by
+    looking at the ancestors of vertices, we get the pure graphical model.
+
+    Finally, the methods `evaluate`, `update` and `update_pdf` are used by the model to sample values and compute
+    log-pdf, etc. Of course, `evaluate` is just a placeholder here so as to define a minimal interface. Usually, you
+    will use `update` and `update_pdf` instead of `evaluate`. However, given a `state`-dictionary holding all the
+    necessary values, it is save to call `evaluate`.
+    """
+
+    name = ""
+    ancestors = set()
+    line_number = -1
+
+    __symbol_counter__ = 30000
+
+    @classmethod
+    def __gen_symbol__(cls, prefix:str):
+        cls.__base__.__symbol_counter__ += 1
+        return "{}{}".format(prefix, cls.__base__.__symbol_counter__)
+
+    @property
+    def display_name(self):
+        return self.name[-3:]
+
+    def evaluate(self, state):
+        raise NotImplemented()
+
+    def update(self, state: dict):
+        result = self.evaluate(state)
+        state[self.name] = result
+        return result
+
+    def update_pdf(self, state: dict):
+        self.update(state)
+        return 0.0
+
+
+####################################################################################################
+
+# This is used to generate the various `evaluate`-methods later on.
+_LAMBDA_PATTERN_ = "lambda state: {}"
+
+
+class ConditionNode(GraphNode):
+    """
+    A `ConditionNode` represents a condition that depends on stochastic variables (vertices). It is not directly
+    part of the graphical model, but you can think of conditions to be attached to a specific vertex.
+
+    Usually, we try to transform all conditions into the form `f(state) >= 0` (this is not possible for `f(X) == 0`,
+    through). However, if the condition satisfies this format, the node object has an associated `function`, which
+    can be evaluated on its own. In other words: you can not only check if a condition is `True` or `False`, but you
+    can also gain information about the 'distance' to the 'border'.
+    """
+
+    def __init__(self, *, name:str=None, condition=None, ancestors:set=None, op:str='?', function=None,
+                 line_number:int=-1):
+        from .code_objects import CodeCompare, CodeValue
+        if name is None:
+            name = self.__class__.__gen_symbol__('cond_')
+        if ancestors is None:
+            ancestors = set()
+        if function is not None:
+            if op == '?':
+                op = '>='
+            if condition is None:
+                condition = CodeCompare(function, op, CodeValue(0))
+        self.name = name
+        self.ancestors = ancestors
+        self.op = op
+        self.condition = condition
+        self.function = function
+        code = (condition.to_py() + Options.conditional_suffix if condition else "None")
+        self.code = _LAMBDA_PATTERN_.format(code)
+        self.full_code = "state['{}'] = {}".format(self.name, code)
+        self.function_code = _LAMBDA_PATTERN_.format(function.to_py() if function else "None")
+        self.evaluate = eval(self.code)
+        self.evaluate_function = eval(self.function_code)
+        self.line_number = line_number
+        for a in ancestors:
+            if isinstance(a, Vertex):
+                a._add_dependent_condition(self)
+
+    def __repr__(self):
+        if self.function is not None:
+            result = "{f} {o} 0\n\tFunction: {f}".format(f=repr(self.function), o=self.op)
+        elif self.condition is not None:
+                result = repr(self.condition)
+        else:
+            result = "???"
+        ancestors = ', '.join([v.name for v in self.ancestors])
+        result = "{}:\n\tAncestors: {}\n\tCondition: {}".format(self.name, ancestors, result)
+        if Options.debug:
+            result += "\n\tRelation: {}".format(self.op)
+            result += "\n\tCode:          {}".format(self.code)
+            if self.function is not None:
+                result += "\n\tFunction-Code: {}".format(self.function_code)
+            if self.line_number >= 0:
+                result += "\n\tLine: {}".format(self.line_number)
+        return result
+
+    @property
+    def has_function(self):
+        return self.function is not None
+
+    @property
+    def is_continuous(self):
+        return all([a.is_continuous for a in self.ancestors])
+
+    @property
+    def is_discrete(self):
+        return not self.is_continuous
+
+    def update(self, state: dict):
+        if self.function is not None:
+            f_result = self.evaluate_function(state)
+            result = f_result >= 0
+            state[self.name + ".function"] = f_result
+        else:
+            result = self.evaluate(state)
+        state[self.name] = result
+        return result
+
+
+class DataNode(GraphNode):
+    """
+    Data nodes bear virtually no importance, but help keep large data sets out of the code. A data node never
+    depends on anything else, but only provides a constant value.
+    """
+
+    def __init__(self, *, name:str=None, data, line_number:int=-1):
+        if name is None:
+            name = self.__class__.__gen_symbol__('data_')
+        self.name = name
+        self.data = data
+        self.ancestors = set()
+        self.code = _LAMBDA_PATTERN_.format(repr(self.data))
+        self.evaluate = eval(self.code)
+        self.line_number = line_number
+        self.full_code = "state['{}'] = {}".format(self.name, repr(self.data))
+
+    def __repr__(self):
+        return "{} = {}".format(self.name, repr(self.data))
+
+
+class Parameter(GraphNode):
+    """
+    Currently, parameter are not fully supported, yet.
+
+    Parameter nodes are very similar to data nodes in that they just provide a simple constant value, and do not
+    depend on any other nodes. The difference is, however, that parameter nodes should allow to change their values
+    upon intervention from the outside.
+    """
+
+    def __init__(self, *, name:str=None, value, line_number:int=-1):
+        if name is None:
+            name = self.__class__.__gen_symbol__('param_')
+        self.name = name
+        self.ancestors = set()
+        self.value = value
+        self.code = _LAMBDA_PATTERN_.format(value)
+        self.evaluate = eval(self.code)
+        self.line_number = line_number
+
+    def __repr__(self):
+        return "{}: {}".format(self.name, self.value)
+
+
+class Vertex(GraphNode):
+    """
+    Vertices play the crucial and central role in the graphical model. Each vertex represents either the sampling from
+    a distribution, or the observation of such a sampled value.
+
+    You can get the entire graphical model by taking the set of vertices and their `ancestors`-fields, containing all
+    vertices, upon which this vertex depends. However, there is a plethora of additional fields, providing information
+    about the node and its relationship and status.
+
+    `name`:
+      The generated name of the vertex. See also: `original_name`.
+    `original_name`:
+      In contrast to the `name`-field, this field either contains the name attributed to this value in the original
+      code, or `None`.
+    `ancestors`:
+      The set of all parent vertices. This contains only the ancestors, which are in direct line, and not the parents
+      of parents. Use the `get_all_ancestors()`-method to retrieve a full list of all ancestors (including parents of
+      parents of parents of ...).
+    `dist_ancestors`:
+      The set of ancestors used for the distribution/sampling, without those used inside the conditions.
+    `cond_ancestors`:
+      The set of ancestors, which are linked through conditionals.
+    `data`:
+      A set of all data nodes, which provide data used in this vertex.
+    `distribution`:
+      The distribution is an AST/IR-structure, which is usually not used directly, but rather for internal purposes,
+      such as extracting the name and type of the distribution.
+    `distribution_name`:
+      The name of the distribution, such as `Normal` or `Gamma`.
+    `distribution_type`:
+      Either `continuous` or `discrete`. You will usually query this field using one of the properties
+      `is_continuous` or `is_discrete`.
+    `observation`:
+      The observation in an AST/IR-structure, which is usually not used directly, but rather for internal purposes.
+    `conditions`:
+      The set of all conditions under which this vertex is evaluated. Each item in the set is actually a tuple of
+      a `ConditionNode` and a boolean value, to which the condition should evaluate. Note that the conditions are
+      not owned by a vertex, but might be shared across several vertices.
+    `dependent_conditions`:
+      The set of all conditions that depend on this vertex. In other words, all conditions which contain this
+      vertex in their `get_all_ancestors`-set.
+    `sample_size`:
+      The dimension of the samples drawn from this distribution.
+    `support_size`:
+      Used for the 'categorical' distribution; basically the length of the vector/list in the first argument.
+    `code`:
+      The original code for the `evaluate`-method as a string. This is mostly used for debugging.
+    """
+
+    def __init__(self, *, name:str=None, ancestors:set=None, data:set=None, distribution=None, observation=None,
+                 ancestor_graph=None, conditions:list=None, line_number:int=-1):
+        from . import code_types
+        if name is None:
+            name = self.__class__.__gen_symbol__('y' if observation is not None else 'x')
+        if ancestor_graph is not None:
+            if ancestors is not None:
+                ancestors = ancestors.union(ancestor_graph.vertices)
+            else:
+                ancestors = ancestor_graph.vertices
+        if ancestors is None:
+            ancestors = set()
+        if data is None:
+            data = set()
+        if conditions is None:
+            conditions = []
+        self.name = name
+        self.original_name = None
+        self.dist_ancestors = ancestors
+        if len(conditions) > 0:
+            anc = []
+            for c,_ in conditions:
+                anc += list(c.ancestors)
+            self.cond_ancestors = set(anc)
+        else:
+            self.cond_ancestors = set()
+        self.ancestors = ancestors.union(self.cond_ancestors)
+        self.data = data
+        self.distribution = distribution
+        self.observation = observation
+        self.conditions = conditions
+        self.dependent_conditions = set()
+        self.distribution_name = distribution.name
+        self.distribution_type = distributions.get(distribution.name, 'unknown')
+        self.support_size = distribution.get_support_size()
+        code_type = self.distribution.code_type
+        self.sample_size = code_type.size if isinstance(code_type, code_types.ListType) else 1
+        self.code = _LAMBDA_PATTERN_.format(self.distribution.to_py())
+        self.evaluate = eval(self.code)
+        if self.observation is not None:
+            obs = self.observation.to_py()
+            self.evaluate_observation = eval(_LAMBDA_PATTERN_.format(obs))
+            self.evaluate_observation_pdf = eval("lambda state, dist: dist.log_pdf({})".format(obs))
+            self.full_code = "state['{}'] = {}".format(self.name, obs)
+            self.full_code_pdf = self._get_cond_code("log_pdf += {}.log_pdf({})".format(self.distribution.to_py(), obs))
+        else:
+            self.evaluate_observation = None
+            self.evaluate_observation_pdf = None
+            code = self.distribution.to_py()
+            self.full_code = "state['{}'] = {}.sample()".format(self.name, code)
+            self.full_code_pdf = self._get_cond_code("log_pdf += {}.log_pdf(state['{}'])".format(code, self.name))
+        self.line_number = line_number
+
+    def __repr__(self):
+        result = "{}:\n" \
+                 "\tAncestors: {}\n" \
+                 "\tDistribution: {}\n".format(self.name,
+                                               ', '.join(sorted([v.name for v in self.ancestors])),
+                                               repr(self.distribution))
+        if len(self.conditions) > 0:
+            result += "\tConditions: {}\n".format(', '.join(["{} == {}".format(c.name, v) for c, v in self.conditions]))
+        if self.observation is not None:
+            result += "\tObservation: {}\n".format(repr(self.observation))
+        if Options.debug:
+            result += "\tDependent Conditions: {}\n".format(', '.join(sorted([c.name for c in self.dependent_conditions])))
+            result += "\tDistr-Type: {}\n\tOriginal-Name: {}\n\tCode: {}\n\tSample-Size: {}\n".format(
+                self.distribution_type,
+                self.original_name if self.original_name else "-",
+                self.code,
+                self.sample_size
+            )
+            if self.support_size is not None:
+                result += "\tSupport-size: {}\n".format(self.support_size)
+            if self.line_number >= 0:
+                result += "\tLine: {}\n".format(self.line_number)
+        return result
+
+    def _add_dependent_condition(self, cond: ConditionNode):
+        self.dependent_conditions.add(cond)
+        for a in self.ancestors:
+            a._add_dependent_condition(cond)
+
+    @property
+    def get_all_ancestors(self):
+        result = []
+        for a in self.ancestors:
+            if a not in result:
+                result.append(a)
+                result += list(a.get_all_ancestors())
+        return set(result)
+
+    @property
+    def is_conditional(self):
+        return len(self.dependent_conditions) > 0
+
+    @property
+    def is_continuous(self):
+        return self.distribution_type == 'continuous'
+
+    @property
+    def is_discrete(self):
+        return self.distribution_type == 'discrete'
+
+    @property
+    def is_observed(self):
+        return self.observation is not None
+
+    @property
+    def is_sampled(self):
+        return self.observation is None
+
+    def update(self, state: dict):
+        try:
+            if self.evaluate_observation:
+                result = self.evaluate_observation(state)
+            else:
+                result = self.evaluate(state).sample()
+            state[self.name] = result
+            return result
+        except:
+            print("ERROR in {}:\n ".format(self.name), self.full_code)
+            raise
+
+    def update_pdf(self, state: dict):
+        try:
+            for cond, truth_value in self.conditions:
+                if state[cond.name] != truth_value:
+                    return 0.0
+
+            distr = self.evaluate(state)
+            if self.evaluate_observation_pdf is not None:
+                log_pdf = self.evaluate_observation_pdf(state, distr)
+            elif self.name in state:
+                log_pdf = distr.log_pdf(state[self.name])
+            else:
+                log_pdf = 0.0
+
+            state['log_pdf'] = state.get('log_pdf', 0.0) + log_pdf
+            return log_pdf
+        except:
+            print("ERROR in {}:\n ".format(self.name), self.full_code_pdf)
+            raise
+
+    def _get_cond_code(self, body:str):
+        conds = []
+        result = []
+        for cond, truth_value in self.conditions:
+            conds.append(cond.full_code)
+            result.append("state['{}'] == {}".format(cond.name, truth_value))
+        if len(result) > 0:
+            return "{}\nif {}:\n\t{}".format("\n".join(conds), " and ".join(result), body.replace("\n", "\n\t"))
+        else:
+            return body
+
+
+####################################################################################################
 
 class Graph(object):
     """
-    The graph models sampling and observations as nodes/vertices, and the functional relationship between these
-    stochastic variables as directed edges/arcs. The shape of the graph is therefore determined by the fields
-    `vertices` and `arcs`, respectively. The vertices are names stored as strings, whereas the arcs are stored
-    as tuples of names.
-
-    For each vertex `x`, the Python code to compute the vertex' value is stored in the field `conditional_densities`.
-    That is, `conditional_densities[x]` contains the Python code necessary to generate the correct value for `x`,
-    possibly with dependencies on other vertices (as indicated by the arcs).
-
-    Observed values are stored in the field `observed_values`. If the vertex `x` has been observed to have value `1`,
-    this value is stored as `observed_values[x]`.
-
-    The graph constructs three additional sets of unobserved values: `cont_vars` for values samples from a continuous
-    distribution, `disc_vars` for values samples from a discrete distribution, and `cond_vars` for vertices, which
-    occur as part of conditional execution (`if`-expressions/statements).
-
-    In order to assist the compilation process, the graph records some additional information as follows:
-    - `observed_conditions` indicates for observed values the condition under which it is actually observed,
-    - `original_names` is a mapping from internal names to the variable names used in the original script,
-    - `conditional_functions` maps conditional values (`True`/`False`) to their functions, i.e., for `c = f >= 0`
-      we map `c -> f`,
-    - `used_functions` is set that records all functions used inside the code, which have not been recognized by
-      the compiler. These functions need to be provided by other means to the model/Python code.
-    - `distribution_sizes` keeps a record of the "size" various distributions in the code have.
-
-    Graphs are thought to be immutable objects. Use a `GraphBuilder` to create and modify new graphs. There are some
-    exceptions, though: the compiler might have to add a specific value or mapping to a newly created graph. That is
-    why you will find some `add_XXX`-methods. They should, however, be used with caution and only in controlled ways.
-
-    Example:
-        ```python
-        (let [x (sample (categorical 0 1))
-              y (if (>= x 0)
-                    (sample(normal(mu=1, sigma=0.25)))
-                    (sample(normal(mu=2, sigma=0.5)))]
-          (observe (normal (y 1)) 1.5))
-        ```
-        This code gives raise to the graph:
-        ```
-        Vertices:
-        'x', 'y', 'y_1', 'y_2', 'y_cond', 'z'
-        Arcs:
-        (x, y_cond), (y_1, y), (y_2, y), (y, z)
-        Conditional densities:
-        x      -> categorical(0, 1)
-        y_1    -> normal(mu = 1, sigma = 0.25)
-        y_2    -> normal(mu = 2, sigma = 0.5)
-        y_cond -> x >= 0
-        y      -> y_1 if y_cond else y_2
-        z      -> normal(mu = y, sigma = 1)
-        Observed values:
-        z      -> 1.5
-        Discrete vars:
-        x
-        Continuous vars:
-        y_1, y_2
-        Conditional vars:
-        y_cond
-        ```
+    The graph is mostly a set of vertices, and it is used in order to create the graphical model inside the compiler.
     """
 
-    def __init__(self, vertices: set, arcs: set, cond_densities: dict = None, obs_values: dict = None):
-        if cond_densities is None:
-            cond_densities = {}
-        if obs_values is None:
-            obs_values = {}
+    EMPTY = None
+
+    def __init__(self, vertices:set, data:set=None):
+        if data is None:
+            data = set()
+        arcs = []
+        conditions = []
+        for v in vertices:
+            for a in v.ancestors:
+                arcs.append((a, v))
+            for c, _ in v.conditions:
+                conditions.append(c)
         self.vertices = vertices
-        self.arcs = arcs
-        self.conditional_densities = cond_densities
-        self.observed_values = obs_values
-        self.observed_conditions = {}
-        self.original_names = {}
-        self.conditional_functions = {}
-        observed = self.observed_values.keys()
-        f = lambda x: (x[5:x.index('(')] if x.startswith('dist') and '(' in x else x)
-        self.cont_vars = set(n for n in vertices
-                                if n in cond_densities
-                                if n not in observed
-                                if f(cond_densities[n]) in continuous_distributions)
-        self.disc_vars = set(n for n in vertices
-                                if n in cond_densities
-                                if n not in observed
-                                if f(cond_densities[n]) in discrete_distributions)
-        self.cond_vars = set(n for n in vertices
-                                if n in cond_densities
-                                if n.startswith('cond'))
-        self.used_functions = set()
-        self.distribution_sizes = {}
-        self.EMPTY = None
+        self.data = data
+        self.arcs = set(arcs)
+        self.conditions = set(conditions)
 
     def __repr__(self):
-        cond = self.conditional_densities
-        obs = self.observed_values
-        C_ = "\n".join(["  {} -> {}".format(v, cond[v]) for v in cond])
-        O_ = "\n".join(["  {} -> {}".format(v, obs[v]) for v in obs])
-        V = "Vertices V:\n  " + ', '.join(sorted(self.vertices))
-        A = "Arcs A:\n  " + ', '.join(['({}, {})'.format(u, v) for (u, v) in self.arcs])
-        C = "Conditional densities C:\n" + C_
-        O = "Observed values O:\n" + O_
-        return "\n".join([V, A, C, O])
+        if len(self.vertices) == 0 and len(self.data) == 0 and len(self.conditions) == 0:
+            return "<Graph.EMPTY>"
+        V = '  '.join(sorted([repr(v) for v in self.vertices]))
+        A = ', '.join(['({}, {})'.format(u.name, v.name) for (u, v) in self.arcs]) if len(self.arcs) > 0 else "-"
+        C = '\n  '.join(sorted([repr(v) for v in self.conditions])) if len(self.conditions) > 0 else "-"
+        D = '\n  '.join([repr(u) for u in self.data]) if len(self.data) > 0 else "-"
+        return "Vertices V:\n  {V}\nArcs A:\n  {A}\n\nConditions C:\n  {C}\n\nData D:\n  {D}\n".format(V=V, A=A, C=C, D=D)
 
     @property
     def is_empty(self):
         """
         Returns `True` if the graph is empty (contains no vertices).
         """
-        return len(self.vertices) == 0 and len(self.arcs) == 0
+        return len(self.vertices) == 0
 
     def merge(self, other):
         """
@@ -137,268 +501,73 @@ class Graph(object):
         :param other: The second graph to merge with the current one.
         :return:      A new graph-object.
         """
-        V = set.union(self.vertices, other.vertices)
-        A = set.union(self.arcs, other.arcs)
-        C = {**self.conditional_densities, **other.conditional_densities}
-        O = {**self.observed_values, **other.observed_values}
-        G = Graph(V, A, C, O)
-        G.cont_vars = set.union(self.cont_vars, other.cont_vars)
-        G.disc_vars = set.union(self.disc_vars, other.disc_vars)
-        G.cond_vars = set.union(self.cond_vars, other.cond_vars)
-        G.observed_conditions = {**self.observed_conditions, **other.observed_conditions}
-        G.original_names = {**self.original_names, **other.original_names}
-        G.conditional_functions = {**self.conditional_functions, **other.conditional_functions}
-        G.used_functions = set.union(self.used_functions, other.used_functions)
-        G.distribution_sizes = {**self.distribution_sizes, **other.distribution_sizes}
-        return G
-
-    def add_condition_for_observation(self, obs: str, cond: str):
-        if obs in self.observed_conditions:
-            self.observed_conditions[obs] += " and {}".format(cond)
+        if other:
+            return Graph(set.union(self.vertices, other.vertices), set.union(self.data, other.data))
         else:
-            self.observed_conditions[obs] = cond
+            return self
 
-    def add_condition(self, cond):
-        if cond:
-            for obs in self.observed_values.keys():
-                self.add_condition_for_observation(obs, cond)
-        return self
-
-    def add_distribution_size(self, name, size):
-        self.distribution_sizes[name] = size
-
-    def add_original_name(self, original_name, new_name):
-        self.original_names[new_name] = original_name
-
-    def add_conditional_function(self, cond_name, function_name):
-        self.conditional_functions[cond_name] = function_name
-
-    def add_used_function(self, name):
-        self.used_functions.add(name)
-
-    def get_code_for_variable(self, var_name: str):
-        if var_name in self.conditional_densities:
-            source = self.conditional_densities[var_name]
-        elif var_name in self.observed_values:
-            source = self.observed_values[var_name]
-        else:
-            source = "???"
-        return "{source}".format(var_name=var_name, source=source)
-
-    def is_observed_variable(self, var_name: str):
-        return var_name in self.observed_values
-
-    @property
-    def not_observed_variables(self):
-        V = self.vertices
-        return V.difference(set(self.observed_values.keys()))
-
-    @property
-    def sampled_variables(self):
-        V = self.vertices
-        V = V.difference(set(self.observed_values.keys()))
-        return {v for v in V if self.get_code_for_variable(v).startswith("dist.")}
-
-    @property
-    def sorted_edges_by_parent(self):
-        result = {u: [] for u in self.vertices}
-        for (u, v) in self.arcs:
-            if u in result:
-                result[u].append(v)
-            else:
-                result[u] = [v]
-        return {key: set(result[key]) for key in result}
-
-    @property
-    def sorted_edges_by_child(self):
-        result = { u: [] for u in self.vertices }
-        for (u, v) in self.arcs:
-            if v in result:
-                result[v].append(u)
-            else:
-                result[v] = [u]
-        return {key: set(result[key]) for key in result}
-
-    def get_parents_of_node(self, var_name):
-        edges = self.sorted_edges_by_child
-        if var_name in edges:
-            return edges[var_name]
-        else:
-            return set()
-
-    def get_all_parents_of_node(self, var_name):
-        edges = self.sorted_edges_by_child
-        if var_name in edges:
-            result = list(edges[var_name])
-            i = 0
-            while i < len(result):
-                node = result[i]
-                if node in edges:
-                    for e in edges[node]:
-                        if e not in result:
-                            result.append(e)
-                i += 1
-            return set(result)
-        else:
-            return set()
-
-    @property
-    def sorted_var_list(self):
+    def get_vertex_for_distribution(self, distribution):
         """
-        The list of all variables, sorted so that each vertex in the sequence only depends on vertices occurring
-        earlier in the sequence.
-        """
-        edges = self.sorted_edges_by_child.copy()
-        changed = True
-        while changed:
-            changed = False
-            for u in edges:
-                w = edges[u]
-                for v in edges[u]:
-                    if not edges[v].issubset(w):
-                        w = w.union(edges[v])
-                        changed = True
-                edges[u] = w
+        Returns the vertex that has the specified distribution or `None`, if no such vertex exists.
 
+        :param distribution:  The distribution as a `CodeObject`.
+        :return:              Either a `Vertex` or `None`.
+        """
+        for v in self.vertices:
+            if v.distribution == distribution:
+                return v
+        return None
+
+    def get_ordered_list_of_all_nodes(self):
+        """
+        Returns the list of all nodes (conditionals, vertices, data, ...), sorted by the index in their generated
+        name, which is to say: sorted by the order of their creation. Since each node can only depend on nodes
+        created before, we get a valid order for computations.
+
+        Used by the method `create_model`.
+
+        :return:     A list of nodes.
+        """
+        def extract_number(s):
+            result = 0
+            for c in s:
+                if '0' <= c <= '9':
+                    result = result * 10 + ord(c) - ord('0')
+            return result
+
+        nodes = {}
+        for v in self.vertices:
+            nodes[extract_number(v.name)] = v
+        for d in self.data:
+            nodes[extract_number(d.name)] = d
+        for c in self.conditions:
+            nodes[extract_number(c.name)] = c
         result = []
-        f = lambda s: int(''.join([x for x in s if '0' <= x <= '9']))
-        while len(edges) > 0:
-            batch = []
-            keys = list(edges.keys())
-            for u in keys:
-                if len(edges[u]) == 0:
-                    del edges[u]
-                    batch.append(u)
-            result += sorted(batch, key=f)
-            batch = set(batch)
-            for u in edges:
-                edges[u] = edges[u].difference(batch)
+        for key in sorted(nodes.keys()):
+            result.append(nodes[key])
         return result
 
-    @property
-    def if_vars(self):
-        result = set()
-        for cond in self.cond_vars:
-            ancestors = self.get_all_parents_of_node(cond)
-            ancestors = ancestors.difference(self.disc_vars)
-            result = result.union(ancestors)
-        return result
+    def create_model(self, *, result_expr=None):
+        """
+        Creates a new model from the present graph. Note that the list of nodes is only a shallow copy. Hence, if you
+        were to change any data inside a node of this graph, it will also affect all models created.
 
-    def get_conditional_functions(self):
-        result = []
-        for name in self.conditional_functions:
-            target = self.conditional_functions[name]
-            if not target.startswith("lambda "):
-                target = repr(target)
-            result.append("'{}': {}".format(name, target))
-        if len(result) > 0:
-            return "{{\n  {}\n}}".format(',\n  '.join(result))
+        :return:  A new instance of `Model` (`foppl_model`).
+        """
+        from .foppl_model import Model
+        compute_nodes = self.get_ordered_list_of_all_nodes()
+        if result_expr is not None:
+            if hasattr(result_expr, 'to_py'):
+                result_expr = result_expr.to_py()
+            result_function = eval(_LAMBDA_PATTERN_.format(result_expr))
         else:
-            return "{}"
-
-    def get_continuous_distributions(self):
-        result = []
-        for name in self.cont_vars:
-            code = self.get_code_for_variable(name)
-            if code.startswith("dist."):
-                code = code[5:]
-                i = 0
-                while i < len(code) and ('A' <= code[i] <= 'Z' or 'a' <= code[i] <= 'z'):
-                    i += 1
-                result.append("'{}': '{}'".format(name, code[:i]))
-        if len(result) > 0:
-            return "{{\n  {}\n}}".format(',\n  '.join(result))
-        else:
-            return "{}"
-
-    def get_discrete_distributions(self):
-        result = []
-        for name in self.disc_vars:
-            code = self.get_code_for_variable(name)
-            if code.startswith("dist."):
-                code = code[5:]
-                i = 0
-                while i < len(code) and ('A' <= code[i] <= 'Z' or 'a' <= code[i] <= 'z'):
-                    i += 1
-                result.append("'{}': '{}'".format(name, code[:i]))
-        if len(result) > 0:
-            return "{{\n  {}\n}}".format(',\n  '.join(result))
-        else:
-            return "{}"
-
-    def get_distribution_sizes(self):
-        if len(self.distribution_sizes) > 0:
-            result = []
-            for name in self.distribution_sizes:
-                result.append("'{}': {}".format(name, self.distribution_sizes[name]))
-            return "{{\n  {}\n}}".format(',\n  '.join(result))
-        else:
-            return "{}"
-
-    def draw_graph(self):
-        if nx and plt:
-            G = nx.DiGraph()
-            for v in self.vertices:
-                G.add_node(v)
-            for (u, v) in self.arcs:
-                G.add_edge(u, v)
-            try:
-                from networkx.drawing.nx_agraph import graphviz_layout
-                pos = graphviz_layout(G, prog='dot')
-            except ModuleNotFoundError:
-                from networkx.drawing.layout import shell_layout
-                pos = shell_layout(G)
-            plt.subplot(111)
-            plt.axis('off')
-            nx.draw_networkx_nodes(G, pos,
-                                   node_color='r', alpha=0.75,
-                                   nodelist=self.sampled_variables)
-            nx.draw_networkx_nodes(G, pos,
-                                   node_color='b', alpha=0.75,
-                                   nodelist=self.vertices.difference(self.sampled_variables))
-            nx.draw_networkx_edges(G, pos, arrows=False, width=0.5)
-            nx.draw_networkx_labels(G, pos)
-            plt.show()
-            return True
-        else:
-            return False
+            result_function = None
+        return Model(vertices=self.vertices, arcs=self.arcs, data=self.data,
+                     conditionals=self.conditions, compute_nodes=compute_nodes,
+                     result_function=result_function)
 
 
-class GraphBuilder(object):
-
-    def __init__(self):
-        self.vertices = []
-        self.arcs = []
-        self.conditional_densities = {}
-        self.observed_values = {}
-        self.cont_vars = []
-        self.disc_vars = []
-
-    def get_graph(self):
-        G = Graph(set(self.vertices), set(self.arcs), self.conditional_densities, self.observed_values)
-        G.cont_vars = set(self.cont_vars)
-        G.disc_vars = set(self.disc_vars)
-        return G
-
-    def add_var(self, name):
-        self.vertices.append(name)
-
-    def add_continuous_var(self, name):
-        self.vertices.append(name)
-        self.cont_vars.append(name)
-
-    def add_discrete_var(self, name):
-        self.vertices.append(name)
-        self.disc_vars.append(name)
-
-    def add_arc(self, arc):
-        self.arcs.append(arc)
-
-    def add_cond_densitiy(self, key, value):
-        self.conditional_densities[key] = value
-
-    def add_observed_value(self, key, value):
-        self.observed_values[key] = value
+Graph.EMPTY = Graph(vertices=set())
 
 
 def merge(*graphs):
@@ -406,5 +575,3 @@ def merge(*graphs):
     for g in graphs:
         result = result.merge(g)
     return result
-
-Graph.EMPTY = Graph(set(), set())

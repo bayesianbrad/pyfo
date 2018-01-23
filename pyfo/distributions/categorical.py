@@ -103,21 +103,15 @@ class Categorical(Distribution):
         x = VariableCast(x)
         batch_pdf_shape = self.batch_shape(x) + (1,)
         # probability tensor mask when data is numpy
-        if isinstance(x, np.ndarray):
-            batch_vs_size = x.shape[:-1] + (vs.shape[-1],)
-            vs = np.broadcast_to(vs, batch_vs_size)
-            boolean_mask = torch.from_numpy((vs == x).astype(int))
-        # probability tensor mask when data is pytorch tensor
-        else:
-            x = x.cuda(logits.get_device()) if logits.is_cuda else x.cpu()
-            batch_ps_shape = self.batch_shape(x) + logits.size()[-1:]
-            logits = logits.expand(batch_ps_shape)
+        x = x.cuda(logits.get_device()) if logits.is_cuda else x.cpu()
+        batch_ps_shape = self.batch_shape(x) + logits.size()[-1:]
+        logits = logits.expand(batch_ps_shape)
 
-            if vs is not None:
-                vs = vs.expand(batch_ps_shape)
-                boolean_mask = (vs == x)
-            else:
-                boolean_mask = torch_zeros_like(logits.data).scatter_(-1, x.data.long(), 1)
+        if vs is not None:
+            vs = vs.expand(batch_ps_shape)
+            boolean_mask = (vs == x)
+        else:
+            boolean_mask = torch_zeros_like(logits.data).scatter_(-1, x.data.long(), 1)
         boolean_mask = boolean_mask.cuda(logits.get_device()) if logits.is_cuda else boolean_mask.cpu()
         if not isinstance(boolean_mask, Variable):
             boolean_mask = Variable(boolean_mask)

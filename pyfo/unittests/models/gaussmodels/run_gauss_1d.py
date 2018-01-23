@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from pyfo.pyfoppl.foppl import imports
-import gauss_1d as test
+import if_1d as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 from pyfo.utils.eval_stats import *
-print(test.code)
+# print(test.code)
 dhmc_ = dhmc(test)
 burn_in = 10 ** 1
 n_sample = 10 ** 3

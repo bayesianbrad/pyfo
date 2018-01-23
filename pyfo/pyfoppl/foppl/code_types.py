@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 17. Jan 2018, Tobias Kohn
+# 22. Jan 2018, Tobias Kohn
 #
 class AnyType(object):
 
@@ -38,6 +38,8 @@ class AnyType(object):
     def union(self, other):
         cls1 = self.__class__
         cls2 = other.__class__
+        if issubclass(cls1, cls2): return self
+        if issubclass(cls2, cls1): return other
         while cls1 is not AnyType and cls2 is not AnyType:
             if issubclass(cls1, cls2):
                 return cls2()
@@ -46,6 +48,9 @@ class AnyType(object):
             cls1 = cls1.__base__
             cls2 = cls2.__base__
         return AnyType()
+
+    def dimension(self):
+        return 0
 
 def __instantiate__(tp):
     if type(tp) is list:
@@ -57,7 +62,19 @@ def __instantiate__(tp):
     else:
         raise TypeError("'{}' is not a valid type".format(repr(tp)))
 
+
 AnyType.__singleton__ = AnyType()
+
+
+def union(*types):
+    if len(types) > 0:
+        result = types[0]
+        for t in types[1:]:
+            result = result.union(t)
+        return result
+    else:
+        return AnyType()
+
 
 ######### BASE CLASSES #########
 
@@ -123,6 +140,16 @@ class SequenceType(AnyType):
             else:
                 return SequenceType(item_type, size)
         return super(SequenceType, self).union(other)
+
+    def dimension(self):
+        d = self.item_type.dimension()
+        if type(d) is tuple:
+            return (self.size, *d)
+        elif d > 0:
+            return (self.size, d)
+        else:
+            return self.size
+
 
 class TupleType(AnyType):
     pass
@@ -275,9 +302,11 @@ def apply_binary(type1: AnyType, op: str, type2: AnyType):
 
 def get_code_type_for_value(value):
     t = type(value)
-    if t in __primitive_types:
+    if value is None:
+        return NullType()
+    elif t in __primitive_types:
         return __primitive_types[t]()
-    if type(t) is list:
+    elif t is list:
         return ListType.fromList([get_code_type_for_value(v) for v in value])
     return AnyType()
 

@@ -3,6 +3,9 @@
       x3 (+ x1 x2)]
   (if (> x3 0)
     (observe (normal 1 1) 1)
+    (if (> x3 2)
+      (observe (normal 1 3))
+      (observe (gamma 2 4)))
     (observe (normal -1 1) 1)
 ;  (let [x3 (sample (normal 0 5))
 ;        b  (- x1 x3)]

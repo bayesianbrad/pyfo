@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import torch
 import copy
+from torch.autograd import Variable
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
@@ -32,7 +33,7 @@ from pyfo.utils.eval_stats import extract_stats
 from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
 
-class DHMCSampler(object):
+class BHMCSampler(object):
     """
     In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
@@ -60,11 +61,7 @@ class DHMCSampler(object):
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         self._cond_keys = self._state._return_cond_list()
-
-        ################
-        # Do not exist in state yet
-        self._if_disc_keys = self._state._return_if_disc_list()
-        self._if_cont_keys = self._state._return_if_cont_list()
+        self._if_cont_keys = self._state._return_if_list()
         ##################
         self._all_keys = self._state._return_all_list()
 
@@ -73,13 +70,9 @@ class DHMCSampler(object):
 
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0
-        # self.n_disc = len(self._disc_keys)
-        # self.n_cont = len(self._cont_keys)
-        # self.n_params =  self.n_disc + self.n_cont
         self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
 
         self.log_posterior = self._state._log_pdf  # returns a function that is the current state as argument
-        # self.logp_update = self._state._log_pdf_update # returns a function ; not currently used 10:50 14th Dec.
 
     def random_momentum(self, branch_trig=False):
         """
@@ -90,10 +83,10 @@ class DHMCSampler(object):
         p = {}
         if self._disc_keys is not None:
             for key in self._disc_keys:
-                p[key] = self.M * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
+                p[key] = self.M * VariableCast(np.random.laplace(size=1))  # in the future add support for multiple dims
         if self._cont_keys is not None:
             for key in self._cont_keys:
-                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
+                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]), torch.FloatTensor([1])))
                 # TODO in the future make for multiple dims
         if branch_trig:
             for key in self._if_keys:
@@ -133,8 +126,7 @@ class DHMCSampler(object):
         else:
             p[key] = -p[key]
             return x_embed[key],p[key], 0
-
-    def append_keys(self, if_cont= False,if_disc=False ):
+    def append_keys(self, if_cont=False, if_disc=False):
         if if_cont:
             if self._if_cont_keys is not None:
                 if self._cont_keys is not None:
@@ -165,7 +157,7 @@ class DHMCSampler(object):
         n_feval = 0
         n_fupdate = 0
 
-        #performs shallow copy
+        # performs shallow copy
         x = copy.copy(x0)
         p = copy.copy(p0)
 
@@ -176,15 +168,15 @@ class DHMCSampler(object):
         if self._cont_keys is not None:
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
-                p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
+                p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
 
 
         if self._disc_keys is None and self._if_keys is None:
             for key in self._cont_keys:
-                x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
+                x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
-                p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
+                p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
             return x, p, n_feval, n_fupdate, 0
 
         else:
@@ -193,7 +185,7 @@ class DHMCSampler(object):
                 permuted_keys_list = permuted_keys_list + self._disc_keys
             if self._if_keys is not None:
                 permuted_keys_list = permuted_keys_list + self._if_keys
-            permuted_keys = permutations(permuted_keys_list,1)
+            permuted_keys = permutations(permuted_keys_list, 1)
             # permutates all keys into one permutated config. It deletes in memory as each key is called
             # returns a tuple ('key', []), hence to call 'key' requires [0] index.
 
@@ -206,21 +198,21 @@ class DHMCSampler(object):
                 #       'print the permuted_key : {0} \n'
                 #       'and key[0]: {1}'.format(key, key[0]))
                 if self._if_keys is not None and key[0] in self._if_keys:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=False)
+                    x[key[0]], p[key[0]], _ = self.coordInt(x, x_embed, p, stepsize, key[0], unembed=False)
                 else:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=True)
+                    x[key[0]], p[key[0]], _ = self.coordInt(x, x_embed, p, stepsize, key[0], unembed=True)
                 if math.isinf(_):
                     return x0, p, n_feval, n_fupdate, _
             n_fupdate += 1
 
             if self._cont_keys is not None:
                 for key in self._cont_keys:
-                    x[key] = x[key] + 0.5 * stepsize * self.M * p[key] # final half step for position
+                    x[key] = x[key] + 0.5 * stepsize * self.M * p[key]  # final half step for position
 
             if self._cont_keys is not None:
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
-                    p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp, x[key]) # final half step for momentum
+                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])  # final half step for momentum
                 n_feval += 1
             return x, p, n_feval, n_fupdate, 0
 
@@ -331,8 +323,8 @@ class DHMCSampler(object):
         print(50*'=')
         print('Sampling has now been completed....')
         print(50*'=')
-
-        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns').astype(dtype='float')
+        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns', dtype=float)
+        all_samples = all_samples[self._state.all_vars]
         all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
         samples =  all_samples.loc[burn_in:, :]
@@ -348,7 +340,7 @@ class DHMCSampler(object):
         if plot:
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
-            self.model_graph.graph.draw_graph()
+            self.model_graph.display_graph()
         return stats
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):

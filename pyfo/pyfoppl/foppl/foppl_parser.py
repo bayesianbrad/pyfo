@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 17. Jan 2018, Tobias Kohn
+# 22. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -83,12 +83,12 @@ class ExprParser(object):
             if f.name == "sample":
                 if len(args) != 1:
                     raise SyntaxError("'sample' requires exactly one argument")
-                return AstSample(args[0])
+                return AstSample(args[0], line_number=form.line_number)
 
             elif f.name == "observe":
                 if len(args) != 2:
                     raise SyntaxError("'observe' requires exactly two arguments")
-                return AstObserve(args[0], args[1])
+                return AstObserve(args[0], args[1], line_number=form.line_number)
 
             elif f.name == "vector":
                 return self._parse(Vector(form.data[1:]))
@@ -111,15 +111,8 @@ class ExprParser(object):
             elif f.name == "apply":
                 return AstFunctionCall(self._parse(form[1]), self._parse(form[2:]))
 
-            # We need special treatment for the normal-distribution as in FOPPL, we provide sigma-squared as second
-            # parameter instead of sigma itself.
-            elif f.name == "normal":
-                if len(args) >= 2:
-                    args[1] = AstSqrt(args[1])
-                return AstDistribution(distribution_map[f.name], args)
-
             elif f.name in distribution_map:
-                return AstDistribution(distribution_map[f.name], args)
+                return AstDistribution(distribution_map[f.name], args, line_number=form.line_number)
 
             else:
                 return AstFunctionCall(f.name, args)
@@ -138,6 +131,31 @@ class ExprParser(object):
 
 
 class FunctionParser(ExprParser):
+
+    def _parse_bindings(self, bindings):
+        if len(bindings) % 2 != 0 or not isinstance(bindings, Vector):
+            raise SyntaxError('let bindings must be a vector with an even number of elements')
+        names = []
+        assignments = []
+        i = 0
+        while i < len(bindings):
+            name = bindings[i]  # get_name(bindings[i])
+            source = bindings[i + 1]
+            if isinstance(name, Vector):
+                part_names = [get_name(n) for n in name.data]
+                overall_name = '_'.join(part_names)
+                overall_name = "__" + overall_name
+                names.append(overall_name)
+                assignments.append((overall_name, self._parse(source)))
+                overall_name = AstSymbol(overall_name)
+                for j in range(len(part_names)):
+                    names.append(part_names[j])
+                    assignments.append((part_names[j], AstFunctionCall('get', [overall_name, AstValue(j)])))
+            else:
+                names.append(get_name(name))
+                assignments.append((name, self._parse(source)))
+            i += 2
+        return names, assignments
 
     def _parse_params(self, params):
         return params # [get_name(obj) for obj in params]
@@ -193,7 +211,36 @@ class Parser(object):
     class ForExpr(FunctionParser):
 
         def parse(self, form: Form):
-            raise NotImplemented("'for'-loop are not implemented, yet")
+            items = [self._parse(f) for f in form[2:]]
+            if len(items) == 1:
+                body = items[0]
+            else:
+                body = AstBody(items)
+            if isinstance(form[1], Vector) and len(form[1]) == 2 and isinstance(form[1][0], Vector):
+                _, assignments = self._parse_bindings(form[1])
+                target, source = assignments[0]
+                body = AstLet(assignments[1:], body)
+                return AstFor(target, source, body)
+            else:
+                _, assignments = self._parse_bindings(form[1])
+                while len(assignments) > 0:
+                    target, source = assignments.pop()
+                    body = AstFor(target, source, body)
+                return body
+
+    @_register(Symbol.MULTI_FOR)
+    class ForExpr(FunctionParser):
+
+        def parse(self, form: Form):
+            items = [self._parse(f) for f in form[2:]]
+            if len(items) == 1:
+                body = items[0]
+            else:
+                body = AstBody(items)
+            _, assignments = self._parse_bindings(form[1])
+            targets = [t for t, _ in assignments]
+            sources = [s for _, s in assignments]
+            return AstMultiFor(targets, sources, body)
 
     @_register(Symbol.IF)
     class IfExpr(ExprParser):
@@ -205,7 +252,7 @@ class Parser(object):
                 else_body = self._parse(form[3])
             else:
                 else_body = None
-            return AstIf(cond, if_body, else_body)
+            return AstIf(cond, if_body, else_body, line_number=form.line_number)
 
     @_register(Symbol.IF_NOT)
     class IfNotExpr(ExprParser):
@@ -223,31 +270,6 @@ class Parser(object):
 
     @_register(Symbol.LET)
     class LetExpr(FunctionParser):
-
-        def _parse_bindings(self, bindings):
-            if len(bindings) % 2 != 0 or not isinstance(bindings, Vector):
-                raise SyntaxError('let bindings must be a vector with an even number of elements')
-            names = []
-            assignments = []
-            i = 0
-            while i < len(bindings):
-                name = bindings[i] # get_name(bindings[i])
-                source = bindings[i+1]
-                if isinstance(name, Vector):
-                    part_names = [get_name(n) for n in name.data]
-                    overall_name = '_'.join(part_names)
-                    overall_name = "__" + overall_name
-                    names.append(overall_name)
-                    assignments.append((overall_name, self._parse(source)))
-                    overall_name = AstSymbol(overall_name)
-                    for j in range(len(part_names)):
-                        names.append(part_names[j])
-                        assignments.append((part_names[j], AstFunctionCall('get', [overall_name, AstValue(j)])))
-                else:
-                    names.append(get_name(name))
-                    assignments.append((name, self._parse(source)))
-                i += 2
-            return names, assignments
 
         def parse(self, form: Form):
             _, assignments = self._parse_bindings(form[1])
@@ -270,10 +292,10 @@ class Parser(object):
         def parse(self, form: Form):
             if len(form) >= 4:
                 iter_count = self._parse(form[1])
-                if isinstance(iter_count, AstValue):
-                    iter_count = iter_count.value
-                else:
-                    raise SyntaxError("you must provide a literal value for the number of iterations")
+                #if isinstance(iter_count, AstValue):
+                #    iter_count = iter_count.value
+                #else:
+                #    raise SyntaxError("you must provide a literal value for the number of iterations")
                 arg = self._parse(form[2])
                 function = self._parse(form[3])
                 args = [self._parse(a) for a in form[4:]]
@@ -313,6 +335,9 @@ class Parser(object):
 
         elif form_type is Symbol:
             return AstSymbol(form.name)
+
+        elif form_type is Value:
+            return AstValue(form.value)
 
         elif form_type in [Vector]:
             values = [self.parse(item) for item in form]

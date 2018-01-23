@@ -4,10 +4,11 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 17. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .foppl_objects import Symbol
+from .foppl_distributions import continuous_distributions, discrete_distributions
 
 def _has_second_argument(f):
     try:
@@ -128,13 +129,14 @@ class AstDef(Node):
 
 class AstDistribution(Node):
 
-    def __init__(self, name: str, args):
+    def __init__(self, name: str, args, line_number:int=-1):
         self.name = name
         self.args = args
         self.is_continuous = name.lower() in continuous_distributions
         self.is_discrete = name.lower() in discrete_distributions
         if self.is_continuous or self.is_discrete and name[0].islower():
             self.name = name[0].upper() + name[1:]
+        self.line_number = line_number
 
     def get_children(self):
         return self.args
@@ -176,7 +178,7 @@ class AstFor(Node):
         self.body = body
 
     def __repr__(self):
-        return "loop({} in {}: {})".format(self.target, repr(self.sequence), repr(self.body))
+        return "for({} in {}: {})".format(self.target, repr(self.sequence), repr(self.body))
 
 
 class AstFunction(Node):
@@ -204,9 +206,15 @@ class AstFunctionCall(Node):
     def walk(self, walker):
         name = self.function
         if type(name) is str:
-            method_name = "visit_call_" + name
+            method_name = "visit_call_" + name.replace('/', '_').replace('.', '_')
             if hasattr(walker, method_name):
                 return getattr(walker, method_name)(self)
+
+            if '/' in name:
+                method_name = "visit_call_{}_functions".format(name[:name.index('/')])
+                if hasattr(walker, method_name):
+                    return getattr(walker, method_name)(self)
+
         return super(AstFunctionCall, self).walk(walker)
 
     def __repr__(self):
@@ -215,10 +223,11 @@ class AstFunctionCall(Node):
 
 class AstIf(Node):
 
-    def __init__(self, cond: AstCompare, if_body, else_body):
+    def __init__(self, cond: AstCompare, if_body, else_body, line_number:int=-1):
         self.cond = cond
         self.if_body = if_body
         self.else_body = else_body
+        self.line_number = line_number
 
     def get_children(self):
         if self.else_body:
@@ -258,11 +267,23 @@ class AstLoop(Node):
         return "loop({}, {}, {})".format(self.iter_count, repr(self.arg), repr(self.function))
 
 
+class AstMultiFor(Node):
+
+    def __init__(self, targets, sources, body: Node):
+        self.targets = targets
+        self.sources = sources
+        self.body = body
+
+    def __repr__(self):
+        return "multi-for({} in {}: {})".format(repr(self.targets), repr(self.sources), repr(self.body))
+
+
 class AstObserve(Node):
 
-    def __init__(self, distribution: AstDistribution, value):
+    def __init__(self, distribution: AstDistribution, value, line_number:int=-1):
         self.distribution = distribution
         self.value = value
+        self.line_number = line_number
 
     def __repr__(self):
         return "observe({}, {})".format(repr(self.distribution), repr(self.value))
@@ -270,8 +291,9 @@ class AstObserve(Node):
 
 class AstSample(Node):
 
-    def __init__(self, distribution: AstDistribution):
+    def __init__(self, distribution: AstDistribution, line_number:int=-1):
         self.distribution = distribution
+        self.line_number = line_number
 
     def __repr__(self):
         return "sample({})".format(repr(self.distribution))

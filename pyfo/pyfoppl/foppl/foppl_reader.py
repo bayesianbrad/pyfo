@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 29. Nov 2017, Tobias Kohn
-# 07. Jan 2018, Tobias Kohn
+# 21. Jan 2018, Tobias Kohn
 #
 from .foppl_objects import *
 
@@ -215,11 +215,11 @@ class CharacterStream(object):
                 result += self.next()
 
             if result == 'true':
-                return Value(True)
+                result = Value(True)
             elif result == 'false':
-                return Value(False)
+                result = Value(False)
             elif result == 'nil':
-                return Value(None)
+                result = Value(None)
 
             return result
 
@@ -293,6 +293,7 @@ class Reader(object):
             return src.read_number()
 
         elif c in ['(', '[', '{']:
+            line_number = src.current_line()
             first_char = src.next()
             result = []
             while src.skip_space() not in [None, ')', ']', '}']:
@@ -302,12 +303,14 @@ class Reader(object):
                 src.next()
 
             if first_char == '(':
-                return Form(result)
+                result = Form(result)
             elif first_char == '[':
-                return Vector(result)
+                result = Vector(result)
             elif first_char == '{':
                 raise NotImplementedError()
-                # return Map(result)
+
+            result.line_number = line_number
+            return result
 
         elif c == '\'':
             return Form([Symbol.QUOTE, self.__next__()])
@@ -391,6 +394,9 @@ class Reader(object):
 
             elif type(result) is tuple:
                 return result[0]
+
+            elif type(result) is Value:
+                return result
 
         raise StopIteration()
 

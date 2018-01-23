@@ -4,8 +4,28 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 18. Jan 2018, Tobias Kohn
+# 20. Jan 2018, Tobias Kohn
 #
+distributions = {
+    "Bernoulli": "discrete",
+    "Binomial": "discrete",
+    "Categorical": "discrete",
+    "Discrete": "discrete",
+    "Multinomial": "discrete",
+    "Poisson": "discrete",
+
+    "Beta": "continuous",
+    "Cauchy": "continuous",
+    "Dirichlet": "continuous",
+    "Exponential": "continuous",
+    "Gamma": "continuous",
+    "HalfCauchy": "continuous",
+    "LogNormal": "continuous",
+    "MultivariateNormal": "continuous",
+    "Normal": "continuous",
+    "Uniform": "continuous"
+}
+
 discrete_distributions = {
     "Bernoulli",
     "Categorical",
@@ -30,6 +50,7 @@ continuous_distributions = {
 distribution_map = {
     "bernoulli": "Bernoulli",
     "beta": "Beta",
+    "binomial": "Binomial",
     "categorical": "Categorical",
     "cauchy": "Cauchy",
     "dirichlet": "Dirichlet",
@@ -47,6 +68,7 @@ distribution_map = {
 distribution_params = {
     "Bernoulli": ["ps"],
     "Beta": ["alpha", "beta"],
+    "Binomial": ["ps"],
     "Categorical": ["ps"],
     "Cauchy": ["mu", "gamma"],
     "Dirichlet": ["alpha"],
@@ -60,3 +82,6 @@ distribution_params = {
     "Poisson": ["lam"],
     "Uniform": ["a", "b"]
 }
+
+def get_arg_count(distr: str):
+    return len(distribution_params.get(distr, []))

@@ -10,8 +10,7 @@ License: MIT
 from pyfo.pyfoppl.foppl import imports
 import poisson as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
-from pyfo.utils.eval_stats import *
-print(test.code)
+
 dhmc_ = dhmc(test)
 
 burn_in = 10 ** 2

@@ -10,6 +10,7 @@ License: MIT
 import math
 import torch
 from pyfo.utils.core import VariableCast
+import time
 class Unembed():
     """
 
@@ -21,8 +22,8 @@ class Unembed():
     "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
 
     """
-    def __init__(self, dist_arg_size):
-        self.size = dist_arg_size
+    def __init__(self, support_sizes):
+        self._support_sizes = support_sizes
 
     def unembed_Poisson(self, state,key):
         """
@@ -45,9 +46,8 @@ class Unembed():
         :param state:
         :return:
         """
-        # print('Debug statement in Unembed.unembed.unembed_Categorical\n'
-        #       'Print self.size of disc parameter : {0} '.format(self.size(key)))
-        int_length = self.size(key)[0]
+        int_length = self._support_sizes[key]
+
         lower = VariableCast(-0.5)
         upper = VariableCast(int_length) + lower
 
