@@ -431,7 +431,6 @@ class Vertex(GraphNode):
             if self.evaluate_observation_pdf is not None:
                 log_pdf = self.evaluate_observation_pdf(state, distr)
             elif self.name in state:
-                print("This is inside the elif branch:  value of self.name {0} is {1}  ".format(self.name,state[self.name]))
                 log_pdf = distr.log_pdf(state[self.name])
             else:
                 log_pdf = 0.0
@@ -439,7 +438,6 @@ class Vertex(GraphNode):
             state['log_pdf'] = state.get('log_pdf', 0.0) + log_pdf
             return log_pdf
         except:
-            print("The value of self.name {0} is {1}  ".format(self.name, state[self.name]))
             print("ERROR in {}:\n ".format(self.name), self.full_code)
             raise
 

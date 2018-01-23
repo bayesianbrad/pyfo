@@ -2,6 +2,15 @@
 # -*- coding: utf-8 -*-
 '''
 Author: Bradley Gram-Hansen
+Time created:  23:07
+Date created:  17/01/2018
+
+License: MIT
+'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+'''
+Author: Bradley Gram-Hansen
 Time created:  11:08
 Date created:  08/12/2017
 
@@ -16,46 +25,42 @@ import numpy as np
 import pandas as pd
 import torch
 import copy
+from torch.autograd import Variable
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
 from pyfo.utils.eval_stats import extract_stats
 from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
-#TODO Complete this integrator
-class BHMCSampler(object):
+
+class DHMCSampler(object):
     """
     In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
     """
 
-    def __init__(self, cls, chains=1,  scale=None):
+    def __init__(self, object, chains=1,  scale=None):
 
         # Note for self:
         ## state is a class that contains a dictionary of the system.
         ## to get log_posterior and log_update call the methods on the
         ## state
-        # 2nd Note:
-        ## Rather than dealing with the 'indicies' of parameters we deal instead with the keys
-        # 3rd Note
-        ## When generating the mometum dictionary we need the discrete params to have their
-        ## momentum drawn from the laplacian, and the continuous params to be drawn from
-        ## gaussian
-        #4 TH NOTE
-        ## Need to deal with a M matrix. I may  just set it to 1 everywhere, inferring the identity.
+        # Note:
+        ## Need to deal with a M matrix. Using the identity matrix for now.
 
-        self.model =cls() # instantiates model
-        self._state = state.State(cls)
+        self.model_graph =object.model # i graphical model object
+        self._state = state.State(self.model_graph)
 
+        ## Debugging:::
+        #####
+        self._state.debug()
         # Parameter keys
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         self._cond_keys = self._state._return_cond_list()
         self._if_keys = self._state._return_if_list()
-        self._all_keys = self._state._return_all_list()
-
         # True latent variable names
-        self._names = self._state._return_true_names()
+        self._names = self._state.get_original_names()
 
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0
@@ -86,7 +91,7 @@ class BHMCSampler(object):
                 p[key] = self.M * VariableCast(np.random.laplace(size=1))
         return p
 
-    def coordInt(self,x,p,stepsize,key):
+    def coordInt(self,x,x_embed,p,stepsize,key, unembed=False):
         """
         Performs the coordinate wise update. The permutation is done before the
         variables are executed within the function.
@@ -95,19 +100,28 @@ class BHMCSampler(object):
         :param p: Dict of state of momentum
         :param stepsize: Float
         :param key: unique parameter String
+        :param unembed: type: bool If if statement which is continous, in the models we currently run, it will not
+         need to be embedded. # TODO in the future if_keys may be discrete and will need embedding.
+         To resolve this issue add another check before calling the coordinate wise integrator, to see if the key exists
+         in the self._if_cont_vars or self._if_disc_vars
         :return: Updated x and p indicies
         """
 
         x_star = copy.copy(x)
         x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key]) # Need to change M here again
-        logp_diff = self.log_posterior(x_star, set_leafs=False) - self.log_posterior(x, set_leafs=False)
+        x_star_embed = copy.copy(x_star)
+        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
+        # If the discrete parameter is outside of the support, returns -inf and breaks loop and integrator.
+        if math.isinf(logp_diff.data[0]):
+            return x[key], p[key], logp_diff.data[0]
+
         cond = torch.gt(self.M*torch.abs(p[key]),-logp_diff)
         if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
-            return x_star[key], p[key]
+            return x_star_embed[key], p[key], 0
         else:
             p[key] = -p[key]
-            return x[key],p[key]
+            return x_embed[key],p[key], 0
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize, aux= None):
         """
@@ -142,7 +156,7 @@ class BHMCSampler(object):
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_keys:
                 p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
-            return x, p, n_feval, n_fupdate
+            return x, p, n_feval, n_fupdate, 0
 
         else:
             permuted_keys_list = []
@@ -157,15 +171,17 @@ class BHMCSampler(object):
             if self._cont_keys is not None:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
-                logp = self.log_posterior(x, set_leafs=True)
-
-            # Uncomment this statement when correct transforms have
-            # been impleemnted.
-            # if math.isinf(logp):
-            #     return x, p, n_feval, n_fupdate
-
+            x_embed = copy.copy(x)
             for key in permuted_keys:
-                x[key[0]], p[key[0]] = self.coordInt(x, p, stepsize, key[0])
+                # print('Debug statement in dhmc.gauss_leapfrog() \n'
+                #       'print the permuted_key : {0} \n'
+                #       'and key[0]: {1}'.format(key, key[0]))
+                if self._if_keys is not None and key[0] in self._if_keys:
+                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=False)
+                else:
+                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=True)
+                if math.isinf(_):
+                    return x0, p, n_feval, n_fupdate, _
             n_fupdate += 1
 
             if self._cont_keys is not None:
@@ -177,7 +193,7 @@ class BHMCSampler(object):
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp, x[key]) # final half step for momentum
                 n_feval += 1
-            return x, p, n_feval, n_fupdate
+            return x, p, n_feval, n_fupdate, 0
 
     def _energy(self, x, p):
         """
@@ -219,10 +235,11 @@ class BHMCSampler(object):
         intial_energy = self._energy(x0,p)
         n_feval = 0
         n_fupdate = 0
-        x, p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x0,p,stepsize)
-        for i in range(n_step-1):
-            # may have to add inf statement see original code
-            x,p, n_feval_local, n_fupdate_local = self.gauss_laplace_leapfrog(x,p,stepsize)
+        x = copy.copy(x0)
+        for i in range(n_step):
+            x,p, n_feval_local, n_fupdate_local, _ = self.gauss_laplace_leapfrog(x,p,stepsize)
+            if math.isinf(_):
+                break
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
 
@@ -233,7 +250,7 @@ class BHMCSampler(object):
             x = x0
 
         return x, acceptprob[0], n_feval, n_fupdate
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range = [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, save_samples=False, plot_burnin=False, plot_ac=False):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         # Note currently not doing anything with burn in
 
         if seed is not None:
@@ -256,10 +273,14 @@ class BHMCSampler(object):
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
+            # TODO I should apply an unembed function here too!
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
             accept.append(accept_prob)
-            x_numpy = copy.copy(x)
+            x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
+            #  using the whole dataframe series. It will require processing a whole byte vector
+            if i == 60:
+                print('Debug statement')
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
                 print('{:d} iterations have been completed.'.format(i + 1))
@@ -267,32 +288,40 @@ class BHMCSampler(object):
         time_elapsed = toc - tic
         n_feval_per_itr = n_feval / (n_samples + burn_in)
         n_fupdate_per_itr = n_fupdate / (n_samples + burn_in)
-        # if self._disc_keys or self._if_keys is not None:
-        #     print('Each iteration of DHMC on average required '
-        #         + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keysgit s))
-        #         + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+        if self._disc_keys is not None and self._if_keys is not None:
+            print('Each iteration of DHMC on average required '
+                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / (len(self._disc_keys)+ len(self._if_keys)))
+                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+        if self._disc_keys is None and self._if_keys is not None:
+            print('Each iteration of DHMC on average required '
+                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._if_keys))
+                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+        if self._disc_keys is not None and self._if_keys is None:
+            print('Each iteration of DHMC on average required '
+                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
+                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
 
-
-
-        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns').astype(dtype='float')
-        all_samples.rename(columns=self._names, inplace=True)
-
-        samples =  all_samples.loc[burn_in:, :]
-        # here, names.values() are the true keys
         print(50*'=')
         print('Sampling has now been completed....')
         print(50*'=')
+        all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns', dtype=float)
+        all_samples = all_samples[self._state.all_vars]
+        all_samples.rename(columns=self._names, inplace=True)
+        # here, names.values() are the true keys
+        samples =  all_samples.loc[burn_in:, :]
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples), 'stats_wo_burnin': extract_stats(all_samples), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
+        stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
         if print_stats:
             print(stats['stats'])
+            print('The acceptance ratio is: {0}'.format(stats['accept_prob']))
         if save_samples:
             save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
         if plot:
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
-
+        if plot_graphmodel:
+            self.model_graph.display_graph()
         return stats
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):

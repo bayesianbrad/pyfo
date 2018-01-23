@@ -45,10 +45,11 @@ class Unembed():
         :param state:
         :return:
         """
-        print('Debug statement in Unembed.unembed.unembed_Categorical\n'
-              'Print self.size of disc parameter : {0} '.format(self.size(key)))
+        # print('Debug statement in Unembed.unembed.unembed_Categorical\n'
+        #       'Print self.size of disc parameter : {0} '.format(self.size(key)))
 
         int_length = self._vertices[key].support_size
+
         lower = VariableCast(-0.5)
         upper = VariableCast(int_length) + lower
 

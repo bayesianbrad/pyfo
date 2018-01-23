@@ -11,7 +11,7 @@ n_sample = 100
 stepsize_range = [0.03,0.15]
 n_step_range = [1, 4]
 
-stats = dhmc_.sample(n_samples=n_sample,burn_in=burn_in,stepsize_range=stepsize_range,n_step_range=n_step_range,seed=123,plot=True, print_stats=True, save_samples=True)
+stats = dhmc_.sample(n_samples=n_sample,burn_in=burn_in,stepsize_range=stepsize_range,n_step_range=n_step_range,plot=True, print_stats=True, save_samples=True)
 
 samples =  stats['samples']
 all_samples = stats['samples_wo_burin'] # type, panda dataframe
