@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 ##
 # 19. Dec 2017, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 from . import test_distributions
 
@@ -25,6 +25,11 @@ class Options(object):
 
     `debug`:
         Print out additional information, e. g., about the nodes in the graph.
+
+    `devectorize`
+        When set to `True`, the compiler tries to unpack all vectors and lists and apply the operations on
+        scalars only. When set to `False`, the compiler will leave vectors and try to avoid unpacking any
+        of them.
     """
 
     eager_conditionals = True
@@ -33,7 +38,11 @@ class Options(object):
 
     conditional_suffix = '.data[0]'
 
-    debug = False
+    debug =True
+
+    devectorize = False
+
+    log_model = None
 
 
 # Stubs to make the Python-IDE happy

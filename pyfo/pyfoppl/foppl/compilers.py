@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 import math
 from . import foppl_objects
@@ -163,7 +163,27 @@ class Compiler(Walker):
                 graph, expr = value
             if isinstance(expr, CodeSample):
                 v = graph.get_vertex_for_distribution(expr.distribution)
-                if v: v.original_name = name
+                if v and v.original_name is None:
+                    v.original_name = name
+
+            elif isinstance(expr, CodeVector):
+                for i in range(len(expr.items)):
+                    item = expr.items[i]
+                    if isinstance(item, CodeSample):
+                        v = graph.get_vertex_for_distribution(item.distribution)
+                        if v and (v.original_name is None or '_' not in v.original_name):
+                            v.original_name = "{}_{}".format(name, i)
+
+                if all([isinstance(item, CodeVector) for item in expr.items]):
+                    for i in range(len(expr.items)):
+                        vec_items = expr.items[i].items
+                        for j in range(len(vec_items)):
+                            item = vec_items[j]
+                            if isinstance(item, CodeSample):
+                                v = graph.get_vertex_for_distribution(item.distribution)
+                                if v and (v.original_name is None or '_' not in v.original_name):
+                                    v.original_name = "{}_{}_{}".format(name, i, j)
+
             self.scope.add_symbol(name, (graph, expr))
 
     def resolve_function(self, name):
