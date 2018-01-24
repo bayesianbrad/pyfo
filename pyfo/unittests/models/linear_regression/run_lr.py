@@ -11,7 +11,7 @@ from pyfo.pyfoppl.foppl import imports
 import lr as test
 
 
-print(test.code)
+# print(test.code)
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
