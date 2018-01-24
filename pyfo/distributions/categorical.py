@@ -33,11 +33,11 @@ class Categorical(TorchDistribution):
         probs (Tensor or Variable): event probabilities
         logits (Tensor or Variable): event log probabilities
     """
-    def __init__(self, total_count=1, probs=None, logits=None):
+    def __init__(self, probs=None, logits=None):
         self.probs = vc(probs)
         self.logits = vc(logits)
         self._param = self.probs if probs is not None else self.logits
-        torch_dist = torch.distributions.Categorical(total_count=self.total_count, probs=self._param, logits=self.logits)
+        torch_dist = torch.distributions.Categorical(probs=self._param, logits=self.logits)
         super(Categorical, self).__init__(torch_dist)
 
 

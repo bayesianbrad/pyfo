@@ -20,7 +20,7 @@ class Gamma(TorchDistribution):
         df2 (float or Tensor or Variable): degrees of freedom parameter 2
     """
     def __init__(self, alpha, beta):
-        self.df1 = vc(alpha)
-        self.df2 = vc(beta)
+        self.alpha = vc(alpha)
+        self.beta= vc(beta)
         torch_dist = torch.distributions.Gamma(concentration=self.alpha, rate=self.beta)
         super(Gamma, self).__init__(torch_dist)

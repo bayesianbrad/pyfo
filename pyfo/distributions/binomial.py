@@ -1,10 +1,9 @@
 import torch
-from torch.autograd import Variable
-
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
 from pyfo.utils.core import VariableCast
 
 
-class Binomial(Distribution):
+class Binomial(TorchDistribution):
     r"""
     Creates a Binomial distribution parameterized by `total_count` and
     either `probs` or `logits` (but not both).

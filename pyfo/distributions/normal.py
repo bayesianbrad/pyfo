@@ -23,6 +23,6 @@ class Normal(TorchDistribution):
     """
     def __init__(self, loc, scale):
         self.loc = vc(loc)
-        self.scale = vc(scale)
+        self.scale = torch.sqrt(vc(scale))
         torch_dist = torch.distributions.Normal(loc=self.loc, scale=self.scale)
         super(Normal, self).__init__(torch_dist)

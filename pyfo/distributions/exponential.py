@@ -20,5 +20,5 @@ class Exponential(TorchDistribution):
     """
     def __init__(self, rate):
         self.rate =vc(rate)
-        torch_dist = torch.distributions.Dirichlet(rate=self.rate)
+        torch_dist = torch.distributions.Exponential(rate=self.rate)
         super(Exponential, self).__init__(torch_dist)

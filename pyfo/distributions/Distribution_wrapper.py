@@ -22,10 +22,8 @@ class TorchDistribution():
         self.torch_dist = torch_dist
         self._sample_shape = torch.Size()
 
-
     def sample(self):
-        if self.reparameterized:
-            return self.torch_dist.rsample(self._sample_shape)
+        return self.torch_dist.sample(self._sample_shape).type(torch.FloatTensor)
 
     def log_pdf(self, x):
         x = VariableCast(x)
