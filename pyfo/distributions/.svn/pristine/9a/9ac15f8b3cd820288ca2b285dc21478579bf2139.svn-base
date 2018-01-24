@@ -1,13 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Author: Bradley Gram-Hansen
-Time created:  15:45
-Date created:  08/01/2018
-
-License: MIT
-'''
-
 import torch
 from torch.autograd import Variable
 import warnings
@@ -84,6 +74,7 @@ class Distribution(object):
         """
         Returns the log of the probability density/mass function evaluated at
         `value`.
+
         Args:
             value (Tensor or Variable):
         """
@@ -95,9 +86,11 @@ class Distribution(object):
         distribution. The result will enumerate over dimension 0, so the shape
         of the result will be `(cardinality,) + batch_shape + event_shape`
         (where `event_shape = ()` for univariate distributions).
+
         Note that this enumerates over all batched variables in lock-step
         `[[0, 0], [1, 1], ...]`. To iterate over the full Cartesian product
         use `itertools.product(m.enumerate_support())`.
+
         Returns:
             Variable or Tensor iterating over dimension 0.
         """
@@ -106,6 +99,7 @@ class Distribution(object):
     def entropy(self):
         """
         Returns entropy of distribution, batched over batch_shape.
+
         Returns:
             Tensor or Variable of shape batch_shape.
         """
@@ -117,6 +111,7 @@ class Distribution(object):
         a `sample_shape`. Note, that the batch and event shapes of a distribution
         instance are fixed at the time of construction. If this is empty, the
         returned shape is upcast to (1,).
+
         Args:
             sample_shape (torch.Size): the size of the sample to be drawn.
         """
@@ -130,6 +125,7 @@ class Distribution(object):
         Argument validation for `log_prob` methods. The rightmost dimensions
         of a value to be scored via `log_prob` must agree with the distribution's
         batch and event shapes.
+
         Args:
             value (Tensor or Variable): the tensor whose log probability is to be
                 computed by the `log_prob` method.
@@ -151,3 +147,6 @@ class Distribution(object):
             if i != 1 and j != 1 and i != j:
                 raise ValueError('Value is not broadcastable with batch_shape+event_shape: {} vs {}.'.
                                  format(actual_shape, expected_shape))
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
