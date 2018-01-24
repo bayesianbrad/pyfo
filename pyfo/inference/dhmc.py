@@ -305,14 +305,14 @@ class DHMCSampler(object):
         all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns', dtype=float)
         all_samples = all_samples[self._state.all_vars]
         print(all_samples)
-        print(self._names)
-        all_samples.rename(columns=self._names, inplace=True)
+        # print(self._names)
+        # all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
         samples =  all_samples.loc[burn_in:, :]
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
         stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
-                 'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
+                 'time_elapsed':time_elapsed, 'param_names': list(self._names)}
         if print_stats:
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_prob']))
