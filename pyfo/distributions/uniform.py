@@ -1,95 +1,27 @@
-from __future__ import absolute_import, division, print_function
-
 import torch
-from torch.autograd import Variable
 
-from pyfo.distributions.distribution import Distribution
-from pyfo.utils.core import VariableCast
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.utils.core import VariableCast as vc
 
-class Uniform(Distribution):
+
+class Uniform(TorchDistribution):
+    r"""
+    Generates uniformly distributed random samples from the half-open interval
+    `[low, high)`.
+
+    Example::
+
+        >>> m = Uniform(torch.Tensor([0.0]), torch.Tensor([5.0]))
+        >>> m.sample()  # uniformly distributed in the range [0.0, 5.0)
+         2.3418
+        [torch.FloatTensor of size 1]
+
+    Args:
+        low (float or Tensor or Variable): lower range (inclusive).
+        high (float or Tensor or Variable): upper range (exclusive).
     """
-    Uniform distribution over the continuous interval `[a, b]`.
-
-    :param torch.autograd.Variable a: lower bound (real).
-    :param torch.autograd.Variable b: upper bound (real).
-        Should be greater than `a`.
-    """
-    reparameterized = False  # XXX Why is this marked non-differentiable?
-
-    def __init__(self, a, b, batch_size=None, *args, **kwargs):
-        self.a = VariableCast(a)
-        self.b = VariableCast(b)
-        if self.a.size() != self.b.size():
-            raise ValueError("Expected a.size() == b.size(), but got {} vs {}".format(self.a.size(), self.b.size()))
-        if self.a.dim() == 1 and batch_size is not None:
-            self.a = self.a.expand(batch_size, a.size(0))
-            self.b = self.b.expand(batch_size, b.size(0))
-        super(Uniform, self).__init__(*args, **kwargs)
-
-    def batch_shape(self, x=None):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_shape`
-        """
-        event_dim = 1
-        a = self.a
-        if x is not None:
-            if x.size()[-event_dim] != a.size()[-event_dim]:
-                raise ValueError("The event size for the data and distribution parameters must match.\n"
-                                 "Expected x.size()[-1] == self.a.size()[-1], but got {} vs {}".format(
-                                     x.size(-1), a.size(-1)))
-            try:
-                a = self.a.expand_as(x)
-            except RuntimeError as e:
-                raise ValueError("Parameter `a` with shape {} is not broadcastable to "
-                                 "the data shape {}. \nError: {}".format(a.size(), x.size(), str(e)))
-        return a.size()[:-event_dim]
-
-    def event_shape(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.event_shape`
-        """
-        event_dim = 1
-        return self.a.size()[-event_dim:]
-
-    def shape(self, x=None):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.shape`
-        """
-        return self.batch_shape(x) + self.event_shape()
-
-    def sample(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.sample`
-        """
-        eps = Variable(torch.rand(self.a.size()).type_as(self.a.data))
-        return self.a + torch.mul(eps, self.b - self.a)
-
-    def batch_log_pdf(self, x):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
-        """
-        x = VariableCast(x)
-        a = self.a.expand(self.shape(x))
-        b = self.b.expand(self.shape(x))
-        lb = x.ge(a).type_as(a)
-        ub = x.le(b).type_as(b)
-        batch_log_pdf_shape = self.batch_shape(x) + (1,)
-        return torch.sum(torch.log(lb.mul(ub)) - torch.log(b - a), -1).contiguous().view(batch_log_pdf_shape)
-
-    def analytic_mean(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_mean`
-        """
-        return 0.5 * (self.a + self.b)
-
-    def analytic_var(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`
-        """
-        return torch.pow(self.b - self.a, 2) / 12
-
-    def is_discrete(self):
-        """
-            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
-        """
-        return False
+    def __init__(self, low, high):
+        self.low = vc(low)
+        self.high = vc(high)
+        torch_dist = torch.distributions.Uniform(low=self.low, high=self.high)
+        super(Uniform, self).__init__(torch_dist)

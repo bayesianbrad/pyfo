@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 from . import runtime
 from .basic_imports import *
@@ -136,6 +136,9 @@ class Model(object):
 
     def get_discrete_distributions(self):
         return set([v.distribution_name for v in self.vertices if v.is_discrete])
+
+    def get_vertices_for_original_name(self, name):
+        return [v for v in self.vertices if v.original_name == name]
 
     def gen_cond_vars(self):
         return [c.name for c in self.conditionals]

@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -228,7 +228,7 @@ class Parser(object):
                     body = AstFor(target, source, body)
                 return body
 
-    @_register(Symbol.MULTI_FOR)
+    @_register(Symbol.FOR_EACH)
     class ForExpr(FunctionParser):
 
         def parse(self, form: Form):

@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 29. Nov 2017, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 class Sequence(object):
 
@@ -128,12 +128,12 @@ Symbol.DEREF = Symbol('deref')
 Symbol.DO = Symbol('do')
 Symbol.FN = Symbol('fn')
 Symbol.FOR = Symbol('for')
+Symbol.FOR_EACH = Symbol("for-each")
 Symbol.IF = Symbol('if')
 Symbol.IF_NOT = Symbol('if-not')
 Symbol.LET = Symbol('let')
 Symbol.LIST = Symbol('list')
 Symbol.LOOP = Symbol('loop')
-Symbol.MULTI_FOR = Symbol("multi-for")
 Symbol.NS = Symbol('ns')
 Symbol.QUOTE = Symbol('quote')
 Symbol.RECUR = Symbol('recur')

@@ -104,6 +104,10 @@ class GraphNode(object):
 
     @property
     def display_name(self):
+        if hasattr(self, 'original_name'):
+            name = self.original_name
+            if name is not None and len(name) > 0:
+                return name.replace('_', '')
         return self.name[-3:]
 
     def evaluate(self, state):
@@ -216,46 +220,41 @@ class ConditionNode(GraphNode):
 
 class DataNode(GraphNode):
     """
-    Data nodes bear virtually no importance, but help keep large data sets out of the code. A data node never
-    depends on anything else, but only provides a constant value.
+    Data nodes do not carry out any computation, but provide the data. They are used to keep larger data set out
+    of the code, as large lists are replaced by symbols.
     """
 
-    def __init__(self, *, name:str=None, data, line_number:int=-1):
+    def __init__(self, *, name:str=None, data, line_number:int=-1, source:str=None):
         if name is None:
             name = self.__class__.__gen_symbol__('data_')
         self.name = name
         self.data = data
+        self.source = source
         self.ancestors = set()
-        self.code = _LAMBDA_PATTERN_.format(repr(self.data))
-        self.evaluate = eval(self.code)
+        self.code = name
+        self.evaluate = lambda state: self.data
         self.line_number = line_number
-        self.full_code = "state['{}'] = {}".format(self.name, repr(self.data))
+        if len(self.data) > 20:
+            self.data_repr = "[{}, {}, {}, {}, {}, ..., {}, {}] <{} items>".format(
+                self.data[0], self.data[1], self.data[2], self.data[3], self.data[4],
+                self.data[-2], self.data[-1], len(self.data)
+            )
+        else:
+            self.data_repr = repr(self.data)
+        self.full_code = "state['{}'] = {}".format(self.name, self.data_repr)
 
     def __repr__(self):
-        return "{} = {}".format(self.name, repr(self.data))
+        result = "{} = {}".format(self.name, self.data_repr)
+        if self.source is not None:
+            result += " FROM <{}>".format(self.source)
+        return result
 
-
-class Parameter(GraphNode):
-    """
-    Currently, parameter are not fully supported, yet.
-
-    Parameter nodes are very similar to data nodes in that they just provide a simple constant value, and do not
-    depend on any other nodes. The difference is, however, that parameter nodes should allow to change their values
-    upon intervention from the outside.
-    """
-
-    def __init__(self, *, name:str=None, value, line_number:int=-1):
-        if name is None:
-            name = self.__class__.__gen_symbol__('param_')
-        self.name = name
-        self.ancestors = set()
-        self.value = value
-        self.code = _LAMBDA_PATTERN_.format(value)
-        self.evaluate = eval(self.code)
-        self.line_number = line_number
-
-    def __repr__(self):
-        return "{}: {}".format(self.name, self.value)
+    def update(self, state: dict):
+        result = self.data
+        state[self.name] = result
+        if Options.debug:
+            print("[{}]  => {}".format(self.name, self.data_repr))
+        return result
 
 
 class Vertex(GraphNode):

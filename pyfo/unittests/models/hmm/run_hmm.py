@@ -11,8 +11,6 @@ License: MIT
 from pyfo.pyfoppl.foppl import imports
 import hmm as test
 
-
-
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
