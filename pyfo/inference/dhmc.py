@@ -305,8 +305,8 @@ class DHMCSampler(object):
         all_samples = pd.DataFrame.from_dict(x_dicts, orient='columns', dtype=float)
         all_samples = all_samples[self._state.all_vars]
         print(all_samples)
-        # print(self._names)
-        # all_samples.rename(columns=self._names, inplace=True)
+        print(self._names)
+        all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
         samples =  all_samples.loc[burn_in:, :]
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract

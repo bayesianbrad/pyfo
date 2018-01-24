@@ -596,11 +596,11 @@ class Graph(object):
         model = Model(vertices=self.vertices, arcs=self.arcs, data=self.data,
                       conditionals=self.conditions, compute_nodes=compute_nodes,
                       result_function=result_function)
-        if Options.log_model is not None and len(Options.log_model) > 0:
+        if Options.log_file is not None and len(Options.log_file) > 0:
             debug_flag = Options.debug
             try:
                 Options.debug = True
-                with open(Options.log_model, 'w') as log_file:
+                with open(Options.log_file, 'w') as log_file:
                     log_file.write("#\n# {}\n#\n".format(datetime.datetime.now()))
                     log_file.write(repr(model))
                     log_file.write("\n" + "=" * 50 + "\n")

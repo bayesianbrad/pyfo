@@ -440,6 +440,9 @@ class Compiler(Walker):
             return graph, CodeVector([item for _, item in vec])
 
     def visit_call_matrix_functions(self, node: AstFunctionCall):
+        if not Options.de_vectorize:
+            return self.visit_functioncall(node)
+
         name = node.function[7:]
         if name in self.__vector_ops and len(node.args) == 2:
             op = self.__vector_ops[name]
