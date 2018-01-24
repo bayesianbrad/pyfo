@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 29. Nov 2017, Tobias Kohn
-# 03. Jan 2018, Tobias Kohn
+# 23. Jan 2018, Tobias Kohn
 #
 class Sequence(object):
 
@@ -31,8 +31,9 @@ class Sequence(object):
 
 class Form(Sequence):
 
-    def __init__(self, data):
+    def __init__(self, data, line_number:int=-1):
         self.data = data
+        self.line_number = line_number
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -41,8 +42,10 @@ class Form(Sequence):
             return self.data[item]
 
 class Value(object):
-    def __init__(self, value):
+
+    def __init__(self, value, line_number:int=-1):
         self.value = value
+        self.line_number = line_number
 
     def __repr__(self):
         return repr(self.value)
@@ -56,8 +59,9 @@ class Value(object):
 
 class Vector(Sequence):
 
-    def __init__(self, data):
+    def __init__(self, data, line_number:int=-1):
         self.data = data
+        self.line_number = line_number
 
     def __repr__(self):
         return "[{}]".format(', '.join([repr(item) for item in self.data]))
@@ -129,6 +133,7 @@ Symbol.IF_NOT = Symbol('if-not')
 Symbol.LET = Symbol('let')
 Symbol.LIST = Symbol('list')
 Symbol.LOOP = Symbol('loop')
+Symbol.MULTI_FOR = Symbol("multi-for")
 Symbol.NS = Symbol('ns')
 Symbol.QUOTE = Symbol('quote')
 Symbol.RECUR = Symbol('recur')

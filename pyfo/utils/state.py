@@ -13,8 +13,20 @@ from collections import deque
 import copy
 import math
 from pyfo.utils.core import VariableCast
-from decimal import Decimal
 from pyfo.utils.unembed import Unembed
+
+
+"""
+Each vertex has the following helper functions:
+
+vertex.is_conditional
+vertex.is_continuous
+vertex.is_discrete
+vertex.is_observed
+vertex.is_sampled
+vertex.get_all_ancestors
+
+"""
 class State(object):
     """
     Stores the state of the object
@@ -26,24 +38,111 @@ class State(object):
 
         :param cls: this is the interface cls of the model.
         """
-
+        ### These functions still exists
         self._state_init = cls.gen_prior_samples()
+        self._debug_prior = cls.gen_prior_samples_code
         self._gen_logpdf = cls.gen_pdf # returns logp
+        self._debug_pdf = cls.gen_pdf_code
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
         self._disc_vars = cls.gen_disc_vars()
         self._if_vars = cls.gen_if_vars()
         self._cond_vars=  cls.gen_cond_vars()
-        self._arcs = cls.get_arcs()
         self._vertices = cls.get_vertices()
-        self._ancestors = cls.get_parents_of_node # takes a variable as arg and returns latent parameters that shape this variable
-        self._all_vars  = cls.gen_vars() # returns list of parameters, in same return order as self._state_init
-        # self._discontinuities = cls.gen_discontinuities()
-        self._disc_dist = cls.get_discrete_distributions()
-        self._dist_arg_size = cls.get_dist_parameter_size
-        self._cont_disc  = cls.get_continuous_distributions()
-        self._unembed_state = Unembed(self._dist_arg_size)
-        # True names of parameters
-        self._names = cls.get_original_names()
+        self._arcs = cls.get_arcs()
+        self.all_vars = self.gen_vars()
+        self.get_continuous_dist_names()
+        self.get_discrete_dist_names()
+        #####
+        support_size = self.gen_support_size()
+        self._unembed_state = Unembed(support_size)
+
+    def debug(self):
+        """
+        Prints both the prior in code and the pdf in code
+        """
+        print(50*'='+'\n'
+                     'Now generating prior python code \n'
+              '{}'.format(self._debug_prior()))
+        print(50 * '=' + '\n'
+                         'Now generating posterior python code \n'
+                         '{}'.format(self._debug_pdf()))
+        print(50*'=')
+
+    def get_discrete_dist_names(self):
+        """
+        A map from a discrete latent variable to a discrete distribution
+        that depends on it.
+
+        :return:
+        """
+        all_vars = self.gen_vars()
+        disc_names = {}
+        for vertex in self._vertices:
+            if vertex.is_discrete:
+                if vertex.name in all_vars:
+                    disc_names[vertex.name] = vertex.distribution_name
+
+        self._disc_dist = disc_names
+
+    def get_continuous_dist_names(self):
+        """
+        A map from a discrete latent variable to a discrete distribution
+        that depends on it.
+
+        :return:
+        """
+        cont_names = {}
+        for vertex in self._vertices:
+            if vertex.is_continuous:
+                if vertex.name in self.all_vars:
+                    cont_names[vertex.name] = vertex.distribution_name
+        self._cont_dist =  cont_names
+
+
+    def gen_vars(self):
+        """
+        Generates all the variables on which inference is performed
+
+        :return:
+        """
+        return  [vertex.name for vertex in self._vertices if vertex.is_sampled]
+    def get_ancestors(self):
+        """
+        object.dist_ancestors only direct parents of variable , does not include the predicate.
+        object.ancestors includes only direct parents of the ancestor history including predicate itself
+        object.get_all_ancestors - includes the entire history of the variable, includes the predicate aswell
+
+        :return:
+        """
+        ancestors = {}
+        for vertex in self._vertices:
+            ancestors[self._vertices.name] = vertex.get_all_ancestors
+        return ancestors
+
+    def get_original_names(self):
+        """
+
+        :param keys:
+        :return:
+        """
+        names = {}
+        for vertex in self._vertices:
+            if vertex.name in self.all_vars:
+                names[vertex.name] = vertex.original_name
+        return names
+
+    def gen_support_size(self):
+        """
+        Returns a vector of a support sizes for the discrete parameters
+        :return:
+
+        """
+        support_size = {}
+        for vertex in self._vertices:
+            if vertex.is_discrete:
+                support_size[vertex.name] = vertex.support_size
+        return support_size
+
     def intiate_state(self):
         """
         A dictionary of the state.
@@ -76,11 +175,11 @@ class State(object):
         else:
             return self._cond_vars
 
-    # def _return_arcs(self):
-    #     if len(self._arcs) == 0:
-    #         return None
-    #     else:
-    #         return self._arcs
+    def _return_arcs(self):
+        if len(self._arcs) == 0:
+            return None
+        else:
+            return self._arcs
 
     def _return_vertices(self):
         if len(self._vertices) == 0:
@@ -202,7 +301,7 @@ class State(object):
         "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
 
         """
-##      TODO will have to append this function to deal with discrete if vars at a later date
+##      TODO will have to append this function to deal with discrete if vars at a later date - not necessarily true in the new framework
         for key in self._disc_vars:
             dist_name = 'unembed_'+self._disc_dist[key]
             state = getattr(self._unembed_state, dist_name)(state, key)
@@ -300,8 +399,7 @@ class State(object):
 
         return grad_vec
 
-    @staticmethod
-    def convert_dict_vars_to_numpy(state):
+    def convert_dict_vars_to_numpy(self,state):
         """
 
         :param state:
@@ -309,7 +407,7 @@ class State(object):
 
         Converts variables in stat to numpy arrays for plotting purposes
         """
-        for i in state:
-            state[i] =  VariableCast(state[i]).data.numpy()
+        for i in self.all_vars:
+            state[i] =  state[i].data.numpy()
             # state[i] = state[i].data.numpy()
         return state
