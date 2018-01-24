@@ -63,6 +63,7 @@ def normal(mu, sigma): pass
 
 def interleave(a, b): return a
 
+
 def load(source): return [1, 2, 3]
 
 class matrix(object):

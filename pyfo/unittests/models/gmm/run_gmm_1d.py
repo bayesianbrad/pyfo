@@ -8,15 +8,16 @@ Date created:  19/01/2018
 License: MIT
 '''
 from pyfo.pyfoppl.foppl import imports
-import gmm2 as test
+import pyfo.unittests.models.gmm.gmm_1d_b as test
 
 
 # print(test.code)
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
-burn_in = 100
-n_sample = 500
+
+burn_in = 1000
+n_sample = 1000
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 
