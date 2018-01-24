@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import torch
 from torch.autograd import Variable
 
-from pyfo.distributions.distribution import Distribution
+from pyfo.distributions.distribution_pyro import Distribution
 from pyfo.utils.core import VariableCast
 
 

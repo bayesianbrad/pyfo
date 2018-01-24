@@ -1,11 +1,10 @@
 import torch
-from torch.autograd import Variable
-from torch.distributions import constraints
-from torch.distributions.distribution import Distribution
-from torch.distributions.utils import probs_to_logits, logits_to_probs, log_sum_exp, lazy_property, broadcast_all
+
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.utils.core import VariableCast as vc
 
 
-class Categorical(Distribution):
+class Categorical(TorchDistribution):
     r"""
     Creates a categorical distribution parameterized by either `probs` or
     `logits` (but not both).
@@ -34,67 +33,11 @@ class Categorical(Distribution):
         probs (Tensor or Variable): event probabilities
         logits (Tensor or Variable): event log probabilities
     """
-    params = {'probs': constraints.simplex}
-    has_enumerate_support = True
-
-    def __init__(self, probs=None, logits=None):
-        if (probs is None) == (logits is None):
-            raise ValueError("Either `probs` or `logits` must be specified, but not both.")
-        if probs is not None:
-            self.probs = probs / probs.sum(-1, keepdim=True)
-        else:
-            self.logits = logits - log_sum_exp(logits)
+    def __init__(self, total_count=1, probs=None, logits=None):
+        self.probs = vc(probs)
+        self.logits = vc(logits)
         self._param = self.probs if probs is not None else self.logits
-        self._num_events = self._param.size()[-1]
-        batch_shape = self._param.size()[:-1]
-        super(Categorical, self).__init__(batch_shape)
+        torch_dist = torch.distributions.Categorical(total_count=self.total_count, probs=self._param, logits=self.logits)
+        super(Categorical, self).__init__(torch_dist)
 
-    def _new(self, *args, **kwargs):
-        return self._param.new(*args, **kwargs)
 
-    @constraints.dependent_property
-    def support(self):
-        return constraints.integer_interval(0, self._num_events - 1)
-
-    @lazy_property
-    def logits(self):
-        return probs_to_logits(self.probs)
-
-    @lazy_property
-    def probs(self):
-        return logits_to_probs(self.logits)
-
-    @property
-    def param_shape(self):
-        return self._param.size()
-
-    def sample(self, sample_shape=torch.Size()):
-        sample_shape = self._extended_shape(sample_shape)
-        param_shape = sample_shape + torch.Size((self._num_events,))
-        probs = self.probs.expand(param_shape)
-        probs_2d = probs.contiguous().view(-1, self._num_events)
-        sample_2d = torch.multinomial(probs_2d, 1, True)
-        return sample_2d.contiguous().view(sample_shape)
-
-    def log_prob(self, value):
-        self._validate_log_prob_arg(value)
-        value_shape = torch._C._infer_size(value.size(), self.batch_shape) if self.batch_shape else value.size()
-        param_shape = value_shape + (self._num_events,)
-        value = value.expand(value_shape)
-        log_pmf = self.logits.expand(param_shape)
-        return log_pmf.gather(-1, value.unsqueeze(-1).long()).squeeze(-1)
-
-    def entropy(self):
-        p_log_p = self.logits * self.probs
-        return -p_log_p.sum(-1)
-
-    def enumerate_support(self):
-        num_events = self._num_events
-        values = torch.arange(num_events).long()
-        values = values.view((-1,) + (1,) * len(self._batch_shape))
-        values = values.expand((-1,) + self._batch_shape)
-        if self._param.is_cuda:
-            values = values.cuda(self._param.get_device())
-        if isinstance(self._param, Variable):
-            values = Variable(values)
-        return values

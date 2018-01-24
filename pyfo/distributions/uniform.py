@@ -1,14 +1,10 @@
-import math
-from numbers import Number
-
 import torch
-from torch.autograd import Variable
-from torch.distributions import constraints
-from torch.distributions.distribution import Distribution
-from torch.distributions.utils import broadcast_all
+
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.utils.core import VariableCast as vc
 
 
-class Uniform(Distribution):
+class Uniform(TorchDistribution):
     r"""
     Generates uniformly distributed random samples from the half-open interval
     `[low, high)`.
@@ -24,32 +20,8 @@ class Uniform(Distribution):
         low (float or Tensor or Variable): lower range (inclusive).
         high (float or Tensor or Variable): upper range (exclusive).
     """
-    # TODO allow (loc,scale) parameterization to allow independent constraints.
-    params = {'low': constraints.dependent, 'high': constraints.dependent}
-    has_rsample = True
-
     def __init__(self, low, high):
-        self.low, self.high = broadcast_all(low, high)
-        if isinstance(low, Number) and isinstance(high, Number):
-            batch_shape = torch.Size()
-        else:
-            batch_shape = self.low.size()
-        super(Uniform, self).__init__(batch_shape)
-
-    @constraints.dependent_property
-    def support(self):
-        return constraints.interval(self.low, self.high)
-
-    def rsample(self, sample_shape=torch.Size()):
-        shape = self._extended_shape(sample_shape)
-        rand = self.low.new(shape).uniform_()
-        return self.low + rand * (self.high - self.low)
-
-    def log_prob(self, value):
-        self._validate_log_prob_arg(value)
-        lb = value.ge(self.low).type_as(self.low)
-        ub = value.lt(self.high).type_as(self.low)
-        return torch.log(lb.mul(ub)) - torch.log(self.high - self.low)
-
-    def entropy(self):
-        return torch.log(self.high - self.low)
+        self.low = vc(low)
+        self.high = vc(high)
+        torch_dist = torch.distributions.Uniform(low=self.low, high=self.high)
+        super(Uniform, self).__init__(torch_dist)

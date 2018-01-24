@@ -1,14 +1,10 @@
-from numbers import Number
-
 import torch
-from torch.autograd import variable
-from torch.distributions import constraints
-from torch.distributions.dirichlet import Dirichlet
-from torch.distributions.distribution import Distribution
-from torch.distributions.utils import broadcast_all
+
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.utils.core import VariableCast
 
 
-class Beta(Distribution):
+class Beta(TorchDistribution):
     r"""
     Beta distribution parameterized by `concentration1` and `concentration0`.
 
@@ -25,45 +21,8 @@ class Beta(Distribution):
         concentration0 (float or Tensor or Variable): 2nd concentration parameter of the distribution
             (often referred to as beta)
     """
-    params = {'concentration1': constraints.positive, 'concentration0': constraints.positive}
-    support = constraints.unit_interval
-    has_rsample = True
-
-    def __init__(self, concentration1, concentration0):
-        if isinstance(concentration1, Number) and isinstance(concentration0, Number):
-            concentration1_concentration0 = variable([concentration1, concentration0])
-        else:
-            concentration1, concentration0 = broadcast_all(concentration1, concentration0)
-            concentration1_concentration0 = torch.stack([concentration1, concentration0], -1)
-        self._dirichlet = Dirichlet(concentration1_concentration0)
-        super(Beta, self).__init__(self._dirichlet._batch_shape)
-
-    def rsample(self, sample_shape=()):
-        value = self._dirichlet.rsample(sample_shape).select(-1, 0)
-        if isinstance(value, Number):
-            value = self._dirichlet.concentration.new([value])
-        return value
-
-    def log_prob(self, value):
-        self._validate_log_prob_arg(value)
-        heads_tails = torch.stack([value, 1.0 - value], -1)
-        return self._dirichlet.log_prob(heads_tails)
-
-    def entropy(self):
-        return self._dirichlet.entropy()
-
-    @property
-    def concentration1(self):
-        result = self._dirichlet.concentration[..., 0]
-        if isinstance(result, Number):
-            return torch.Tensor([result])
-        else:
-            return result
-
-    @property
-    def concentration0(self):
-        result = self._dirichlet.concentration[..., 1]
-        if isinstance(result, Number):
-            return torch.Tensor([result])
-        else:
-            return result
+    def __init__(self, alpha, beta):
+        alpha = VariableCast(alpha)
+        beta = VariableCast(beta)
+        torch_dist = torch.distributions.Beta(alpha,beta)
+        super(Beta, self).__init__(torch_dist)

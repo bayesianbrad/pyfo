@@ -36,20 +36,19 @@ from  pyfo.distributions.binomial import Binomial
 from  pyfo.distributions.categorical import Categorical
 from  pyfo.distributions.cauchy import Cauchy
 from  pyfo.distributions.chi2 import Chi2
+from  pyfo.distributions.delta import Delta
 from  pyfo.distributions.dirichlet import Dirichlet
-from  pyfo.distributions.distribution import Distribution
 from  pyfo.distributions.exponential import Exponential
 from  pyfo.distributions.fishersnedecor import FisherSnedecor
 from  pyfo.distributions.gamma import Gamma
 from  pyfo.distributions.geometric import Geometric
 from  pyfo.distributions.gumbel import Gumbel
-from  pyfo.distributions.kl import kl_divergence, register_kl
 from  pyfo.distributions.laplace import Laplace
 from  pyfo.distributions.multinomial import Multinomial
 from  pyfo.distributions.normal import Normal
 from  pyfo.distributions.one_hot_categorical import OneHotCategorical
 from  pyfo.distributions.pareto import Pareto
-from  pyfo.distributions.studentT import StudentT
+from  pyfo.distributions.poisson import Poisson
 from  pyfo.distributions.uniform import Uniform
 
 __all__ = [
@@ -59,8 +58,9 @@ __all__ = [
     'Categorical',
     'Cauchy',
     'Chi2',
+    'Delta',
     'Dirichlet',
-    'Distribution',
+    'distribution_pyro',
     'Exponential',
     'FisherSnedecor',
     'Gamma',
@@ -70,9 +70,8 @@ __all__ = [
     'Multinomial',
     'Normal',
     'OneHotCategorical',
+    'Poisson',
     'Pareto',
     'StudentT',
     'Uniform',
-    'kl_divergence',
-    'register_kl',
 ]

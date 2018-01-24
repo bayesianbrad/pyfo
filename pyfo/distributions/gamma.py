@@ -1,61 +1,26 @@
-from numbers import Number
-
 import torch
-from torch.autograd import Function, Variable
-from torch.autograd.function import once_differentiable
-from torch.distributions import constraints
-from torch.distributions.distribution import Distribution
-from torch.distributions.utils import _finfo, broadcast_all
+
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.utils.core import VariableCast as vc
 
 
-def _standard_gamma(concentration):
-    if not isinstance(concentration, Variable):
-        return torch._C._standard_gamma(concentration)
-    return concentration._standard_gamma()
-
-
-class Gamma(Distribution):
+class Gamma(TorchDistribution):
     r"""
-    Creates a Gamma distribution parameterized by shape `concentration` and `rate`.
+    Creates a Fisher-Snedecor distribution parameterized by `df1` and `df2`.
 
     Example::
 
-        >>> m = Gamma(torch.Tensor([1.0]), torch.Tensor([1.0]))
-        >>> m.sample()  # Gamma distributed with concentration=1 and rate=1
-         0.1046
+        >>> m = FisherSnedecor(torch.Tensor([1.0]), torch.Tensor([2.0]))
+        >>> m.sample()  # Fisher-Snedecor-distributed with df1=1 and df2=2
+         0.2453
         [torch.FloatTensor of size 1]
 
     Args:
-        concentration (float or Tensor or Variable): shape parameter of the distribution
-            (often referred to as alpha)
-        rate (float or Tensor or Variable): rate = 1 / scale of the distribution
-            (often referred to as beta)
+        df1 (float or Tensor or Variable): degrees of freedom parameter 1
+        df2 (float or Tensor or Variable): degrees of freedom parameter 2
     """
-    params = {'concentration': constraints.positive, 'rate': constraints.positive}
-    support = constraints.positive
-    has_rsample = True
-
-    def __init__(self, concentration, rate):
-        self.concentration, self.rate = broadcast_all(concentration, rate)
-        if isinstance(concentration, Number) and isinstance(rate, Number):
-            batch_shape = torch.Size()
-        else:
-            batch_shape = self.concentration.size()
-        super(Gamma, self).__init__(batch_shape)
-
-    def rsample(self, sample_shape=torch.Size()):
-        shape = self._extended_shape(sample_shape)
-        value = _standard_gamma(self.concentration.expand(shape)) / self.rate.expand(shape)
-        data = value.data if isinstance(value, Variable) else value
-        data.clamp_(min=_finfo(value).tiny)  # do not record in autograd graph
-        return value
-
-    def log_prob(self, value):
-        self._validate_log_prob_arg(value)
-        return (self.concentration * torch.log(self.rate) +
-                (self.concentration - 1) * torch.log(value) -
-                self.rate * value - torch.lgamma(self.concentration))
-
-    def entropy(self):
-        return (self.concentration - torch.log(self.rate) + torch.lgamma(self.concentration) +
-                (1.0 - self.concentration) * torch.digamma(self.concentration))
+    def __init__(self, alpha, beta):
+        self.df1 = vc(alpha)
+        self.df2 = vc(beta)
+        torch_dist = torch.distributions.Gamma(concentration=self.alpha, rate=self.beta)
+        super(Gamma, self).__init__(torch_dist)

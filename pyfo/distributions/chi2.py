@@ -1,8 +1,10 @@
-from torch.distributions import constraints
-from torch.distributions.gamma import Gamma
+import torch
+
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.utils.core import VariableCast as vc
 
 
-class Chi2(Gamma):
+class Chi2(TorchDistribution):
     r"""
     Creates a Chi2 distribution parameterized by shape parameter `df`.
     This is exactly equivalent to Gamma(alpha=0.5*df, beta=0.5)
@@ -17,7 +19,8 @@ class Chi2(Gamma):
     Args:
         df (float or Tensor or Variable): shape parameter of the distribution
     """
-    params = {'df': constraints.positive}
 
     def __init__(self, df):
-        super(Chi2, self).__init__(0.5 * df, 0.5)
+        self.df = vc(df)
+        torch_dist = torch.distributions.Chi2(df=self.df)
+        super(Chi2, self).__init__(torch_dist)
