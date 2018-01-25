@@ -59,7 +59,7 @@ distribution_map = {
     "half_cauchy": "HalfCauchy",
     "log_normal": "LogNormal",
     "multinomial": "Multinomial",
-    "mvn": "MultivariateNormal",
+    "mvn": "mvn",
     "normal": "Normal",
     "poisson": "Poisson",
     "uniform": "Uniform"
