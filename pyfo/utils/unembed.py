@@ -10,6 +10,7 @@ License: MIT
 import math
 import torch
 from pyfo.utils.core import VariableCast
+from torch.autograd import Variable
 import time
 class Unembed():
     """
@@ -46,8 +47,10 @@ class Unembed():
         :param state:
         :return:
         """
-        int_length = self._support_sizes[key]
+        # print('Printing self._support_sizes :', self._support_sizes)
 
+        int_length = self._support_sizes[key]
+        # time.sleep(10)
         lower = VariableCast(-0.5)
         upper = VariableCast(int_length) + lower
 
@@ -56,6 +59,8 @@ class Unembed():
         #       "The type of upper is: {0}  \n"
         #       "The type of state[{2}] is: {1} \n"
         #       "The value of state[{2}] is: {3} ".format(type(upper), type(state[key]), key, state[key]))
+        if not isinstance(state[key], Variable):
+            state[key]= VariableCast(state[key])
         if torch.gt(state[key],upper).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)

@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 """
 # PyFOPPL: Vertices and Graph
@@ -104,6 +104,10 @@ class GraphNode(object):
 
     @property
     def display_name(self):
+        if hasattr(self, 'original_name'):
+            name = self.original_name
+            if name is not None and len(name) > 0:
+                return name.replace('_', '')
         return self.name[-3:]
 
     def evaluate(self, state):
@@ -112,6 +116,8 @@ class GraphNode(object):
     def update(self, state: dict):
         result = self.evaluate(state)
         state[self.name] = result
+        if Options.debug:
+            print("[{}]  => {}".format(self.name, result))
         return result
 
     def update_pdf(self, state: dict):
@@ -199,54 +205,56 @@ class ConditionNode(GraphNode):
             f_result = self.evaluate_function(state)
             result = f_result >= 0
             state[self.name + ".function"] = f_result
+            if Options.debug:
+                print("[{}] [function] {}".format(self.name, repr(self.function)))
+                print("[{}] [function] {} => {}".format(self.name, self.function.to_py(state), repr(f_result)))
+                print("[{}] {} >= 0 => {}".format(self.name, repr(f_result), result))
         else:
             result = self.evaluate(state)
+            if Options.debug:
+                print("[{}] {}".format(self.name, repr(self.condition)))
+                print("[{}] {} => {}".format(self.name, self.condition.to_py(state), result))
         state[self.name] = result
         return result
 
 
 class DataNode(GraphNode):
     """
-    Data nodes bear virtually no importance, but help keep large data sets out of the code. A data node never
-    depends on anything else, but only provides a constant value.
+    Data nodes do not carry out any computation, but provide the data. They are used to keep larger data set out
+    of the code, as large lists are replaced by symbols.
     """
 
-    def __init__(self, *, name:str=None, data, line_number:int=-1):
+    def __init__(self, *, name:str=None, data, line_number:int=-1, source:str=None):
         if name is None:
             name = self.__class__.__gen_symbol__('data_')
         self.name = name
         self.data = data
+        self.source = source
         self.ancestors = set()
-        self.code = _LAMBDA_PATTERN_.format(repr(self.data))
-        self.evaluate = eval(self.code)
+        self.code = name
+        self.evaluate = lambda state: self.data
         self.line_number = line_number
-        self.full_code = "state['{}'] = {}".format(self.name, repr(self.data))
+        if len(self.data) > 20:
+            self.data_repr = "[{}, {}, {}, {}, {}, ..., {}, {}] <{} items>".format(
+                self.data[0], self.data[1], self.data[2], self.data[3], self.data[4],
+                self.data[-2], self.data[-1], len(self.data)
+            )
+        else:
+            self.data_repr = repr(self.data)
+        self.full_code = "state['{}'] = {}".format(self.name, self.data_repr)
 
     def __repr__(self):
-        return "{} = {}".format(self.name, repr(self.data))
+        result = "{} = {}".format(self.name, self.data_repr)
+        if self.source is not None:
+            result += " FROM <{}>".format(self.source)
+        return result
 
-
-class Parameter(GraphNode):
-    """
-    Currently, parameter are not fully supported, yet.
-
-    Parameter nodes are very similar to data nodes in that they just provide a simple constant value, and do not
-    depend on any other nodes. The difference is, however, that parameter nodes should allow to change their values
-    upon intervention from the outside.
-    """
-
-    def __init__(self, *, name:str=None, value, line_number:int=-1):
-        if name is None:
-            name = self.__class__.__gen_symbol__('param_')
-        self.name = name
-        self.ancestors = set()
-        self.value = value
-        self.code = _LAMBDA_PATTERN_.format(value)
-        self.evaluate = eval(self.code)
-        self.line_number = line_number
-
-    def __repr__(self):
-        return "{}: {}".format(self.name, self.value)
+    def update(self, state: dict):
+        result = self.data
+        state[self.name] = result
+        if Options.debug:
+            print("[{}]  => {}".format(self.name, self.data_repr))
+        return result
 
 
 class Vertex(GraphNode):
@@ -413,8 +421,13 @@ class Vertex(GraphNode):
         try:
             if self.evaluate_observation:
                 result = self.evaluate_observation(state)
+                if Options.debug:
+                    #print("[{}] distr = {}".format(self.name, self.distribution.to_py(state)))
+                    print("[{}] observe {} => {}".format(self.name, self.observation.to_py(state), result))
             else:
                 result = self.evaluate(state).sample()
+                if Options.debug:
+                    print("[{}] {}.sample() => {}".format(self.name, self.distribution.to_py(state), result))
             state[self.name] = result
             return result
         except:
@@ -423,9 +436,16 @@ class Vertex(GraphNode):
 
     def update_pdf(self, state: dict):
         try:
-            for cond, truth_value in self.conditions:
-                if state[cond.name] != truth_value:
-                    return 0.0
+            if Options.debug:
+                for cond, truth_value in self.conditions:
+                    print("[{}/P]   if {} == {}".format(self.name, repr(state[cond.name]), truth_value))
+                    if state[cond.name] != truth_value:
+                        print("[{}/P]     log_pdf += 0.0".format(self.name))
+                        return 0.0
+            else:
+                for cond, truth_value in self.conditions:
+                    if state[cond.name] != truth_value:
+                        return 0.0
 
             distr = self.evaluate(state)
             if self.evaluate_observation_pdf is not None:
@@ -434,6 +454,15 @@ class Vertex(GraphNode):
                 log_pdf = distr.log_pdf(state[self.name])
             else:
                 log_pdf = 0.0
+
+            if Options.debug:
+                print("[{}/P]   distr = {}".format(self.name, self.distribution.to_py(state)))
+                if self.evaluate_observation_pdf is not None:
+                    print("[{}/P]   distr.log_pdf({}) => {}".format(self.name, self.observation.to_py(state), log_pdf))
+                elif self.name in state:
+                    print("[{}/P]   distr.log_pdf({}) => {}".format(self.name, repr(state[self.name]), log_pdf))
+                else:
+                    print("[{}/P]   => {}".format(self.name, log_pdf))
 
             state['log_pdf'] = state.get('log_pdf', 0.0) + log_pdf
             return log_pdf
@@ -555,6 +584,7 @@ class Graph(object):
         :return:  A new instance of `Model` (`foppl_model`).
         """
         from .foppl_model import Model
+        import datetime
         compute_nodes = self.get_ordered_list_of_all_nodes()
         if result_expr is not None:
             if hasattr(result_expr, 'to_py'):
@@ -562,9 +592,23 @@ class Graph(object):
             result_function = eval(_LAMBDA_PATTERN_.format(result_expr))
         else:
             result_function = None
-        return Model(vertices=self.vertices, arcs=self.arcs, data=self.data,
-                     conditionals=self.conditions, compute_nodes=compute_nodes,
-                     result_function=result_function)
+        model = Model(vertices=self.vertices, arcs=self.arcs, data=self.data,
+                      conditionals=self.conditions, compute_nodes=compute_nodes,
+                      result_function=result_function)
+        if Options.log_file is not None and len(Options.log_file) > 0:
+            debug_flag = Options.debug
+            try:
+                Options.debug = True
+                with open(Options.log_file, 'w') as log_file:
+                    log_file.write("#\n# {}\n#\n".format(datetime.datetime.now()))
+                    log_file.write(repr(model))
+                    log_file.write("\n" + "=" * 50 + "\n")
+                    log_file.write(model.gen_prior_samples_code())
+                    log_file.write("\n" + "-" * 50 + "\n")
+                    log_file.write(model.gen_pdf_code())
+            finally:
+                Options.debug = debug_flag
+        return model
 
 
 Graph.EMPTY = Graph(vertices=set())

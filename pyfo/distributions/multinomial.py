@@ -1,110 +1,44 @@
-from __future__ import absolute_import, division, print_function
-
-import numpy as np
 import torch
-from torch.autograd import Variable
 
-from pyfo.distributions.distribution import Distribution
-from pyfo.distributions.util import log_gamma, torch_multinomial
-from pyfo.utils.core import VariableCast
+from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.utils.core import VariableCast as vc
 
 
-class Multinomial(Distribution):
+class Multinomial(TorchDistribution):
+    r"""
+    Creates a Fisher-Snedecor distribution parameterized by `df1` and `df2`.
+
+    Creates a Multinomial distribution parameterized by `total_count` and
+    either `probs` or `logits` (but not both). The innermost dimension of
+    `probs` indexes over categories. All other dimensions index over batches.
+
+    Note that `total_count` need not be specified if only :meth:`log_prob` is
+    called (see example below)
+
+    -   :meth:`sample` requires a single shared `total_count` for all
+        parameters and samples.
+    -   :meth:`log_prob` allows different `total_count` for each parameter and
+        sample.
+
+    Example::
+
+        >>> m = Multinomial(100, torch.Tensor([ 1, 1, 1, 1]))
+        >>> x = m.sample()  # equal probability of 0, 1, 2, 3
+         21
+         24
+         30
+         25
+        [torch.FloatTensor of size 4]]
+
+        >>> Multinomial(probs=torch.Tensor([1, 1, 1, 1])).log_prob(x)
+        -4.1338
+        [torch.FloatTensor of size 1]
+    Args:
+        df1 (float or Tensor or Variable): degrees of freedom parameter 1
+        df2 (float or Tensor or Variable): degrees of freedom parameter 2
     """
-    Multinomial distribution.
-
-    Distribution over counts for `n` independent `Categorical(ps)` trials.
-
-    This is often used in conjunction with `torch.nn.Softmax` to ensure
-    probabilites `ps` are normalized.
-
-    :param torch.autograd.Variable ps: Probabilities (real). Should be positive
-        and should normalized over the rightmost axis.
-    :param int n: Number of trials. Should be positive.
-    """
-
-    def __init__(self, ps, n, batch_size=None, *args, **kwargs):
-        self.ps = VariableCast(ps)
-        if self.ps.dim() not in (1, 2):
-            raise ValueError("Parameter `ps` must be either 1 or 2 dimensional.")
-        self.n = VariableCast(n)
-        if self.ps.dim() == 1 and batch_size is not None:
-            self.ps = self.ps.expand(batch_size, self.ps.size(0))
-            self.n = self.n.expand(batch_size, self.n.size(0))
-        super(Multinomial, self).__init__(*args, **kwargs)
-
-    def batch_shape(self, x=None):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_shape`
-        """
-        event_dim = 1
-        ps = self.ps
-        if x is not None:
-            if x.size()[-event_dim] != ps.size()[-event_dim]:
-                raise ValueError("The event size for the data and distribution parameters must match.\n"
-                                 "Expected x.size()[-1] == self.ps.size()[-1], but got {} vs {}".format(
-                                     x.size(-1), ps.size(-1)))
-            try:
-                ps = self.ps.expand_as(x)
-            except RuntimeError as e:
-                raise ValueError("Parameter `ps` with shape {} is not broadcastable to "
-                                 "the data shape {}. \nError: {}".format(ps.size(), x.size(), str(e)))
-        return ps.size()[:-event_dim]
-
-    def event_shape(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.event_shape`
-        """
-        event_dim = 1
-        return self.ps.size()[-event_dim:]
-
-    def sample(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.sample`
-        """
-        counts = np.apply_along_axis(
-            lambda x: np.bincount(x, minlength=self.ps.size()[-1]),
-            axis=-1,
-            arr=self.expanded_sample().data.cpu().numpy())
-        counts = torch.from_numpy(counts)
-        if self.ps.is_cuda:
-            counts = counts.cuda()
-        return Variable(counts)
-
-    def expanded_sample(self):
-        # get the int from Variable or Tensor
-        if self.n.data.dim() == 2:
-            n = int(self.n.data.cpu()[0][0])
-        else:
-            n = int(self.n.data.cpu()[0])
-        return Variable(torch_multinomial(self.ps.data, n, replacement=True))
-
-    def batch_log_pdf(self, x):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.batch_log_pdf`
-        """
-        x = VariableCast(x)
-        batch_log_pdf_shape = self.batch_shape(x) + (1,)
-        log_factorial_n = log_gamma(x.sum(-1) + 1)
-        log_factorial_xs = log_gamma(x + 1).sum(-1)
-        log_powers = (x * torch.log(self.ps)).sum(-1)
-        batch_log_pdf = log_factorial_n - log_factorial_xs + log_powers
-        return batch_log_pdf.contiguous().view(batch_log_pdf_shape)
-
-    def analytic_mean(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_mean`
-        """
-        return self.n * self.ps
-
-    def analytic_var(self):
-        """
-        Ref: :py:meth:`pyro.distributions.distribution.Distribution.analytic_var`
-        """
-        return self.n * self.ps * (1 - self.ps)
-
-    def is_discrete(self):
-        """
-            Ref: :py:meth:`pyro.distributions.distribution.Distribution.is_discrete`.
-        """
-        return True
+    def __init__(self, total_count=1, probs=None, logits=None):
+        self.probs = vc(probs)
+        self.logits = vc(logits)
+        torch_dist = torch.distributions.Multinomial(total_count=total_count,probs=self.probs, logits=self.logits)
+        super(Multinomial, self).__init__(torch_dist)

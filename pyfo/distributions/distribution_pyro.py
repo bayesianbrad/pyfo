@@ -88,17 +88,6 @@ class Distribution(object):
     reparameterized = False
     enumerable = False
 
-    def __init__(self, reparameterized=None):
-        """
-        Constructor for base distribution class.
-
-        :param bool reparameterized: Optional argument to override whether
-            instance should be considered reparameterized (by default, this
-            is decided by the class).
-        """
-        if reparameterized is not None:
-            self.reparameterized = reparameterized
-
     def batch_shape(self, x=None, *args, **kwargs):
         """
         The left-hand tensor shape of samples, used for batching.
@@ -119,9 +108,9 @@ class Distribution(object):
         The right-hand tensor shape of samples, used for individual events. The
         event dimension(/s) is used to designate random variables that could
         potentially depend on each other, for instance in the case of Dirichlet
-        or the categorical distribution, but could also simply be used for logical
-        grouping, for example in the case of a normal distribution with a
-        diagonal covariance matrix.
+        or the OneHotCategorical distribution, but could also simply be used
+        for logical grouping, for example in the case of a normal distribution
+        with a diagonal covariance matrix.
 
         Samples are of shape `d.shape(x) == d.batch_shape(x) + d.event_shape()`.
 
@@ -233,14 +222,13 @@ class Distribution(object):
         """
         raise NotImplementedError("Method not implemented by the subclass {}".format(type(self)))
 
-    def is_discrete(self, *args, **kwargs):
-        """
-        This a flag that all distributions have
 
-        :return: Boolean
-        :rtype: Boolean.
-        :raises: NotImplementedError if not implemented in distribution.
-        """
-        raise NotImplementedError("Method not implemented by the subclass {}".format(type(self)))
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+'''
+Author: Bradley Gram-Hansen
+Time created:  16:35
+Date created:  24/01/2018
 
-
+License: MIT
+'''

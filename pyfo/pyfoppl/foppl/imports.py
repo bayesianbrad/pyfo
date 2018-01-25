@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 18. Nov 2017, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
 from .compilers import compile
@@ -45,7 +45,9 @@ class Clojure_Finder(_MetaPathFinder):
 
         possible_locations = [
             '',
+            'foppl-src/',
             'foppl_src/',
+            'foppl-models/',
             'foppl_models/',
             'models',
             'examples/'

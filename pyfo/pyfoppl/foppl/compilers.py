@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 import math
 from . import foppl_objects
@@ -14,6 +14,7 @@ from . import py_parser
 from .foppl_ast import *
 from .code_objects import *
 from .graphs import *
+from . import foppl_dataloader
 
 
 class Scope(object):
@@ -163,7 +164,27 @@ class Compiler(Walker):
                 graph, expr = value
             if isinstance(expr, CodeSample):
                 v = graph.get_vertex_for_distribution(expr.distribution)
-                if v: v.original_name = name
+                if v and v.original_name is None:
+                    v.original_name = name
+
+            elif isinstance(expr, CodeVector):
+                for i in range(len(expr.items)):
+                    item = expr.items[i]
+                    if isinstance(item, CodeSample):
+                        v = graph.get_vertex_for_distribution(item.distribution)
+                        if v and (v.original_name is None or '_' not in v.original_name):
+                            v.original_name = "{}_{}".format(name, i)
+
+                if all([isinstance(item, CodeVector) for item in expr.items]):
+                    for i in range(len(expr.items)):
+                        vec_items = expr.items[i].items
+                        for j in range(len(vec_items)):
+                            item = vec_items[j]
+                            if isinstance(item, CodeSample):
+                                v = graph.get_vertex_for_distribution(item.distribution)
+                                if v and (v.original_name is None or '_' not in v.original_name):
+                                    v.original_name = "{}_{}_{}".format(name, i, j)
+
             self.scope.add_symbol(name, (graph, expr))
 
     def resolve_function(self, name):
@@ -318,6 +339,42 @@ class Compiler(Walker):
         else:
             raise SyntaxError("'exp' requires exactly one argument")
 
+    def visit_call_drop(self, node: AstFunctionCall):
+        args = node.args
+        if len(node.args) == 2:
+            n_graph, n_code = args[0].walk(self)
+            s_graph, s_code = args[1].walk(self)
+            graph = merge(n_graph, s_graph)
+            if not isinstance(s_code.code_type, SequenceType):
+                raise TypeError("second argument to 'drop' must be a sequence")
+
+            if isinstance(n_code, CodeValue) and type(n_code.value) is int:
+                n = n_code.value
+                if n == 0:
+                    return graph, s_code
+
+                elif n >= len(s_code):
+                    return graph, CodeValue([])
+
+                elif isinstance(s_code, CodeValue) and type(s_code) is list:
+                    return graph, CodeValue(s_code.value[n:])
+
+                elif isinstance(s_code, CodeVector):
+                    return graph, makeVector(s_code.items[n:])
+
+                elif isinstance(s_code, CodeDataSymbol):
+                    if len(s_code.node.data) - n > 20:
+                        node = DataNode(data=s_code.node.data[n:])
+                        self._merge_graph(Graph(set(), data={node}))
+                        return graph.merge(Graph(set(), data={node})), CodeDataSymbol(node)
+                    else:
+                        return graph, makeVector(s_code.node.data[n:])
+
+            return graph, CodeSlice(s_code, n_code, None)
+
+        else:
+            raise TypeError("'drop' expects exactly two arguments")
+
     def visit_call_get(self, node: AstFunctionCall):
         args = node.args
         if len(args) == 2:
@@ -391,6 +448,20 @@ class Compiler(Walker):
         else:
             raise TypeError("'interleave' requires at least one argument")
 
+    def visit_call_load(self, node: AstFunctionCall):
+        if len(node.args) == 1 and isinstance(node.args[0], AstValue) and type(node.args[0].value is str):
+            source = foppl_dataloader.find_path(node.args[0].value)
+            data = foppl_dataloader.load_from_source(source) if source is not None else None
+            if data is None:
+                raise IOError("data-source could not be found: '{}'".format(source))
+
+            node = DataNode(data=data, source=source)
+            self._merge_graph(Graph(set(), data={node}))
+            result = Graph(set(), data={node}), CodeDataSymbol(node)
+            return result
+        else:
+            raise TypeError("'load' requires s single string-argument")
+
     def visit_call_map(self, node: AstFunctionCall):
         if len(node.args) < 2:
             raise TypeError("not enough arguments for 'map'")
@@ -420,6 +491,9 @@ class Compiler(Walker):
             return graph, CodeVector([item for _, item in vec])
 
     def visit_call_matrix_functions(self, node: AstFunctionCall):
+        if not Options.de_vectorize:
+            return self.visit_functioncall(node)
+
         name = node.function[7:]
         if name in self.__vector_ops and len(node.args) == 2:
             op = self.__vector_ops[name]
@@ -573,6 +647,43 @@ class Compiler(Walker):
     def visit_call_sqrt(self, node: AstFunctionCall):
         node = AstSqrt(node.args[0])
         return node.walk(self)
+
+    def visit_call_take(self, node: AstFunctionCall):
+        args = node.args
+        if len(node.args) == 2:
+            n_graph, n_code = args[0].walk(self)
+            s_graph, s_code = args[1].walk(self)
+            graph = merge(n_graph, s_graph)
+            if not isinstance(s_code.code_type, SequenceType):
+                raise TypeError("second argument to 'take' must be a sequence")
+
+            if isinstance(n_code, CodeValue) and type(n_code.value) is int:
+                n = n_code.value
+                if n == 0:
+                    return graph, CodeValue([])
+
+                elif n >= len(s_code):
+                    return graph, s_code
+
+                elif isinstance(s_code, CodeValue) and type(s_code) is list:
+                    return graph, CodeValue(s_code.value[:n])
+
+                elif isinstance(s_code, CodeVector):
+                    return graph, makeVector(s_code.items[:n])
+
+                elif isinstance(s_code, CodeDataSymbol):
+                    if n > 20:
+                        node = DataNode(data=s_code.node.data[:n])
+                        self._merge_graph(Graph(set(), data={node}))
+                        return graph.merge(Graph(set(), data={node})), CodeDataSymbol(node)
+
+                    else:
+                        return graph, makeVector(s_code.node.data[:n])
+
+            return graph, CodeSlice(s_code, None, n_code)
+
+        else:
+            raise TypeError("'take' expects exactly two arguments")
 
     def visit_compare(self, node: AstCompare):
         graph_l, code_l = node.left.walk(self)

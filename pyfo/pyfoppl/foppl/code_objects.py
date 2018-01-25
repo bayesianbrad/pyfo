@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 24. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .code_types import *
@@ -24,7 +24,7 @@ class CodeObject(object):
 
     is_vector_data = False
 
-    def to_py(self) -> str:
+    def to_py(self, state:dict=None) -> str:
         return repr(self)
 
 ##############################################################################
@@ -40,8 +40,8 @@ class CodeBinary(CodeObject):
     def __repr__(self):
         return "({}{}{})".format(repr(self.left), self.op, repr(self.right))
 
-    def to_py(self):
-        return "({}{}{})".format(self.left.to_py(), self.op, self.right.to_py())
+    def to_py(self, state:dict=None):
+        return "({}{}{})".format(self.left.to_py(state), self.op, self.right.to_py(state))
 
 
 class CodeCompare(CodeObject):
@@ -59,8 +59,8 @@ class CodeCompare(CodeObject):
     def __repr__(self):
         return "({}{}{})".format(repr(self.left), self.op, repr(self.right))
 
-    def to_py(self):
-        return "({}{}{})".format(self.left.to_py(), self.op, self.right.to_py())
+    def to_py(self, state:dict=None):
+        return "({}{}{})".format(self.left.to_py(state), self.op, self.right.to_py(state))
 
 
 class CodeDataSymbol(CodeObject):
@@ -80,8 +80,11 @@ class CodeDataSymbol(CodeObject):
     def __repr__(self):
         return self.name
 
-    def to_py(self):
-        return "state['{}']".format(self.name)
+    def to_py(self, state:dict=None):
+        if state is not None and self.name in state:
+            return repr(state[self.name])
+        else:
+            return "state['{}']".format(self.name)
 
 
 class CodeDistribution(CodeObject):
@@ -94,8 +97,8 @@ class CodeDistribution(CodeObject):
     def __repr__(self):
         return "dist.{}({})".format(self.name, ', '.join([repr(a) for a in self.args]))
 
-    def to_py(self):
-        return "dist.{}({})".format(self.name, ', '.join([a.to_py() for a in self.args]))
+    def to_py(self, state:dict=None):
+        return "dist.{}({})".format(self.name, ', '.join([a.to_py(state) for a in self.args]))
 
     def get_support_size(self):
         arg = self.args[0]
@@ -110,7 +113,21 @@ class CodeDistribution(CodeObject):
                 return max([len(item) for item in arg.items])
             else:
                 return len(arg.items)
+
+        elif isinstance(arg, CodeDataSymbol) and len(arg) > 0:
+            if all([type(item) is list for item in arg.node.data]):
+                return max([len(item) for item in arg.node.data])
+            else:
+                return len(arg.node.data)
+
+        elif isinstance(arg.code_type, SequenceType):
+            if isinstance(arg.code_type.item_type, SequenceType):
+                return arg.code_type.item_type.size
+            else:
+                return arg.code_type.size
+
         else:
+
             return None
 
 
@@ -134,9 +151,9 @@ class CodeFunctionCall(CodeObject):
         else:
             return AnyType()
 
-    def to_py(self):
+    def to_py(self, state:dict=None):
         name = self.name.replace('/', '.')
-        return "{}({})".format(name, ', '.join([a.to_py() for a in self.args]))
+        return "{}({})".format(name, ', '.join([a.to_py(state) for a in self.args]))
 
     def _type_elementwise_ops(self):
         if len(self.args) == 0:
@@ -243,9 +260,9 @@ class CodeIf(CodeObject):
         else_expr = repr(self.else_expr) if self.else_expr else "None"
         return "{} if {} else {}".format(repr(self.if_expr), repr(self.cond), else_expr)
 
-    def to_py(self):
-        else_expr = self.else_expr.to_py() if self.else_expr else "None"
-        return "{} if {} else {}".format(self.if_expr.to_py(), self.cond.to_py(), else_expr)
+    def to_py(self, state:dict=None):
+        else_expr = self.else_expr.to_py(state) if self.else_expr else "None"
+        return "{} if {} else {}".format(self.if_expr.to_py(state), self.cond.to_py(state), else_expr)
 
 
 class CodeObserve(CodeObject):
@@ -259,8 +276,12 @@ class CodeObserve(CodeObject):
     def __repr__(self):
         return self.vertex.name
 
-    def to_py(self):
-        return "state['{}']".format(self.vertex.name)
+    def to_py(self, state:dict=None):
+        name = self.vertex.name
+        if state is not None and name in state:
+            return repr(state[name])
+        else:
+            return "state['{}']".format(name)
 
 
 class CodeSample(CodeObject):
@@ -273,8 +294,12 @@ class CodeSample(CodeObject):
     def __repr__(self):
         return self.vertex.name
 
-    def to_py(self):
-        return "state['{}']".format(self.vertex.name)
+    def to_py(self, state:dict=None):
+        name = self.vertex.name
+        if state is not None and name in state:
+            return repr(state[name])
+        else:
+            return "state['{}']".format(name)
 
 
 class CodeSlice(CodeObject):
@@ -309,13 +334,13 @@ class CodeSlice(CodeObject):
 
         return "{}[{}:{}]".format(repr(self.seq), beginIndex, endIndex)
 
-    def to_py(self):
+    def to_py(self, state:dict=None):
         if self.beginIndex is None:
             beginIndex = ''
         elif type(self.beginIndex) in [int, float]:
             beginIndex = repr(int(self.beginIndex))
         elif isinstance(self.beginIndex, CodeObject):
-            beginIndex = self.beginIndex.to_py()
+            beginIndex = self.beginIndex.to_py(state)
         else:
             raise TypeError("invalid index: '{}'".format(self.beginIndex))
 
@@ -324,11 +349,11 @@ class CodeSlice(CodeObject):
         elif type(self.endIndex) in [int, float]:
             endIndex = repr(int(self.endIndex))
         elif isinstance(self.endIndex, CodeObject):
-            endIndex = self.endIndex.to_py()
+            endIndex = self.endIndex.to_py(state)
         else:
             raise TypeError("invalid index: '{}'".format(self.endIndex))
 
-        return "{}[{}:{}]".format(self.seq.to_py(), beginIndex, endIndex)
+        return "{}[{}:{}]".format(self.seq.to_py(state), beginIndex, endIndex)
 
 
 class CodeSqrt(CodeObject):
@@ -340,8 +365,8 @@ class CodeSqrt(CodeObject):
     def __repr__(self):
         return "math.sqrt({})".format(repr(self.item))
 
-    def to_py(self):
-        return "math.sqrt({})".format(self.item.to_py())
+    def to_py(self, state:dict=None):
+        return "math.sqrt({})".format(self.item.to_py(state))
 
 
 class CodeSubscript(CodeObject):
@@ -363,16 +388,19 @@ class CodeSubscript(CodeObject):
             raise TypeError("invalid index: '{}'".format(self.index))
         return "{}[{}]".format(repr(self.seq), index)
 
-    def to_py(self):
+    def to_py(self, state:dict=None):
         if type(self.index) in [int, float]:
             index = repr(int(self.index))
         elif isinstance(self.index, CodeValue) and self.index.value in [int, float]:
             index = repr(int(self.index.value))
         elif isinstance(self.index, CodeObject):
-            index = "runtime.index({})".format(self.index.to_py())
+            if state is None:
+                index = "runtime.index({})".format(self.index.to_py(state))
+            else:
+                index = self.index.to_py(state)
         else:
             raise TypeError("invalid index: '{}'".format(self.index))
-        return "{}[{}]".format(self.seq.to_py(), index)
+        return "{}[{}]".format(self.seq.to_py(state), index)
 
 
 class CodeSymbol(CodeObject):
@@ -384,8 +412,11 @@ class CodeSymbol(CodeObject):
     def __repr__(self):
         return self.name
 
-    def to_py(self):
-        return "state['{}']".format(self.name)
+    def to_py(self, state:dict=None):
+        if state is not None and self.name in state:
+            return repr(state[self.name])
+        else:
+            return "state['{}']".format(self.name)
 
 
 class CodeUnary(CodeObject):
@@ -400,10 +431,10 @@ class CodeUnary(CodeObject):
         op = op + ' ' if len(op) > 1 else op
         return "{}{}".format(op, repr(self.item))
 
-    def to_py(self):
+    def to_py(self, state:dict=None):
         op = self.op
         op = op + ' ' if len(op) > 1 else op
-        return "{}{}".format(op, self.item.to_py())
+        return "{}{}".format(op, self.item.to_py(state))
 
 
 class CodeValue(CodeObject):
@@ -460,8 +491,8 @@ class CodeVector(CodeObject):
     def head(self):
         return self.items[0] if len(self.items) > 0 else None
 
-    def to_py(self):
-        return "[{}]".format(', '.join([i.to_py() for i in self.items]))
+    def to_py(self, state:dict=None):
+        return "[{}]".format(', '.join([i.to_py(state) for i in self.items]))
 
 
 #################################################################################################33

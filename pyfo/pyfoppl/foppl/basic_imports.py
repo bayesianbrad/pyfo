@@ -10,10 +10,8 @@
 Change this file to provide all the necessary imports and namespaces for the functions and distributions used in the
 model.
 """
-import math
-import numpy as np
+
 import torch
 from torch.autograd import Variable
 import pyfo.distributions as dist
-# from .test_distributions
 from . import foppl_linalg as matrix

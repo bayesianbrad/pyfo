@@ -14,6 +14,8 @@ import copy
 import math
 from pyfo.utils.core import VariableCast
 from pyfo.utils.unembed import Unembed
+#for debugging
+# fromm pyfo.pyfoppl import Options
 
 
 """
@@ -52,6 +54,7 @@ class State(object):
         self.all_vars = self.gen_vars()
         self.get_continuous_dist_names()
         self.get_discrete_dist_names()
+        self._model = cls
         #####
         support_size = self.gen_support_size()
         self._unembed_state = Unembed(support_size)
@@ -67,6 +70,15 @@ class State(object):
                          'Now generating posterior python code \n'
                          '{}'.format(self._debug_pdf()))
         print(50*'=')
+        print(50 * '=' + '\n'
+                         'Now generating graph code \n'
+                         '{}'.format(self._model))
+        # print(50 * '=' + '\n'
+        #                  'Debug inside the model\n'
+        #                  '{}'.format(Options.log))
+
+
+
 
     def get_discrete_dist_names(self):
         """
