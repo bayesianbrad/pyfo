@@ -86,13 +86,13 @@ distribution_params = {
     "LogNormal": ["mu", "sigma"],
     "Gamma": ["alpha", "beta"],
     "Geomteric":["probs"],
-    "Gumbel":["loc","scale"]
+    "Gumbel":["loc","scale"],
     "HalfCauchy": ["mu", "gamma"],
     "Multinomial": ["total_count","probs"],
     "MultivariateNormal": ["mu", "covariance_matrix"],
     "Normal": ["mu", "sigma"],
     "Poisson": ["lam"],
-    "Studentt":["df","loc","scale"]
+    "Studentt":["df","loc","scale"],
     "Uniform": ["a", "b"]
 }
 
