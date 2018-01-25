@@ -33,6 +33,12 @@ from pyfo.utils.eval_stats import extract_stats
 from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
 
+
+'''
+TODO: Append if keys to discrete for testing and bench marking, as that is what should be happening in the DHMC algorithm
+in BHMC this will be different
+
+'''
 class DHMCSampler(object):
     """
     In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
@@ -61,16 +67,18 @@ class DHMCSampler(object):
         self._if_keys = self._state._return_if_list()
         # True latent variable names
         self._names = self._state.get_original_names()
+        # Generate sample sizes
+        self._sample_sizes = self._state.get_sample_sizes()
 
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0
         # self.n_disc = len(self._disc_keys)
         # self.n_cont = len(self._cont_keys)
         # self.n_params =  self.n_disc + self.n_cont
+
         self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
 
         self.log_posterior = self._state._log_pdf  # returns a function that is the current state as argument
-        # self.logp_update = self._state._log_pdf_update # returns a function ; not currently used 10:50 14th Dec.
 
     def random_momentum(self):
         """
@@ -81,15 +89,14 @@ class DHMCSampler(object):
         p = {}
         if self._disc_keys is not None:
             for key in self._disc_keys:
-
-                p[key] = self.M * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
+                p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key])) #in the future add support for multiple dims
         if self._cont_keys is not None:
             for key in self._cont_keys:
-                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]),torch.FloatTensor([1])))
+                p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
                 # TODO in the future make for multiple dims
         if self._if_keys is not None:
             for key in self._if_keys:
-                p[key] = self.M * VariableCast(np.random.laplace(size=1))
+                p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
         return p
 
     def coordInt(self,x,x_embed,p,stepsize,key, unembed=False):
@@ -204,19 +211,15 @@ class DHMCSampler(object):
         :return: Tensor
         """
         if self._disc_keys is not None:
-            kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
+            kinetic_disc = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]),torch.abs(p[name])) for name in self._disc_keys]))
         else:
             kinetic_disc = VariableCast(0)
         if self._cont_keys is not None:
-            # For debugging only
-            print('Debug statement in DHMC._energy \n'
-                  'printing the sum of continous kinetic energy: {0} \n'
-                  'Printing the continous keys : {1} '.format([self.M*p[name]**2 for name in self._cont_keys],self._cont_keys))
-            kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
+            kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
         if self._if_keys is not None:
-            kinetic_if =  torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._if_keys]))
+            kinetic_if =  torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]),torch.abs(p[name])) for name in self._if_keys]))
         else:
             kinetic_if = VariableCast(0)
         kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if

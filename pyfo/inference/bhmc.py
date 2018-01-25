@@ -45,31 +45,33 @@ class BHMCSampler(object):
         ## state is a class that contains a dictionary of the system.
         ## to get log_posterior and log_update call the methods on the
         ## state
-        # 2nd Note:
-        ## Rather than dealing with the 'indicies' of parameters we deal instead with the keys
-        # 3rd Note
-        ## When generating the mometum dictionary we need the discrete params to have their
-        ## momentum drawn from the laplacian, and the continuous params to be drawn from
-        ## gaussian
-        #4 TH NOTE
-        ## Need to deal with a M matrix. I may  just set it to 1 everywhere, inferring the identity.
+        # Note:
+        ## Need to deal with a M matrix. Using the identity matrix for now.
 
-        self.model_graph =object # instantiates model
-        self._state = state.State(object.model())
+        self.model_graph =object.model # i graphical model object
+        self._state = state.State(self.model_graph)
+
+        ## Debugging:::
+        #####
+        print('Debug flug in BHMC sampler is one \n')
+        self._state.debug()
 
         # Parameter keys
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         self._cond_keys = self._state._return_cond_list()
-        self._if_cont_keys = self._state._return_if_list()
-        ##################
-        self._all_keys = self._state._return_all_list()
-
+        self._if_keys = self._state._return_if_list()
         # True latent variable names
-        self._names = self._state._return_true_names()
+        self._names = self._state.get_original_names()
+        # Generate sample sizes
+        self._sample_sizes = self._state.get_sample_sizes()
 
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0
+        # self.n_disc = len(self._disc_keys)
+        # self.n_cont = len(self._cont_keys)
+        # self.n_params =  self.n_disc + self.n_cont
+
         self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
 
         self.log_posterior = self._state._log_pdf  # returns a function that is the current state as argument
@@ -83,16 +85,15 @@ class BHMCSampler(object):
         p = {}
         if self._disc_keys is not None:
             for key in self._disc_keys:
-                p[key] = self.M * VariableCast(np.random.laplace(size=1))  # in the future add support for multiple dims
+                p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key])) #in the future add support for multiple dims
         if self._cont_keys is not None:
             for key in self._cont_keys:
-                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]), torch.FloatTensor([1])))
-                # TODO in the future make for multiple dims
+                p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         if branch_trig:
             for key in self._if_keys:
-                p[key] = self.M * VariableCast(np.random.laplace(size=1))
+                p[key] = lf.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
             if self._if_keys is not None:
-                p[key] = VariableCast(self.M * torch.normal(torch.FloatTensor([0]), torch.FloatTensor([1])))
+                p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         return p
 
     def coordInt(self,x,x_embed,p,stepsize,key, unembed=False):
@@ -126,6 +127,7 @@ class BHMCSampler(object):
         else:
             p[key] = -p[key]
             return x_embed[key],p[key], 0
+
     def append_keys(self, if_cont=False, if_disc=False):
         if if_cont:
             if self._if_cont_keys is not None:

@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 '''
 Author: Bradley Gram-Hansen
-Time created:  11:07
-Date created:  20/01/2018
+Time created:  20:08
+Date created:  25/01/2018
 
 License: MIT
 '''
-
 from pyfo.pyfoppl.foppl import imports
-import pyfo.unittests.models.hmm.hmm as test
+import pyfo.unittests.models.neuralnet.nn_Frank as test
 
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 

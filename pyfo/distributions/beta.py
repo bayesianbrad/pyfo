@@ -24,5 +24,5 @@ class Beta(TorchDistribution):
     def __init__(self, alpha, beta):
         alpha = VariableCast(alpha)
         beta = VariableCast(beta)
-        torch_dist = torch.distributions.Beta(alpha,beta)
+        torch_dist = torch.distributions.Beta(concentration0=alpha,concentration1=beta)
         super(Beta, self).__init__(torch_dist)

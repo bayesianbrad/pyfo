@@ -26,7 +26,7 @@ class Bernoulli(TorchDistribution):
     def __init__(self, probs=None, logits=None):
         self.prob = vc(probs)
         self.logits = vc(logits)
-        torch_dist = torch.distributions.Bernoulli(self.probs, self.logits)
-        super(Bernoulli, self).__init__(torch_dist=torch_dist)
+        torch_dist = torch.distributions.Bernoulli(probs=self.probs, logits=self.logits)
+        super(Bernoulli, self).__init__(torch_dist)
 
 
