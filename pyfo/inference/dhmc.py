@@ -324,7 +324,7 @@ class DHMCSampler(object):
 
         stats = {'samples':samples, 'samples_wo_burin':all_samples,
                  'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())),
-                 'accept_rate': np.sum(cd [burn_in:])/len(accept[burn_in:]), 'number_of_function_evals':n_feval_per_itr,
+                 'accept_rate': np.sum(accept[burn_in:])/len(accept[burn_in:]), 'number_of_function_evals':n_feval_per_itr,
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
 
         if print_stats:
