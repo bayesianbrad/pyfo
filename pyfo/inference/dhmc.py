@@ -45,7 +45,7 @@ class DHMCSampler(object):
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
     """
 
-    def __init__(self, object, chains=1,  scale=None):
+    def __init__(self, object, scale=None):
 
         # Note for self:
         ## state is a class that contains a dictionary of the system.
@@ -262,7 +262,8 @@ class DHMCSampler(object):
         # return x, acceptprob[0], n_feval, n_fupdate
         return x, accept, n_feval, n_fupdate
 
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
+               print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         # Note currently not doing anything with burn in
 
         if seed is not None:
@@ -298,18 +299,20 @@ class DHMCSampler(object):
         time_elapsed = toc - tic
         n_feval_per_itr = n_feval / (n_samples + burn_in)
         n_fupdate_per_itr = n_fupdate / (n_samples + burn_in)
-        if self._disc_keys is not None and self._if_keys is not None:
-            print('Each iteration of DHMC on average required '
-                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / (len(self._disc_keys)+ len(self._if_keys)))
-                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
-        if self._disc_keys is None and self._if_keys is not None:
-            print('Each iteration of DHMC on average required '
-                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._if_keys))
-                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
-        if self._disc_keys is not None and self._if_keys is None:
-            print('Each iteration of DHMC on average required '
-                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
-                + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+
+        if print_stats:
+            if self._disc_keys is not None and self._if_keys is not None:
+                print('Each iteration of DHMC on average required '
+                    + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / (len(self._disc_keys)+ len(self._if_keys)))
+                    + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+            if self._disc_keys is None and self._if_keys is not None:
+                print('Each iteration of DHMC on average required '
+                    + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._if_keys))
+                    + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
+            if self._disc_keys is not None and self._if_keys is None:
+                print('Each iteration of DHMC on average required '
+                    + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
+                    + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
 
         print(50*'=')
         print('Sampling has now been completed....')
@@ -324,7 +327,7 @@ class DHMCSampler(object):
 
         stats = {'samples':samples, 'samples_wo_burin':all_samples,
                  'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())),
-                 'accept_prob': np.sum(accept[burn_in:])/len(accept[burn_in:]), 'number_of_function_evals':n_feval_per_itr,
+                 'accept_rate': np.sum(accept[burn_in:])/len(accept[burn_in:]), 'number_of_function_evals':n_feval_per_itr,
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
 
         if print_stats:
@@ -336,7 +339,7 @@ class DHMCSampler(object):
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
             self.model_graph.display_graph()
-        return stats
+        return stats  #dict
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
@@ -353,4 +356,11 @@ class DHMCSampler(object):
             plot_object.auto_corr()
 
 
+    def sample_multiple_chains(self, n_chain = 1, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
+               print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
+        all_stats = {}
+        for i in range(n_chain):
+            all_stats[i] = self.sample(n_samples, burn_in, stepsize_range, n_step_range,seed, n_update, lag,
+               print_stats , plot, plot_graphmodel, save_samples, plot_burnin, plot_ac)
 
+        return all_stats
