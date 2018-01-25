@@ -42,7 +42,7 @@ class Options(object):
 
     conditional_suffix = '.data[0]'
 
-    debug = False
+    debug = True
 
     de_vectorize = False
 

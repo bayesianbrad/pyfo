@@ -78,16 +78,17 @@ class Plotting():
         '''
         if all_on_one:
             fname1 = 'trace_of_parameters.pdf'
-            fname2 = 'trace_of_parameters_wo_burnin.pdf'
-            self.samples.plot(subplots=True, figsize=(6,6))
-            plt.savefig(os.path.join(self.PATH_fig, fname1))
-            plt.clf()
+            # fname2 = 'trace_of_parameters_wo_burnin.pdf'
+            # self.samples.plot(subplots=True, figsize=(6,6))
+            # plt.savefig(os.path.join(self.PATH_fig, fname1))
+            # plt.clf()
             self.samples_withbin.plot(subplots=True, figsize=(6,6))
-            plt.savefig(os.path.join(self.PATH_fig,fname2))
-            path_image1 = self.PATH_fig + '/' + fname2
-            path_image2= self.PATH_fig + '/' + fname1
+            plt.savefig(os.path.join(self.PATH_fig,fname1))
+            path_image1 = self.PATH_fig + '/' + fname1
+            # path_image2= self.PATH_fig + '/' + fname2
             print(50 * '=')
-            print('Saving trace of all samples to {0} \n and with burnin to {1}'.format(path_image1,path_image2))
+            print('Saving trace of all samples with burnin {0}'.format(path_image1))
+            # print('Saving trace of all samples to {0} \n and with burnin to {1}'.format(path_image1,path_image2))
             print(50 * '=')
         else:
             fname1 = 'trace_of_parameters.pdf'
