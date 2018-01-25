@@ -246,10 +246,14 @@ class DHMCSampler(object):
 
         final_energy = self._energy(x,p)
         acceptprob  = torch.min(torch.ones(1),torch.exp(final_energy - intial_energy)) # Tensor
+        accept = 1
         if acceptprob[0] < np.random.uniform(0,1):
             x = x0
+            accept = 0
 
-        return x, acceptprob[0], n_feval, n_fupdate
+        # return x, acceptprob[0], n_feval, n_fupdate
+        return x, accept, n_feval, n_fupdate
+
     def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         # Note currently not doing anything with burn in
 
@@ -311,7 +315,9 @@ class DHMCSampler(object):
         samples =  all_samples.loc[burn_in:, :]
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
+        stats = {'samples':samples, 'samples_wo_burin':all_samples,
+                 'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())),
+                 'accept_prob': np.sum(accept[burn_in:])/len(accept[burn_in:]), 'number_of_function_evals':n_feval_per_itr,
                  'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
         if print_stats:
             print(stats['stats'])
