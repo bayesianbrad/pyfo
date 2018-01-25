@@ -78,6 +78,15 @@ class State(object):
         #                  '{}'.format(Options.log))
 
 
+    def get_sample_sizes(self):
+        """
+        Generates dictionary of parameter name and sample size
+        :return:
+        """
+        sample_sizes = {}
+        for vertex in self._vertices:
+            sample_sizes[vertex.name] = vertex.sample_size
+        return sample_sizes
 
 
     def get_discrete_dist_names(self):
