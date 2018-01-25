@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 24. Jan 2018, Tobias Kohn
+# 25. Jan 2018, Tobias Kohn
 #
 """
 # PyFOPPL: Vertices and Graph
@@ -342,7 +342,7 @@ class Vertex(GraphNode):
         self.distribution_type = distributions.get(distribution.name, 'unknown')
         self.support_size = distribution.get_support_size()
         code_type = self.distribution.code_type
-        self.sample_size = code_type.size if isinstance(code_type, code_types.ListType) else 1
+        self.sample_size = distribution.get_sample_size()
         self.code = _LAMBDA_PATTERN_.format(self.distribution.to_py())
         self.evaluate = eval(self.code)
         if self.observation is not None:

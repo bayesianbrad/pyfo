@@ -42,7 +42,7 @@ class Options(object):
 
     conditional_suffix = '.data[0]'
 
-    debug = True
+    debug = False
 
     de_vectorize = False
 
@@ -62,7 +62,6 @@ def categorical(ps): pass
 def normal(mu, sigma): pass
 
 def interleave(a, b): return a
-
 
 def load(source): return [1, 2, 3]
 

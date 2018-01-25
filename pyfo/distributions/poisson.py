@@ -4,7 +4,7 @@ import numpy.random as npr
 from torch.autograd import Variable
 from pyfo.distributions.distribution_pyro import Distribution
 from pyfo.utils.core import VariableCast
-
+import torch
 
 class Poisson(Distribution):
     """
@@ -86,6 +86,7 @@ class Poisson(Distribution):
         """
         return True
 
+# Unccomment once torch distribtuion is implemented
 # import torch
 # from pyfo.distributions.Distribution_wrapper import TorchDistribution
 # from pyfo.utils.core import VariableCast as vc

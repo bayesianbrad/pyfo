@@ -10,7 +10,6 @@
 Change this file to provide all the necessary imports and namespaces for the functions and distributions used in the
 model.
 """
-
 import torch
 from torch.autograd import Variable
 import pyfo.distributions as dist
