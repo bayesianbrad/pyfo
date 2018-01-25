@@ -332,7 +332,7 @@ class DHMCSampler(object):
 
         if print_stats:
             print(stats['stats'])
-            print('The acceptance ratio is: {0}'.format(stats['accept_prob']))
+            print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
             save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
         if plot:
