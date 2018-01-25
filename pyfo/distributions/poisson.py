@@ -4,7 +4,7 @@ import numpy.random as npr
 from torch.autograd import Variable
 from pyfo.distributions.distribution_pyro import Distribution
 from pyfo.utils.core import VariableCast
-
+import torch
 
 class Poisson(Distribution):
     """
@@ -86,25 +86,23 @@ class Poisson(Distribution):
         """
         return True
 
-import torch
-
+# Unccomment once torch distribtuion is implemented
+# import torch
+# from pyfo.distributions.Distribution_wrapper import TorchDistribution
+# from pyfo.utils.core import VariableCast as vc
 
 # class Poisson(TorchDistribution):
-#     r"""
-#     Samples from a Pareto Type 1 distribution.
-#
+#     r""" Creates a Poisson distribution parameterized by `rate`, the rate parameter.
+# Samples are nonnegative integers, with a pmf given by$rate^k e^{-rate}/k!$
 #     Example::
-#
-#         >>> m = Pareto(torch.Tensor([1.0]), torch.Tensor([1.0]))
-#         >>> m.sample()  # sample from a Pareto distribution with scale=1 and alpha=1
-#          1.5623
-#         [torch.FloatTensor of size 1]
-#
+#         >>> m = Poisson(torch.Tensor([4]))
+#         >>> m.sample()
+#          3
+#         [torch.LongTensor of size 1]
 #     Args:
-#         scale (float or Tensor or Variable): Scale parameter of the distribution
-#         alpha (float or Tensor or Variable): Shape parameter of the distribution
-#     """
+#         rate (Number, Tensor or Variable): the rate parameter
+# """
 #     def __init__(self, lam):
-#         self.lam = vc(lam)
-#         torch_dist = torch.distributions.Poisson(lam=self.lam)
+#         self.rate= vc(lam)
+#         torch_dist = torch.distributions.Poisson(rate=self.rate)
 #         super(Poisson, self).__init__(torch_dist)

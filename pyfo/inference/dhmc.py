@@ -81,6 +81,7 @@ class DHMCSampler(object):
         p = {}
         if self._disc_keys is not None:
             for key in self._disc_keys:
+
                 p[key] = self.M * VariableCast(np.random.laplace(size=1)) #in the future add support for multiple dims
         if self._cont_keys is not None:
             for key in self._cont_keys:
@@ -207,6 +208,10 @@ class DHMCSampler(object):
         else:
             kinetic_disc = VariableCast(0)
         if self._cont_keys is not None:
+            # For debugging only
+            print('Debug statement in DHMC._energy \n'
+                  'printing the sum of continous kinetic energy: {0} \n'
+                  'Printing the continous keys : {1} '.format([self.M*p[name]**2 for name in self._cont_keys],self._cont_keys))
             kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)

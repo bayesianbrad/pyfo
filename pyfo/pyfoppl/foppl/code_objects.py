@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 24. Jan 2018, Tobias Kohn
+# 25. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .code_types import *
@@ -99,6 +99,13 @@ class CodeDistribution(CodeObject):
 
     def to_py(self, state:dict=None):
         return "dist.{}({})".format(self.name, ', '.join([a.to_py(state) for a in self.args]))
+
+    def get_sample_size(self):
+        result = self.code_type.result
+        if isinstance(result, SequenceType):
+            return result.size
+        else:
+            return 1
 
     def get_support_size(self):
         arg = self.args[0]

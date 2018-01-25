@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from pyfo.pyfoppl.foppl import imports
-import pyfo.unittests.models.gauss_1d as test
+import pyfo.unittests.models.mvn as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 from pyfo.utils.eval_stats import *
 # print(test.code)

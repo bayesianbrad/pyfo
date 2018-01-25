@@ -1,13 +1,13 @@
 from pyfo.pyfoppl.foppl import imports
-import if_1d as test
+import pyfo.unittests.models.ifmodels.nested_if as test
 
 
 # print(test.model)
 from pyfo.inference.dhmc import DHMCSampler as dhmc
-
+test.model.display_graph()
 dhmc_ = dhmc(test)
-burn_in = 200
-n_sample = 1000
+burn_in = 2999
+n_sample = 2000
 stepsize_range = [0.03,0.15]
 n_step_range = [4, 15]
 
