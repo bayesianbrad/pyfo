@@ -84,4 +84,4 @@ distribution_params = {
 }
 
 def get_arg_count(distr: str):
-    return len(distribution_params.get(distr, []))\
+    return len(distribution_params.get(distr, []))

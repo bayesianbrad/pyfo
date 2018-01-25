@@ -28,14 +28,6 @@ class DistributionTypes(object):
             cls.__arg_count_error(name, args)
 
     @classmethod
-    def binomial(cls, args: list):
-        cls.__check_arg_count('dirichlet', 2, args)
-        arg = args[1]
-        if isinstance(arg, SequenceType):
-            return ListType(FloatType, arg.size)
-        else:
-            return FloatType()
-    @classmethod
     def bernoulli(cls, args: list):
         cls.__check_arg_count('bernoulli', 1, args)
         return IntegerType()
