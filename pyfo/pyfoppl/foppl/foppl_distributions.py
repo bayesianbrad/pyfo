@@ -27,11 +27,9 @@ distributions = {
 }
 
 discrete_distributions = {
-    "Binomial"
     "Bernoulli",
     "Categorical",
     "Discrete",
-    "Geometric"
     "Multinomial",
     "Poisson"
 }
@@ -39,15 +37,11 @@ discrete_distributions = {
 continuous_distributions = {
     "Beta",
     "Cauchy",
-    "Chi2",
     "Dirichlet",
-    "Delta"
     "Exponential",
     "Gamma",
-    "Gumbel"
     "HalfCauchy",
     "LogNormal",
-    "Laplace"
     "MultivariateNormal",
     "Normal",
     "Uniform"
@@ -59,8 +53,6 @@ distribution_map = {
     "binomial": "Binomial",
     "categorical": "Categorical",
     "cauchy": "Cauchy",
-    "chi2":"Chi2",
-    "delta":"Delta",
     "dirichlet": "Dirichlet",
     "exponential": "Exponential",
     "gamma": "Gamma",
@@ -70,31 +62,26 @@ distribution_map = {
     "mvn": "MultivariateNormal",
     "normal": "Normal",
     "poisson": "Poisson",
-    "studentt":"StudentT",
     "uniform": "Uniform"
 }
 
 distribution_params = {
-    "Bernoulli": ["total_count","probs"],
+    "Bernoulli": ["ps"],
     "Beta": ["alpha", "beta"],
-    "Binomial": ["probs"],
-    "Categorical": ["probs"],
+    "Binomial": ["ps"],
+    "Categorical": ["ps"],
     "Cauchy": ["mu", "gamma"],
-    "Chi2": ["df"],
     "Dirichlet": ["alpha"],
     "Exponential": ["lam"],
     "LogNormal": ["mu", "sigma"],
     "Gamma": ["alpha", "beta"],
-    "Geomteric":["probs"],
-    "Gumbel":["loc","scale"]
     "HalfCauchy": ["mu", "gamma"],
-    "Multinomial": ["total_count","probs"],
+    "Multinomial": ["ps", "n"],
     "MultivariateNormal": ["mu", "covariance_matrix"],
     "Normal": ["mu", "sigma"],
     "Poisson": ["lam"],
-    "Studentt":["df","loc","scale"]
     "Uniform": ["a", "b"]
 }
 
 def get_arg_count(distr: str):
-    return len(distribution_params.get(distr, []))
+    return len(distribution_params.get(distr, []))\
