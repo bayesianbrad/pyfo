@@ -143,27 +143,44 @@ def auto_correlation_time(x, s, mu, var):
 # what is the shape for the df with multiple/batches?
 # def ess_onekey(df, key):
 
-# the following acceptance method might cause an issue, especially in discrete case.
-def acceptance_rate(z):
-    cnt = z.shape[0] * z.shape[1]
-    for i in range(0, z.shape[0]):
-        for j in range(1, z.shape[1]):
-            if np.min(np.equal(z[i, j - 1], z[i, j])):
-                cnt -= 1
-    return cnt / float(z.shape[0] * z.shape[1])
+# A-NICE-MC
+def gelman_rubin_diagnostic(x, mu=None, logger=None):
+    '''
+    Notes
+    -----
+    The diagnostic is computed by:  math:: \hat{R} = \frac{\hat{V}}{W}
 
+    where :math:`W` is the within-chain variance and :math:`\hat{V}` is
+    the posterior variance estimate for the pooled traces.
 
-def gelman_rubin_diagnostic(x, logger, mu=None):
+    :param x: samples
+    :param mu: true posterior mean
+    :param logger: None
+    :return: r_hat
+
+    References
+    ----------
+    Brooks and Gelman (1998)
+    Gelman and Rubin (1992)
+    '''
     m, n = x.shape[0], x.shape[1]
+    if m < 2:
+        raise ValueError(
+            'Gelman-Rubin diagnostic requires multiple chains '
+            'of the same length.')
     theta = np.mean(x, axis=1)
     sigma = np.var(x, axis=1)
     # theta_m = np.mean(theta, axis=0)
     theta_m = mu if mu else np.mean(theta, axis=0)
+
+    # Calculate between-chain variance
     b = float(n) / float(m-1) * np.sum((theta - theta_m) ** 2)
+    # Calculate within-chain variance
     w = 1. / float(m) * np.sum(sigma, axis=0)
-    v = float(n-1) / float(n) * w + float(m+1) / float(m * n) * b
-    r_hat = np.sqrt(v / w)
-    logger.info('R: max [%f] min [%f]' % (np.max(r_hat), np.min(r_hat)))
+    # Estimate of marginal posterior variance
+    v_hat = float(n-1) / float(n) * w + float(m+1) / float(m * n) * b
+    r_hat = np.sqrt(v_hat / w)
+    # logger.info('R: max [%f] min [%f]' % (np.max(r_hat), np.min(r_hat)))
     return r_hat
 
 def extract_means(dataframe, keys=None):
