@@ -108,13 +108,13 @@ class CodeDistribution(CodeObject):
             return 1
 
     def get_support_size(self):
-        arg = self.args[0]
 
         if self.name == "Binomial":
-            if isinstance(arg, CodeValue) and type(arg.value) is int:
-                return arg.value
-            else:
-                return None
+            # This will be turned into an or statement at a later date to accommodate
+            # the Multinomial and mvn, once they are fully tested.
+            arg = self.args[1]
+        else:
+            arg = self.args[0]
 
         if isinstance(arg, CodeValue) and type(arg.value) is list:
             if all([type(item) is list for item in arg.value]):
