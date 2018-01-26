@@ -46,11 +46,12 @@ from  pyfo.distributions.gumbel import Gumbel
 from  pyfo.distributions.laplace import Laplace
 from  pyfo.distributions.multinomial import Multinomial
 from  pyfo.distributions.normal import Normal
-from  pyfo.distributions.mvn import MultivariateNormal as mvn
+from  pyfo.distributions.mvn import MultivariateNormal #as mvn
 from  pyfo.distributions.one_hot_categorical import OneHotCategorical
 from  pyfo.distributions.pareto import Pareto
 from  pyfo.distributions.poisson import Poisson
 from  pyfo.distributions.uniform import Uniform
+from  pyfo.distributions.studentt import StudentT
 
 __all__ = [
     'Bernoulli',
@@ -69,7 +70,7 @@ __all__ = [
     'Gumbel',
     'Laplace',
     'Multinomial',
-    'MultivariateNormal'
+    'MultivariateNormal',
     'Normal',
     'OneHotCategorical',
     'Poisson',
