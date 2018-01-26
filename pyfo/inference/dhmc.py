@@ -262,10 +262,26 @@ class DHMCSampler(object):
         # return x, acceptprob[0], n_feval, n_fupdate
         return x, accept, n_feval, n_fupdate
 
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
+    def sample(self,chain_num=0, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
                print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         # Note currently not doing anything with burn in
-
+        '''
+        :param chain_num:  indicate the number of the chain the sampler is generating
+        :param n_samples:  number of samples to draw
+        :param burn_in: number of burn in samples, discard by default
+        :param stepsize_range:
+        :param n_step_range: trajectory length
+        :param seed: seed for generating random numbers, None by default
+        :param n_update: number of printing statement
+        :param lag: plot parameter
+        :param print_stats: print details of sampler
+        :param plot: whether generate posterior plots, False by default
+        :param plot_graphmodel: whether generate GM plot, False by default
+        :param save_samples: whether save posterior samples, False by default
+        :param plot_burnin: plot parameter
+        :param plot_ac: plot parameter
+        :return: stats: dict of inference infomation. stats{'samples': df of posterior samples}
+        '''
         if seed is not None:
             torch.manual_seed(seed)
             np.random.seed(seed)
@@ -334,7 +350,7 @@ class DHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
+            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'], prefix = 'chain_{}_'.format(chain_num))
         if plot:
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
@@ -358,9 +374,16 @@ class DHMCSampler(object):
 
     def sample_multiple_chains(self, n_chains = 1, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
                print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
+        '''
+
+        :param n_chains: number of chains to run
+
+        :return: all_stats: dict of multiple chains, each chain contains one stats; stats the return of method sample
+               eg. all_stats = {'0': stats}, where stats{'samples': df}
+        '''
         all_stats = {}
         for i in range(n_chains):
-            all_stats[i] = self.sample(n_samples, burn_in, stepsize_range, n_step_range,seed, n_update, lag,
+            all_stats[i] = self.sample(i, n_samples, burn_in, stepsize_range, n_step_range,seed, n_update, lag,
                print_stats , plot, plot_graphmodel, save_samples, plot_burnin, plot_ac)
 
         return all_stats
