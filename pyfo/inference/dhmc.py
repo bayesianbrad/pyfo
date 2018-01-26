@@ -356,10 +356,10 @@ class DHMCSampler(object):
             plot_object.auto_corr()
 
 
-    def sample_multiple_chains(self, n_chain = 1, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
+    def sample_multiple_chains(self, n_chains = 1, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
                print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         all_stats = {}
-        for i in range(n_chain):
+        for i in range(n_chains):
             all_stats[i] = self.sample(n_samples, burn_in, stepsize_range, n_step_range,seed, n_update, lag,
                print_stats , plot, plot_graphmodel, save_samples, plot_burnin, plot_ac)
 
