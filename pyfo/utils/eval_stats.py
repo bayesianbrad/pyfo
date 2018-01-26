@@ -12,6 +12,7 @@ License: MIT
 import numpy as np
 import sys
 import os
+import pandas as pd
 
 # ESS from DHMC
 def mono_seq_ess(samples, key, normed=False, mu=None, var=None):
@@ -237,3 +238,16 @@ def save_data(samples, all_samples, keys, prefix=''):
         path2 = prefix + 'samples_with_burnin_' + key + '.csv'
         samples[key].to_csv(os.path.join(PATH_data,path1), index=False, header=True)
         all_samples[key].to_csv(os.path.join(PATH_data,path2), index=False, header=True)
+
+def load_data(n_chain, var_key, PATH):
+    all_stats = {}
+    for i in range(n_chain):
+        all_stats[i] = {}
+        df = pd.DataFrame()
+        for key in var_key:
+            samples_file_dir = PATH + '/data/chain_{}_samples_after_burnin_{}.csv'.format(i, key)
+            df_key = pd.read_csv(samples_file_dir, index_col=None, header=0)
+            df = pd.concat([df, df_key], axis=1)
+        all_stats[i]['samples'] = df
+
+    return all_stats
