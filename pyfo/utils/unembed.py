@@ -96,16 +96,18 @@ class Unembed():
         :param state:
         :return:
         """
-        lower = VariableCast(0)
-        upper = VariableCast(self._support_sizes[key])
+        lower = VariableCast(-0.5)
+        upper = VariableCast(self._support_sizes[key]) - lower
         if torch.lt(state[key], lower).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
-        if torch.lgt(state[key], upper).data[0]:
+        if torch.gt(state[key], upper).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
+        if torch.lt(state[key], upper).data[0] and torch.gt(state[key], upper + 2 * lower).data[0]:
+            state[key] = VariableCast(torch.round(state[key]))  # equiv to torch.round(upper)
         else:
-            state[key] = torch.floor(state[key])
+            state[key] = VariableCast(torch.round(state[key] - lower))
         return state
 
     def unembed_Bernoulli(self, state, key):

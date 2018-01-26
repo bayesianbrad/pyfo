@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 17. Jan 2018, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 25. Jan 2018, Tobias Kohn
 #
 from .code_types import *
 
@@ -36,6 +36,15 @@ class DistributionTypes(object):
     def beta(cls, args: list):
         cls.__check_arg_count('beta', 2, args)
         return FloatType()
+
+    @classmethod
+    def binomial(cls, args: list):
+        cls.__check_arg_count('binomial', 2, args)
+        arg = args[1]
+        if isinstance(arg, SequenceType):
+            return ListType(IntegerType, arg.size)
+        else:
+            return FloatType()
 
     @classmethod
     def categorical(cls, args: list):

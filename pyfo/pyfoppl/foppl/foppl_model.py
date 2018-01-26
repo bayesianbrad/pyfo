@@ -4,10 +4,11 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 24. Jan 2018, Tobias Kohn
+# 25. Jan 2018, Tobias Kohn
 #
 from . import runtime
 from .basic_imports import *
+from .graphs import Vertex
 
 # We try to import `networkx` and `matplotlib`. If present, these packages can be used to get a visual
 # representation of the graph. But neither of these packages is actually needed.
@@ -131,6 +132,9 @@ class Model(object):
     def get_map_of_nodes(self):
         return self.nodes
 
+    def get_map_of_vertices(self):
+        return { v.name: v for v in self.vertices }
+
     def get_continuous_distributions(self):
         return set([v.distribution_name for v in self.vertices if v.is_continuous])
 
@@ -154,6 +158,25 @@ class Model(object):
 
     def gen_vars(self):
         return [v.name for v in self.vertices if v.is_sampled]
+
+    def transform_state(self, state, samples_only:bool=False):
+        result = {}
+        if samples_only:
+            for key in state:
+                v = self.nodes.get(key, None)
+                if isinstance(v, Vertex) and v.is_sampled:
+                    name = v.original_name if v.original_name is not None else key
+                    result[name] = state[key]
+        else:
+            for key in state:
+                if not key.startswith("data_"):
+                    v = self.nodes.get(key, None)
+                    if isinstance(v, Vertex):
+                        name = v.original_name if v.original_name is not None else key
+                    else:
+                        name = key
+                    result[name] = state[key]
+        return result
 
     def gen_prior_samples(self):
         state = {}

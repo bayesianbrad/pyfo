@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 ##
 # 19. Dec 2017, Tobias Kohn
-# 24. Jan 2018, Tobias Kohn
+# 25. Jan 2018, Tobias Kohn
 #
 from . import test_distributions
 
@@ -34,6 +34,9 @@ class Options(object):
     `log_file`
         If this specifies a file name, a debug print of the generated model will be written to the file.
         Otherwise the field should be `None`.
+
+    `require_unique_names`
+        If `True`, each sample inside the code must be unique and no duplicates are allowed.
     """
 
     eager_conditionals = True
@@ -47,6 +50,8 @@ class Options(object):
     de_vectorize = False
 
     log_file = None
+
+    require_unique_names = True
 
 
 # Stubs to make the Python-IDE happy

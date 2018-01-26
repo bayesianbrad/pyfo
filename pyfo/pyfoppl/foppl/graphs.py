@@ -592,6 +592,15 @@ class Graph(object):
             result_function = eval(_LAMBDA_PATTERN_.format(result_expr))
         else:
             result_function = None
+
+        if Options.require_unique_names:
+            original_names = [v.original_name for v in self.vertices
+                              if v.is_sampled and getattr(v, 'original_name', None) is not None]
+            original_names_set = set(original_names)
+            dup_names = [n for n in original_names_set if original_names.count(n) > 1]
+            if len(dup_names) > 0:
+                raise SyntaxError("the sample-name '{}' inside your model is not unique".format(dup_names[0]))
+
         model = Model(vertices=self.vertices, arcs=self.arcs, data=self.data,
                       conditionals=self.conditions, compute_nodes=compute_nodes,
                       result_function=result_function)

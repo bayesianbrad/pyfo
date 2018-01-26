@@ -59,7 +59,7 @@ distribution_map = {
     "half_cauchy": "HalfCauchy",
     "log_normal": "LogNormal",
     "multinomial": "Multinomial",
-    "mvn": "mvn",
+    "mvn": "MultivariateNormal",
     "normal": "Normal",
     "poisson": "Poisson",
     "uniform": "Uniform"
@@ -68,7 +68,7 @@ distribution_map = {
 distribution_params = {
     "Bernoulli": ["ps"],
     "Beta": ["alpha", "beta"],
-    "Binomial": ["ps"],
+    "Binomial": ["total_count","probs"],
     "Categorical": ["ps"],
     "Cauchy": ["mu", "gamma"],
     "Dirichlet": ["alpha"],

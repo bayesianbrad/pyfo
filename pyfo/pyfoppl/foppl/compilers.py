@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 24. Jan 2018, Tobias Kohn
+# 25. Jan 2018, Tobias Kohn
 #
 import math
 from . import foppl_objects
@@ -27,10 +27,11 @@ class Scope(object):
     well. This is then used by the optimizer.
     """
 
-    def __init__(self, prev=None):
+    def __init__(self, prev=None, *, name:str=None):
         self.prev = prev
         self.symbols = {}
         self.functions = {}
+        self.name = name
 
     def find_function(self, name: str):
         if name in self.functions:
@@ -120,8 +121,8 @@ class Compiler(Walker):
         self.cond_scope = None
         self.graph = Graph.EMPTY
 
-    def begin_scope(self):
-        self.scope = Scope(prev=self.scope)
+    def begin_scope(self, *, name:str=None):
+        self.scope = Scope(prev=self.scope,name=name)
 
     def end_scope(self):
         if not self.scope.is_global_scope:
@@ -150,6 +151,18 @@ class Compiler(Walker):
             c = c.prev
         return result
 
+    def _get_current_scope_name(self):
+        result = []
+        scope = self.scope
+        while scope is not None:
+            if scope.name is not None:
+                result.append(scope.name)
+            scope = scope.prev
+        if len(result) > 0:
+            return '.'.join(reversed(result)) + '.'
+        else:
+            return ''
+
     def define(self, name, value):
         if isinstance(name, AstSymbol):
             name = name.name
@@ -165,7 +178,7 @@ class Compiler(Walker):
             if isinstance(expr, CodeSample):
                 v = graph.get_vertex_for_distribution(expr.distribution)
                 if v and v.original_name is None:
-                    v.original_name = name
+                    v.original_name = self._get_current_scope_name() + name
 
             elif isinstance(expr, CodeVector):
                 for i in range(len(expr.items)):
@@ -173,7 +186,7 @@ class Compiler(Walker):
                     if isinstance(item, CodeSample):
                         v = graph.get_vertex_for_distribution(item.distribution)
                         if v and (v.original_name is None or '_' not in v.original_name):
-                            v.original_name = "{}_{}".format(name, i)
+                            v.original_name = "{}_{}".format(self._get_current_scope_name() + name, i)
 
                 if all([isinstance(item, CodeVector) for item in expr.items]):
                     for i in range(len(expr.items)):
@@ -183,7 +196,7 @@ class Compiler(Walker):
                             if isinstance(item, CodeSample):
                                 v = graph.get_vertex_for_distribution(item.distribution)
                                 if v and (v.original_name is None or '_' not in v.original_name):
-                                    v.original_name = "{}_{}_{}".format(name, i, j)
+                                    v.original_name = "{}_{}_{}".format(self._get_current_scope_name() + name, i, j)
 
             self.scope.add_symbol(name, (graph, expr))
 
@@ -231,7 +244,7 @@ class Compiler(Walker):
                 else:
                     bindings.append((name, value.walk(self)))
 
-        self.begin_scope()
+        self.begin_scope(name=function.name)
         try:
             for name, value in bindings:
                 self.define(name, value)

@@ -109,11 +109,19 @@ class CodeDistribution(CodeObject):
 
     def get_support_size(self):
         arg = self.args[0]
+
+        if self.name == "Binomial":
+            if isinstance(arg, CodeValue) and type(arg.value) is int:
+                return arg.value
+            else:
+                return None
+
         if isinstance(arg, CodeValue) and type(arg.value) is list:
             if all([type(item) is list for item in arg.value]):
                 return max([len(item) for item in arg.value])
             else:
                 return len(arg.value)
+
         elif isinstance(arg, CodeVector) and len(arg.items) > 0:
             _is_vector = lambda v: isinstance(v, CodeVector) or (isinstance(v, CodeValue) and type(v.value) is list)
             if all([_is_vector(item) for item in arg.items]):
@@ -134,7 +142,6 @@ class CodeDistribution(CodeObject):
                 return arg.code_type.size
 
         else:
-
             return None
 
 
