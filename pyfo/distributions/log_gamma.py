@@ -11,23 +11,25 @@ import torch
 from pyfo.distributions.distribution_wrapper import TorchDistribution
 import torch.distributions as dists
 from pyfo.utils.core import VariableCast as vc
-class LogGamma(TorchDistribution):
+class LogGamma():
     """
     Implements a log gamma distribution
 
     """
-    def __init__(self, concentration, rate):
-        self.concentration = concentration
-        self.rate = rate
+    def __init__(self, concentration, rate, transformed=False):
+        self.concentration = vc(concentration)
+        self.rate = vc(rate)
+        self._transformed = transformed
+
 
     def sample(self):
-        u = dists.Uniform(vc(0),vc(1))
-        return  torch.div(torch.log(u)/self.concentration) + torch.lgamma(self.concentration) + torch.log(self.concentration)
+        u = dists.Uniform(vc(0),vc(1)).sample()
+        return  torch.div(torch.log(u),self.concentration) + torch.lgamma(self.concentration) + torch.log(self.concentration)
 
-    def log_prob(self, x):
+    def log_pdf(self, x):
         """
 
-        :param x:
+        :param x: Assumes y: 'x' --> ln(x)
         :return:
         """
         x = vc(x)
