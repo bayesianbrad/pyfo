@@ -39,7 +39,7 @@ class BHMCSampler(object):
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
     """
 
-    def __init__(self, object, chains=1,  scale=None):
+    def __init__(self, object, chains=0,  scale=None):
 
         # Note for self:
         ## state is a class that contains a dictionary of the system.
@@ -50,6 +50,7 @@ class BHMCSampler(object):
 
         self.model_graph =object.model # i graphical model object
         self._state = state.State(self.model_graph)
+        self._chains = chains
 
         ## Debugging:::
         #####
@@ -91,7 +92,7 @@ class BHMCSampler(object):
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         if branch_trig:
             for key in self._if_keys:
-                p[key] = lf.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
+                p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
             if self._if_keys is not None:
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         return p

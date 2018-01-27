@@ -45,7 +45,7 @@ class DHMCSampler(object):
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
     """
 
-    def __init__(self, object,chain_num=0, scale=None):
+    def __init__(self, object,chains=0, scale=None):
 
         # Note for self:
         ## state is a class that contains a dictionary of the system.
@@ -56,7 +56,7 @@ class DHMCSampler(object):
 
         self.model_graph =object.model # i graphical model object
         self._state = state.State(self.model_graph)
-        self._chains = chain_num
+        self._chains = chains
         ## Debugging:::
         #####
         self._state.debug()
