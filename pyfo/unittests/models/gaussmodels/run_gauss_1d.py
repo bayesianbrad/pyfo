@@ -10,14 +10,14 @@ print(test.model)
 test.model.display_graph()
 
 # inference
-dhmc_ = dhmc(test)
+n_chain = 3
+dhmc_ = dhmc(test, chains=n_chain)
 burn_in = 10
 n_sample = 10
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
-n_chain = 3
 
-all_stats = dhmc_.sample_multiple_chains(n_chain, n_sample, burn_in=burn_in, stepsize_range=stepsize_range, n_step_range=n_step_range, n_update = 5,save_samples = True)
+# all_stats = dhmc_.sample_multiple_chains(n_sample, burn_in=burn_in, stepsize_range=stepsize_range, n_step_range=n_step_range, n_update = 5,save_samples = True)
 
 for i in all_stats:
     print('Chain {}: acceptance rate {} \n'.format(i, all_stats[i]['accept_rate'] ))
