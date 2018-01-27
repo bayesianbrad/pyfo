@@ -45,11 +45,11 @@ class Options(object):
 
     conditional_suffix = '.data[0]'
 
-    debug = False
+    debug = True
 
     de_vectorize = False
 
-    log_file = None
+    log_file = '../../unittests'
 
     require_unique_names = True
 
