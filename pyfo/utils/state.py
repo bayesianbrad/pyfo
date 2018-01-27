@@ -40,10 +40,9 @@ class State(object):
 
         :param cls: this is the interface cls of the model.
         """
-        ### These functions still exists
         self._state_init = cls.gen_prior_samples()
         self._debug_prior = cls.gen_prior_samples_code
-        self._gen_logpdf = cls.gen_pdf # returns logp
+        self._gen_logpdf = cls.gen_pdf
         self._debug_pdf = cls.gen_pdf_code
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
         self._disc_vars = cls.gen_disc_vars()
@@ -55,7 +54,6 @@ class State(object):
         self.get_continuous_dist_names()
         self.get_discrete_dist_names()
         self._model = cls
-        #####
         support_size = self.gen_support_size()
         self._unembed_state = Unembed(support_size)
 
@@ -70,13 +68,26 @@ class State(object):
                          'Now generating posterior python code \n'
                          '{}'.format(self._debug_pdf()))
         print(50*'=')
-        print(50 * '=' + '\n'
-                         'Now generating graph code \n'
-                         '{}'.format(self._model))
+        print( '\n Now generating graph code \n {}'.format(self._model))
+        print(50 * '=')
+        # print('Now generating distribution code \n')
+        # print(self._distribution_params)
+
+
         # print(50 * '=' + '\n'
         #                  'Debug inside the model\n'
         #                  '{}'.format(Options.log))
 
+    def dist_name_and_params(self):
+        """
+        Returns a dictionary map of vertex names and the corresponding distribution parameters.
+        :return:
+
+        """
+        distribution_params = {}
+        for vertex in self._vertices:
+            if vertex.is_continuous and vertex.observation is None:
+                distribution_params[vertex] = vertex.get_parameter_values('key_of_state')
 
     def get_sample_sizes(self):
         """
