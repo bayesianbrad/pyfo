@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 17. Jan 2018, Tobias Kohn
-# 25. Jan 2018, Tobias Kohn
+# 27. Jan 2018, Tobias Kohn
 #
 from .code_types import *
 
@@ -78,6 +78,11 @@ class DistributionTypes(object):
     @classmethod
     def gamma(cls, args: list):
         cls.__check_arg_count('gamma', 2, args)
+        return cls.__cont_dist__(args, 0)
+
+    @classmethod
+    def loggamma(cls, args: list):
+        cls.__check_arg_count('log-gamma', 2, args)
         return cls.__cont_dist__(args, 0)
 
     @classmethod

@@ -161,7 +161,10 @@ class CodeFunctionCall(CodeObject):
         self.name = name
         self.args = args
         self.is_transform_inverse = is_transform_inverse
-        self.code_type = self._get_code_type()
+        if self.is_transform_inverse and len(args) >= 1:
+            self.code_type = args[0].code_type
+        else:
+            self.code_type = self._get_code_type()
 
     def __repr__(self):
         return "{}({})".format(self.name, ', '.join([repr(a) for a in self.args]))

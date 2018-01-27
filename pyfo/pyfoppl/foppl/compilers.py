@@ -876,7 +876,7 @@ class Compiler(Walker):
         self._merge_graph(graph)
         code = CodeSample(vertex)
         if invert is not None and invert != "":
-            code = CodeFunctionCall(invert, [code])
+            code = CodeFunctionCall(invert, [code], is_transform_inverse=True)
         return graph, code
 
     def visit_sqrt(self, node: AstSqrt):

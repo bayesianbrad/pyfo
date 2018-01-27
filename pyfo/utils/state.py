@@ -40,6 +40,7 @@ class State(object):
 
         :param cls: this is the interface cls of the model.
         """
+        self._model = cls
         self._state_init = cls.gen_prior_samples()
         self._debug_prior = cls.gen_prior_samples_code
         self._gen_logpdf = cls.gen_pdf
@@ -53,7 +54,6 @@ class State(object):
         self.all_vars = self.gen_vars()
         self.get_continuous_dist_names()
         self.get_discrete_dist_names()
-        self._model = cls
         support_size = self.gen_support_size()
         self._unembed_state = Unembed(support_size)
 
@@ -63,10 +63,10 @@ class State(object):
         """
         print(50*'='+'\n'
                      'Now generating prior python code \n'
-              '{}'.format(self._debug_prior()))
+              '{}'.format(self._debug_prior))
         print(50 * '=' + '\n'
                          'Now generating posterior python code \n'
-                         '{}'.format(self._debug_pdf()))
+                         '{}'.format(self._debug_pdf))
         print(50*'=')
         print( '\n Now generating graph code \n {}'.format(self._model))
         print(50 * '=')
@@ -173,6 +173,7 @@ class State(object):
         for vertex in self._vertices:
             if vertex.is_discrete:
                 support_size[vertex.name] = vertex.support_size
+        print('Debug statement: return support size: {}'.format(support_size))
         return support_size
 
     def intiate_state(self):
