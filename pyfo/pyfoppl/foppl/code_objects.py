@@ -4,10 +4,11 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 25. Jan 2018, Tobias Kohn
+# 27. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .code_types import *
+from .foppl_distributions import distributions_with_transform_flag
 
 ##############################################################################
 
@@ -93,12 +94,19 @@ class CodeDistribution(CodeObject):
         self.name = name
         self.args = args
         self.code_type = DistributionType(name, [a.code_type for a in args])
+        self.has_transform_flag = name in distributions_with_transform_flag
 
     def __repr__(self):
-        return "dist.{}({})".format(self.name, ', '.join([repr(a) for a in self.args]))
+        if self.has_transform_flag:
+            return "dist.{}({}, transformed=transform_flag)".format(self.name, ', '.join([repr(a) for a in self.args]))
+        else:
+            return "dist.{}({})".format(self.name, ', '.join([repr(a) for a in self.args]))
 
     def to_py(self, state:dict=None):
-        return "dist.{}({})".format(self.name, ', '.join([a.to_py(state) for a in self.args]))
+        if self.has_transform_flag:
+            return "dist.{}({}, transformed=transform_flag)".format(self.name, ', '.join([a.to_py(state) for a in self.args]))
+        else:
+            return "dist.{}({})".format(self.name, ', '.join([a.to_py(state) for a in self.args]))
 
     def get_sample_size(self):
         result = self.code_type.result
@@ -147,11 +155,12 @@ class CodeDistribution(CodeObject):
 
 class CodeFunctionCall(CodeObject):
 
-    def __init__(self, name, args):
+    def __init__(self, name, args, is_transform_inverse:bool=False):
         if type(args) is not list:
             args = [args]
         self.name = name
         self.args = args
+        self.is_transform_inverse = is_transform_inverse
         self.code_type = self._get_code_type()
 
     def __repr__(self):
@@ -167,7 +176,11 @@ class CodeFunctionCall(CodeObject):
 
     def to_py(self, state:dict=None):
         name = self.name.replace('/', '.')
-        return "{}({})".format(name, ', '.join([a.to_py(state) for a in self.args]))
+        result = "{}({})".format(name, ', '.join([a.to_py(state) for a in self.args]))
+        if name == 'zip':
+            return "list({})".format(result)
+        else:
+            return result
 
     def _type_elementwise_ops(self):
         if len(self.args) == 0:

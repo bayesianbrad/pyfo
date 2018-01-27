@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 20. Jan 2018, Tobias Kohn
+# 26. Jan 2018, Tobias Kohn
 #
 distributions = {
     "Bernoulli": "discrete",
@@ -81,6 +81,10 @@ distribution_params = {
     "Normal": ["mu", "sigma"],
     "Poisson": ["lam"],
     "Uniform": ["a", "b"]
+}
+
+distributions_with_transform_flag = {
+    "Exponential", "Gamma"
 }
 
 def get_arg_count(distr: str):

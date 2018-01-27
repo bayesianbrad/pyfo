@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 ##
 # 19. Dec 2017, Tobias Kohn
-# 25. Jan 2018, Tobias Kohn
+# 27. Jan 2018, Tobias Kohn
 #
 from . import test_distributions
 
@@ -45,13 +45,14 @@ class Options(object):
 
     conditional_suffix = '.data[0]'
 
-    debug = True
+    debug = False
 
     de_vectorize = False
 
-    log_file = '../../unittests'
+    log_file = None
 
-    require_unique_names = True
+    # Some models with loops (e.g. neural_net_model) do not compile with this flag set on
+    require_unique_names = False
 
 
 # Stubs to make the Python-IDE happy

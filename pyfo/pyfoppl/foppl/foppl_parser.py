@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 24. Jan 2018, Tobias Kohn
+# 26. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -229,7 +229,7 @@ class Parser(object):
                 return body
 
     @_register(Symbol.FOR_EACH)
-    class ForExpr(FunctionParser):
+    class ForEachExpr(FunctionParser):
 
         def parse(self, form: Form):
             items = [self._parse(f) for f in form[2:]]
