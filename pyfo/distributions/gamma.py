@@ -7,12 +7,12 @@ from pyfo.distributions.log_gamma import LogGamma
 class Gamma(TorchDistribution):
     r"""
     """
-    def __init__(self, alpha, beta, Transformed=True):
+    def __init__(self, alpha, beta, transformed=True):
         self.alpha = vc(alpha)
         self.beta= vc(beta)
-        if Transformed:
+        if transformed:
             torch_dist = LogGamma(concentration=self.alpha, rate=self.beta)
-            super(Gamma, self).__init__(torch_dist, Transformed=Transformed)
+            super(Gamma, self).__init__(torch_dist, Transformed=transformed)
         else:
             torch_dist = torch.distributions.Gamma(concentration=self.alpha, rate=self.beta)
         super(Gamma, self).__init__(torch_dist)

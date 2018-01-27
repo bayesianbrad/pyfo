@@ -18,7 +18,7 @@ class Exponential(TorchDistribution):
     Args:
         rate (float or Tensor or Variable): rate = 1 / scale of the distribution
     """
-    def __init__(self, rate):
+    def __init__(self, rate, transformed=False):
         self.rate =vc(rate)
         torch_dist = torch.distributions.Exponential(rate=self.rate)
         super(Exponential, self).__init__(torch_dist)
