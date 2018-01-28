@@ -130,7 +130,17 @@ class State(object):
                     cont_names[vertex.name] = vertex.distribution_name
         self._cont_dist =  cont_names
 
+    def get_conds_map(self):
+        """
+        A map of keys from if vars that are continuous and the given predicate  'cond var'
 
+        :return:
+        """
+        cond_map = {}
+        for vertex in self._vertices:
+            if vertex.is_conditional and not vertex.is_observed:
+                cond_map[vertex.name] = vertex.conditions
+        return cond_map
     def gen_vars(self):
         """
         Generates all the variables on which inference is performed
@@ -173,7 +183,6 @@ class State(object):
         for vertex in self._vertices:
             if vertex.is_discrete:
                 support_size[vertex.name] = vertex.support_size
-        print('Debug statement: return support size: {}'.format(support_size))
         return support_size
 
     def intiate_state(self):
@@ -232,15 +241,6 @@ class State(object):
         else:
             return self._names
 
-    @staticmethod
-    def detach_nodes(x):
-        """
-        Takes either the momentum or latents
-        :param x:
-        :return:
-        """
-        for key, value in x.items():
-            x[key] = Variable(value.data, requires_grad=True)
 
     def _log_pdf(self, state, set_leafs=False, unembed=False, partial_unembed=False, key=None):
         """
