@@ -61,23 +61,23 @@ class BHMCSampler(object):
         self._disc_keys = self._state._return_disc_list()
         self._cont_keys = self._state._return_cont_list()
         self._cond_keys = self._state._return_cond_list()
+        self._cond_map = self._state.get_conds_map()
+        # By construction all keys that are predicates and are continous are put into if_keys, if predicate is dicont-
+        # inuous then it is automatically goes into the discrete keys
         self._if_keys = self._state._return_if_list()
         # True latent variable names
         self._names = self._state.get_original_names()
         # Generate sample sizes
         self._sample_sizes = self._state.get_sample_sizes()
 
+        self._branch = False # If we cross a discontinuity whilst in the predicate this flag swtiches to true.
         self.grad_logp = self._state._grad_logp
         self.init_state = self._state.intiate_state() # this is just x0
-        # self.n_disc = len(self._disc_keys)
-        # self.n_cont = len(self._cont_keys)
-        # self.n_params =  self.n_disc + self.n_cont
-
         self.M = 1 #Assumes the identity matrix and assumes everything is 1d for now.
 
         self.log_posterior = self._state._log_pdf  # returns a function that is the current state as argument
 
-    def random_momentum(self, branch_trig=False):
+    def random_momentum(self, branch=False):
         """
         Constructs a momentum dictionary where for the discrete keys we have laplacian momen tum
         and for continous keys we have gaussian
@@ -90,10 +90,11 @@ class BHMCSampler(object):
         if self._cont_keys is not None:
             for key in self._cont_keys:
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
-        if branch_trig:
+        if branch:
             for key in self._if_keys:
                 p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
-            if self._if_keys is not None:
+        if self._if_keys is not None and branch is False :
+            for key in self._if_keys:
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         return p
 
@@ -106,10 +107,7 @@ class BHMCSampler(object):
         :param p: Dict of state of momentum
         :param stepsize: Float
         :param key: unique parameter String
-        :param unembed: type: bool If if statement which is continous, in the models we currently run, it will not
-         need to be embedded. # TODO in the future if_keys may be discrete and will need embedding.
-         To resolve this issue add another check before calling the coordinate wise integrator, to see if the key exists
-         in the self._if_cont_vars or self._if_disc_vars
+        :param unembed: type: bool
         :return: Updated x and p indicies
         """
 
@@ -129,21 +127,31 @@ class BHMCSampler(object):
             p[key] = -p[key]
             return x_embed[key],p[key], 0
 
-    def append_keys(self, if_cont=False, if_disc=False):
-        if if_cont:
-            if self._if_cont_keys is not None:
-                if self._cont_keys is not None:
-                    self._cont_keys = self._cont_keys.append(self._if_cont_keys)
-        if if_disc:
-            if self._if_disc_keys is not None:
-                if self._disc_keys is not None:
-                    temp_disc_keys = self._disc_keys
-                    return temp_disc_keys.append(self._if_disc_keys)
-        if if_cont is False:
-            self._cont_keys = [key for key in self._cont_keys not in self._if_cont_keys]
-        if if_disc is False:
-            self._disc_keys = [key for key in self._disc_keys not in self._if_disc_keys]
+    def append_keys(self, branch=False):
+        """
+        Creates a temp_dict of previous continuous variables that have to be added to the discrete
+        variables
+        :param branch: Type: bool
+        """
 
+        if  branch:
+            if self._disc_keys is not None:
+                self._disc_temp_keys = self._disc_key + self._if_keys
+            else:
+                self._disc_temp_keys = self._if_keys
+        elif self._if_keys is not None:
+                self._cont_temp_keys = self._if_keys
+                if self._cont_keys is not None:
+                    self._cont_temp_keys = self._cont_temp_keys + self._cont_keys
+        else:
+            self._cont_temp_keys = self._cont_keys
+
+    def cross_disc(self, key):
+        """
+        Retursn the cond to see if it has been triggered
+        :param key:
+        :return:
+        """
     def branching_integrator(self, x0, p0, stepsize, t):
         """
         Performs the full DHMC update step. It updates the continous parameters using
@@ -161,33 +169,42 @@ class BHMCSampler(object):
         n_fupdate = 0
 
         # performs shallow copy
-        x = copy.copy(x0)
+        x = copy.deepcopy(x0)
         p = copy.copy(p0)
-
-        if t is 0:
-            self.append_keys(if_cont=True, if_disc=True)
-
         # perform first step of leapfrog integrators
-        if self._cont_keys is not None:
+        if self._cont_temp_keys is not None:
             logp = self.log_posterior(x, set_leafs=True)
-            for key in self._cont_keys:
+            for key in self._cont_temp_keys:
                 p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
 
 
-        if self._disc_keys is None and self._if_keys is None:
-            for key in self._cont_keys:
-                x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
-            logp = self.log_posterior(x, set_leafs=True)
-            for key in self._cont_keys:
-                p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
-            return x, p, n_feval, n_fupdate, 0
+        if self._disc_keys is None:
+            if self._if_keys is None:
+                # Perform normal hmc
+                for key in self._cont_keys:
+                    x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
+                logp = self.log_posterior(x, set_leafs=True)
+                for key in self._cont_keys:
+                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+                return x, p, n_feval, n_fupdate, 0
+            else:
+                # Updates according to whether a condition has been satisfied.
+                for key in self._cont_temp_keys:
+                    x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
+                    if x[self._cond_map[key]] != x0[self._cond_map[key]]:
+                        # discontinuity has been crossed
+                        self._branch=True
+                        return x0, p0, n_feval, n_fupdate, 0
+                self._branch = False
+                logp = self.log_posterior(x, set_leafs=True)
+                for key in self._cont_temp_keys:
+                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+                return x, p, n_feval, n_fupdate, 0
 
         else:
             permuted_keys_list = []
-            if self._disc_keys is not None:
-                permuted_keys_list = permuted_keys_list + self._disc_keys
-            if self._if_keys is not None:
-                permuted_keys_list = permuted_keys_list + self._if_keys
+            if self._disc_temp_keys is not None:
+                permuted_keys_list = permuted_keys_list + self._disc_temp_keys
             permuted_keys = permutations(permuted_keys_list, 1)
             # permutates all keys into one permutated config. It deletes in memory as each key is called
             # returns a tuple ('key', []), hence to call 'key' requires [0] index.
@@ -200,7 +217,7 @@ class BHMCSampler(object):
                 # print('Debug statement in dhmc.gauss_leapfrog() \n'
                 #       'print the permuted_key : {0} \n'
                 #       'and key[0]: {1}'.format(key, key[0]))
-                if self._if_keys is not None and key[0] in self._if_keys:
+                if self._if_keys is not None and key[0] in self._disc_temp_keys:
                     x[key[0]], p[key[0]], _ = self.coordInt(x, x_embed, p, stepsize, key[0], unembed=False)
                 else:
                     x[key[0]], p[key[0]], _ = self.coordInt(x, x_embed, p, stepsize, key[0], unembed=True)
@@ -208,18 +225,29 @@ class BHMCSampler(object):
                     return x0, p, n_feval, n_fupdate, _
             n_fupdate += 1
 
-            if self._cont_keys is not None:
+            if self._if_keys is None:
+                # Perform normal hmc
                 for key in self._cont_keys:
-                    x[key] = x[key] + 0.5 * stepsize * self.M * p[key]  # final half step for position
-
-            if self._cont_keys is not None:
+                    x[key] = x[key] + stepsize * self.M * p[key]  # final full step for postions
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
-                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])  # final half step for momentum
-                n_feval += 1
-            return x, p, n_feval, n_fupdate, 0
+                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+                return x, p, n_feval, n_fupdate, 0
+            else:
+                # Updates according to whether a condition has been satisfied.
+                for key in self._cont_temp_keys:
+                    x[key] = x[key] + stepsize * self.M * p[key]  #final  full step for postions
+                    if x[self._cond_map[key]] != x0[self._cond_map[key]]:
+                        # discontinuity has been crossed
+                        self._branch = True
+                        return x0, p0, n_feval, n_fupdate, 0
+                self._branch = False
+                logp = self.log_posterior(x, set_leafs=True)
+                for key in self._cont_temp_keys:
+                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+                return x, p, n_feval, n_fupdate, 0
 
-    def _energy(self, x, p):
+    def _energy(self, x, p, branch=False):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
         :param x:
@@ -227,15 +255,19 @@ class BHMCSampler(object):
         :return: Tensor
         """
         if self._disc_keys is not None:
-            kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
+            kinetic_disc = torch.sum(
+                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys]))
         else:
             kinetic_disc = VariableCast(0)
         if self._cont_keys is not None:
-            kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*p[name]**2 for name in self._cont_keys]))
+            kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
-        if self._if_keys is not None:
-            kinetic_if =  torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._if_keys]))
+        if branch:
+            torch.sum(
+                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys]))
+        elif self._if_keys is not None:
+            kinetic_if = torch.sum(torch.stack([self.M * torch.dot(p[name], p[name]) for name in self._if_keys]))
         else:
             kinetic_if = VariableCast(0)
         kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if
@@ -255,20 +287,27 @@ class BHMCSampler(object):
         :return:
         """
 
-        p = self.random_momentum()
-        intial_energy = self._energy(x0,p)
+        p = self.random_momentum(branch=self._branch)
+        intial_energy = self._energy(x0,p, branch=self._branch)
         n_feval = 0
         n_fupdate = 0
         x = copy.copy(x0)
+        p0 = copy.copy(p)
+        # if branch was trigger, i.e the condition of the predicate has been changed, we will break out of the
+        # leap and create a new dict of temporary dict of discrete vars. If there are no if stateemnts and
+        # there are cont keys, returns self.cont)temp_keys == self.cont_keys
+        self.append_keys(branch=self._branch)
         for i in range(n_step):
             x,p, n_feval_local, n_fupdate_local, _ = self.branching_integrator(x,p,stepsize,t=i)
             if math.isinf(_):
                 break
-            n_feval += n_feval_local
-            n_fupdate += n_fupdate_local
+            if self._branch and i>0:
+                break
+            else:
+                n_feval += n_feval_local
+                n_fupdate += n_fupdate_local
 
-
-        final_energy = self._energy(x,p)
+        final_energy = self._energy(x,p, branch=self._branch)
         acceptprob  = torch.min(torch.ones(1),torch.exp(final_energy - intial_energy)) # Tensor
         if acceptprob[0] < np.random.uniform(0,1):
             x = x0
@@ -293,6 +332,7 @@ class BHMCSampler(object):
         print(50*'=')
         print('The sampler is now performing inference....')
         print(50*'=')
+        print('Now pring the self._cond_keys {}'.format(self._cond_keys))
         for i in range(n_samples+burn_in):
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
@@ -330,21 +370,29 @@ class BHMCSampler(object):
         all_samples = all_samples[self._state.all_vars]
         all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
-        samples =  all_samples.loc[burn_in:, :]
+        samples = all_samples.loc[burn_in:, :]
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
-        stats = {'samples':samples, 'samples_wo_burin':all_samples, 'stats':extract_stats(samples, keys=list(self._names.values())), 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())), 'accept_prob': np.sum(accept[burn_in:])/len(accept), 'number_of_function_evals':n_feval_per_itr, \
-                 'time_elapsed':time_elapsed, 'param_names': list(self._names.values())}
+
+        stats = {'samples': samples, 'samples_wo_burin': all_samples,
+                 'stats': extract_stats(samples, keys=list(self._names.values())),
+                 'stats_wo_burnin': extract_stats(all_samples, keys=list(self._names.values())),
+                 'accept_rate': np.sum(accept[burn_in:]) / len(accept[burn_in:]),
+                 'number_of_function_evals': n_feval_per_itr,
+                 'time_elapsed': time_elapsed, 'param_names': list(self._names.values())}
+
         if print_stats:
             print(stats['stats'])
-            print('The acceptance ratio is: {0}'.format(stats['accept_prob']))
+            print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'])
+            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'],
+                      prefix='chain_{}_'.format(self._chains))
         if plot:
-            self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
+            self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'], lag=lag,
+                              burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
             self.model_graph.display_graph()
-        return stats
+        return stats  # dict
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
@@ -362,3 +410,18 @@ class BHMCSampler(object):
 
 
 
+    def sample_multiple_chains(self, n_chains = 1, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
+               print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
+        '''
+
+        :param n_chains: number of chains to run
+
+        :return: all_stats: dict of multiple chains, each chain contains one stats; stats the return of method sample
+               eg. all_stats = {'0': stats}, where stats{'samples': df}
+        '''
+        all_stats = {}
+        for i in range(n_chains):
+            all_stats[i] = self.sample(i, n_samples, burn_in, stepsize_range, n_step_range,seed, n_update, lag,
+               print_stats , plot, plot_graphmodel, save_samples, plot_burnin, plot_ac)
+
+        return all_stats

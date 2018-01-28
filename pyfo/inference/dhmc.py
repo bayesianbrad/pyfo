@@ -150,7 +150,7 @@ class DHMCSampler(object):
         n_fupdate = 0
 
         #performs shallow copy
-        x = copy.copy(x0)
+        x = copy.deepcopy(x0)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
         if self._cont_keys is not None:
@@ -297,14 +297,14 @@ class DHMCSampler(object):
         print('The sampler is now performing inference....')
         print(50*'=')
         for i in range(n_samples+burn_in):
-            stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
+            stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1]))
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
-            # TODO I should apply an unembed function here too!
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
             accept.append(accept_prob)
-            x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
+            x_numpy = self._state._unembed(copy.copy(x))
+            # There should be a quicker way to do this at the very end,
             #  using the whole dataframe series. It will require processing a whole byte vector
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
