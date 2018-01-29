@@ -47,16 +47,10 @@ class DHMCSampler(object):
 
     def __init__(self, object,chains=0, scale=None):
 
-        # Note for self:
-        ## state is a class that contains a dictionary of the system.
-        ## to get log_posterior and log_update call the methods on the
-        ## state
         # Note:
         ## Need to deal with a M matrix. Using the identity matrix for now.
-
         self.model_graph =object.model # i graphical model object
         self._state = state.State(self.model_graph)
-        self._chains = chains
         ## Debugging:::
         #####
         self._state.debug()
@@ -93,7 +87,6 @@ class DHMCSampler(object):
         if self._cont_keys is not None:
             for key in self._cont_keys:
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
-                # TODO in the future make for multiple dims
         if self._if_keys is not None:
             for key in self._if_keys:
                 p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
@@ -150,7 +143,7 @@ class DHMCSampler(object):
         n_fupdate = 0
 
         #performs shallow copy
-        x = copy.deepcopy(x0)
+        x = copy.copy(x0)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
         if self._cont_keys is not None:
@@ -259,7 +252,6 @@ class DHMCSampler(object):
             x = x0
             accept = 0
 
-        # return x, acceptprob[0], n_feval, n_fupdate
         return x, accept, n_feval, n_fupdate
 
     def sample(self,chain_num=0,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
@@ -335,7 +327,7 @@ class DHMCSampler(object):
         all_samples = all_samples[self._state.all_vars]
         all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
-        samples =  all_samples.loc[burn_in:, :]
+        samples =  copy.copy(all_samples.loc[burn_in:])
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
 
@@ -348,14 +340,14 @@ class DHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'], prefix = 'chain_{}_'.format(chain_num))
-        if plot:
-            self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
-        if plot_graphmodel:
-            self.model_graph.display_graph()
+            save_data(stats['samples'], stats['samples_wo_burin'], prefix = 'chain_{}_'.format(chain_num))
+        # if plot:
+        #     self.create_plots(stats['samples'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
+        # if plot_graphmodel:
+        #     self.model_graph.display_graph()
         return stats  #dict
 
-    def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
+    def create_plots(self, dataframe_samples, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
 
         :param keys:
@@ -363,7 +355,7 @@ class DHMCSampler(object):
         :return: Generates plots
         """
 
-        plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
+        plot_object = plot(dataframe_samples=dataframe_samples, keys=keys,lag=lag, burn_in=burn_in )
         plot_object.plot_density(all_on_one)
         plot_object.plot_trace(all_on_one)
         if ac:
