@@ -239,6 +239,8 @@ class BHMCSampler(object):
                     x[key] = x[key] + stepsize * self.M * p[key]  #final  full step for postions
                     if x[self._cond_map[key]] != x0[self._cond_map[key]]:
                         # discontinuity has been crossed
+                        print('Debug statement in bhmc.branching_integrator()\n'
+                              'the discontinuity has been crossed')
                         self._branch = True
                         return x0, p0, n_feval, n_fupdate, 0
                 self._branch = False
@@ -303,6 +305,8 @@ class BHMCSampler(object):
                 break
             if self._branch and i>0:
                 break
+                n_feval += n_feval_local
+                n_fupdate += n_fupdate_local
             else:
                 n_feval += n_feval_local
                 n_fupdate += n_fupdate_local
@@ -337,7 +341,6 @@ class BHMCSampler(object):
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
-            # TODO I should apply an unembed function here too!
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
             accept.append(accept_prob)
