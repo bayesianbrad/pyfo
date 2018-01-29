@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 27. Jan 2018, Tobias Kohn
+# 28. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .code_types import *
@@ -288,11 +288,11 @@ class CodeIf(CodeObject):
 
     def __repr__(self):
         else_expr = repr(self.else_expr) if self.else_expr else "None"
-        return "{} if {} else {}".format(repr(self.if_expr), repr(self.cond), else_expr)
+        return "({} if {} else {})".format(repr(self.if_expr), repr(self.cond), else_expr)
 
     def to_py(self, state:dict=None):
         else_expr = self.else_expr.to_py(state) if self.else_expr else "None"
-        return "{} if {} else {}".format(self.if_expr.to_py(state), self.cond.to_py(state), else_expr)
+        return "({} if {} else {})".format(self.if_expr.to_py(state), self.cond.to_py(state), else_expr)
 
 
 class CodeObserve(CodeObject):

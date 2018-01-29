@@ -126,6 +126,9 @@ class Model(object):
     def get_arcs(self):
         return self.arcs
 
+    def get_conditions(self):
+        return self.conditionals
+
     def get_arcs_names(self):
         return [(u.name, v.name) for (u, v) in self.arcs]
 
