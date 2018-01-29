@@ -39,18 +39,12 @@ class BHMCSampler(object):
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
     """
 
-    def __init__(self, object, chains=0,  scale=None):
-
-        # Note for self:
-        ## state is a class that contains a dictionary of the system.
-        ## to get log_posterior and log_update call the methods on the
-        ## state
+    def __init__(self, object, scale=None):
         # Note:
         ## Need to deal with a M matrix. Using the identity matrix for now.
 
         self.model_graph =object.model # i graphical model object
         self._state = state.State(self.model_graph)
-        self._chains = chains
 
         ## Debugging:::
         #####
@@ -152,12 +146,13 @@ class BHMCSampler(object):
         :param key:
         :return:
         """
-    def branching_integrator(self, x0, p0, stepsize, t):
+    def branching_integrator(self, xt, x0, p0, stepsize, t):
         """
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
 
-        :param x: Type dictionary
+        :param xt: Type dictionary, the pre
+        :param x0: Type dictionary, the previous state
         :param p: Type dictionary
         :param stepsize: Type: Variable
         :param t Type: int trajectory number
@@ -167,9 +162,10 @@ class BHMCSampler(object):
         # number of function evaluations and fupdates for discrete parameters
         n_feval = 0
         n_fupdate = 0
-
+        if t > 0 and self._branch:
+            x0 = copy.copy(xt)
         # performs shallow copy
-        x = copy.deepcopy(x0)
+        x = copy.copy(xt)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
         if self._cont_temp_keys is not None:
@@ -190,8 +186,14 @@ class BHMCSampler(object):
             else:
                 # Updates according to whether a condition has been satisfied.
                 for key in self._cont_temp_keys:
+                    # print('Debug statement in bhmc.branching_integrator()\n'
+                    #       'This is the current value of cond {0} of the state x: {1}\n'
+                    #       'This is the current value of cond {0} of the intial state x0: {2}'.format(
+                    #     self._cond_map[key], x[self._cond_map[key]], x0[self._cond_map[key]]))
                     x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
                     if x[self._cond_map[key]] != x0[self._cond_map[key]]:
+                        print('Debug statement in bhmc.branching_integrator()\n'
+                              'the discontinuity has been crossed')
                         # discontinuity has been crossed
                         self._branch=True
                         return x0, p0, n_feval, n_fupdate, 0
@@ -202,6 +204,7 @@ class BHMCSampler(object):
                 return x, p, n_feval, n_fupdate, 0
 
         else:
+            print('Evaluated with the coordinate wise integrator ')
             permuted_keys_list = []
             if self._disc_temp_keys is not None:
                 permuted_keys_list = permuted_keys_list + self._disc_temp_keys
@@ -266,8 +269,7 @@ class BHMCSampler(object):
         else:
             kinetic_cont = VariableCast(0)
         if branch:
-            torch.sum(
-                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys]))
+            kinetic_if = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._if_keys]))
         elif self._if_keys is not None:
             kinetic_if = torch.sum(torch.stack([self.M * torch.dot(p[name], p[name]) for name in self._if_keys]))
         else:
@@ -294,31 +296,36 @@ class BHMCSampler(object):
         n_feval = 0
         n_fupdate = 0
         x = copy.copy(x0)
-        p0 = copy.copy(p)
         # if branch was trigger, i.e the condition of the predicate has been changed, we will break out of the
         # leap and create a new dict of temporary dict of discrete vars. If there are no if stateemnts and
-        # there are cont keys, returns self.cont)temp_keys == self.cont_keys
+        # there are cont keys, returns self.cont)temp_keys == self.
+        _branch = self._branch
         self.append_keys(branch=self._branch)
         for i in range(n_step):
-            x,p, n_feval_local, n_fupdate_local, _ = self.branching_integrator(x,p,stepsize,t=i)
+            x,p, n_feval_local, n_fupdate_local, _ = self.branching_integrator(x,x0,p,stepsize,t=i)
             if math.isinf(_):
                 break
             if self._branch and i>0:
-                break
                 n_feval += n_feval_local
                 n_fupdate += n_fupdate_local
+                _branch = False
+                self.append_keys(branch=self._branch)
+                break
             else:
                 n_feval += n_feval_local
                 n_fupdate += n_fupdate_local
-
-        final_energy = self._energy(x,p, branch=self._branch)
+        final_energy = self._energy(x,p, branch=_branch)
         acceptprob  = torch.min(torch.ones(1),torch.exp(final_energy - intial_energy)) # Tensor
+        accept = 1
         if acceptprob[0] < np.random.uniform(0,1):
             x = x0
+            accept = 0
+        return x, accept, n_feval, n_fupdate
 
-        return x, acceptprob[0], n_feval, n_fupdate
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20, print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
-        # Note currently not doing anything with burn in
+    def sample(self, chain_num=0, n_samples=1000, burn_in=1000, stepsize_range=[0.05, 0.20], n_step_range=[5, 20],
+               seed=None, n_update=10, lag=20,
+               print_stats=False, plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False,
+               plot_ac=False):        # Note currently not doing anything with burn in
 
         if seed is not None:
             torch.manual_seed(seed)
@@ -336,21 +343,31 @@ class BHMCSampler(object):
         print(50*'=')
         print('The sampler is now performing inference....')
         print(50*'=')
-        print('Now pring the self._cond_keys {}'.format(self._cond_keys))
-        for i in range(n_samples+burn_in):
+        i = 0
+        times_branched = 0
+        while i < n_samples+burn_in:
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
-            n_feval += n_feval_local
-            n_fupdate += n_fupdate_local
-            accept.append(accept_prob)
-            x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
-            #  using the whole dataframe series. It will require processing a whole byte vector
-            x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
+            if self._branch:
+                times_branched += 1
+                i = i
+            else:
+                n_feval += n_feval_local
+                n_fupdate += n_fupdate_local
+                accept.append(accept_prob)
+                x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
+                #  using the whole dataframe series. It will require processing a whole byte vector
+                x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
+                i += 1
             if (i + 1) % n_per_update == 0:
                 print('{:d} iterations have been completed.'.format(i + 1))
         toc = time.process_time()
         time_elapsed = toc - tic
+        print(50*'=')
+        print('Number of branching evaluations: {0} \n'
+              'as a proportion of total evaluations {1} '.format(times_branched, times_branched/(n_samples+burn_in)))
+        print(50 * '=')
         n_feval_per_itr = n_feval / (n_samples + burn_in)
         n_fupdate_per_itr = n_fupdate / (n_samples + burn_in)
         if self._disc_keys is not None and self._if_keys is not None:
@@ -359,11 +376,11 @@ class BHMCSampler(object):
                 + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
         if self._disc_keys is None and self._if_keys is not None:
             print('Each iteration of DHMC on average required '
-                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._if_keys))
+                + '{:.2f} conditional density evaluations per if parameter '.format(n_fupdate_per_itr / len(self._if_keys))
                 + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
         if self._disc_keys is not None and self._if_keys is None:
             print('Each iteration of DHMC on average required '
-                + '{:.2f} conditional density evaluations per discontinuous parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
+                + '{:.2f} conditional density evaluations per discrete parameter '.format(n_fupdate_per_itr / len(self._disc_keys))
                 + 'and {:.2f} full density evaluations.'.format(n_feval_per_itr))
 
         print(50*'=')
@@ -373,7 +390,7 @@ class BHMCSampler(object):
         all_samples = all_samples[self._state.all_vars]
         all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
-        samples = all_samples.loc[burn_in:, :]
+        samples = copy.copy(all_samples.loc[burn_in:])
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
 
@@ -388,16 +405,14 @@ class BHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'],
-                      prefix='chain_{}_'.format(self._chains))
+            save_data(stats['samples'], stats['samples_wo_burin'], prefix='chain_{}_'.format(chain_num))
         if plot:
-            self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'], lag=lag,
-                              burn_in=plot_burnin, ac=plot_ac)
+            self.create_plots(stats['samples'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
             self.model_graph.display_graph()
         return stats  # dict
 
-    def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
+    def create_plots(self, dataframe_samples, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
 
         :param keys:
@@ -405,16 +420,16 @@ class BHMCSampler(object):
         :return: Generates plots
         """
 
-        plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
+        plot_object = plot(dataframe_samples=dataframe_samples, keys=keys, lag=lag, burn_in=burn_in)
         plot_object.plot_density(all_on_one)
         plot_object.plot_trace(all_on_one)
         if ac:
             plot_object.auto_corr()
 
-
-
-    def sample_multiple_chains(self, n_chains = 1, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
-               print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
+    def sample_multiple_chains(self, n_chains=1, n_samples=1000, burn_in=1000, stepsize_range=[0.05, 0.20],
+                               n_step_range=[5, 20], seed=None, n_update=10, lag=20,
+                               print_stats=False, plot=False, plot_graphmodel=False, save_samples=False,
+                               plot_burnin=False, plot_ac=False):
         '''
 
         :param n_chains: number of chains to run
@@ -424,7 +439,7 @@ class BHMCSampler(object):
         '''
         all_stats = {}
         for i in range(n_chains):
-            all_stats[i] = self.sample(i, n_samples, burn_in, stepsize_range, n_step_range,seed, n_update, lag,
-               print_stats , plot, plot_graphmodel, save_samples, plot_burnin, plot_ac)
+            all_stats[i] = self.sample(i, n_samples, burn_in, stepsize_range, n_step_range, seed, n_update, lag,
+                                       print_stats, plot, plot_graphmodel, save_samples, plot_burnin, plot_ac)
 
         return all_stats
