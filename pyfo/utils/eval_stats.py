@@ -224,7 +224,7 @@ def extract_stats(dataframe,keys):
     """
     return dataframe[keys].describe()
 
-def save_data(samples, all_samples, keys, prefix=''):
+def save_data(samples, all_samples, prefix=''):
         # Ensures directory for this data exists for model, if not creates it
     PATH  = sys.path[0]
     os.makedirs(PATH, exist_ok=True)
@@ -233,11 +233,10 @@ def save_data(samples, all_samples, keys, prefix=''):
     print(50 * '=')
     print('Saving data in: {0}'.format(PATH_data))
     print(50 * '=')
-    for key in keys:
-        path1 = prefix + 'samples_after_burnin_' + key +'.csv'
-        path2 = prefix + 'samples_with_burnin_' + key + '.csv'
-        samples[key].to_csv(os.path.join(PATH_data,path1), index=False, header=True)
-        all_samples[key].to_csv(os.path.join(PATH_data,path2), index=False, header=True)
+    path1 = prefix + 'samples_after_burnin' '.csv'
+    path2 = prefix + 'all_samples' + '.csv'
+    samples.to_csv(os.path.join(PATH_data,path1), index=False, header=True)
+    all_samples.to_csv(os.path.join(PATH_data,path2), index=False, header=True)
 
 def load_data(n_chain, var_key, PATH):
     all_stats = {}
