@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Jan 2018, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 26. Jan 2018, Tobias Kohn
 #
 import math as _math
 import random as _random
@@ -30,7 +30,6 @@ class dist(object):
 
     Binomial = Dummy
     Dirichlet = Dummy
-    Gamma = Dummy
     MultivariateNormal = Dummy
     Poisson = Dummy
 
@@ -50,6 +49,17 @@ class dist(object):
 
         def sample(self):
             return _random.randint(0, len(self.ps)-1)
+
+    class Gamma(object):
+
+        def __init__(self, *arg, transformed:bool=None):
+            pass
+
+        def log_pdf(self, value):
+            return 0
+
+        def sample(self):
+            return 1
 
     class Normal(object):
 

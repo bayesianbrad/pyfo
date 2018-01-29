@@ -1,5 +1,5 @@
 import torch
-from pyfo.distributions.Distribution_wrapper import TorchDistribution
+from pyfo.distributions.distribution_wrapper import TorchDistribution
 from pyfo.utils.core import VariableCast
 
 

@@ -44,6 +44,7 @@ from  pyfo.distributions.gamma import Gamma
 from  pyfo.distributions.geometric import Geometric
 from  pyfo.distributions.gumbel import Gumbel
 from  pyfo.distributions.laplace import Laplace
+from  pyfo.distributions.log_gamma import LogGamma
 from  pyfo.distributions.multinomial import Multinomial
 from  pyfo.distributions.normal import Normal
 from  pyfo.distributions.mvn import MultivariateNormal #as mvn
@@ -69,6 +70,7 @@ __all__ = [
     'Geometric',
     'Gumbel',
     'Laplace',
+    'LogGamma'
     'Multinomial',
     'MultivariateNormal',
     'Normal',

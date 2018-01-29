@@ -40,10 +40,10 @@ class State(object):
 
         :param cls: this is the interface cls of the model.
         """
-        ### These functions still exists
+        self._model = cls
         self._state_init = cls.gen_prior_samples()
         self._debug_prior = cls.gen_prior_samples_code
-        self._gen_logpdf = cls.gen_pdf # returns logp
+        self._gen_logpdf = cls.gen_pdf
         self._debug_pdf = cls.gen_pdf_code
         self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
         self._disc_vars = cls.gen_disc_vars()
@@ -54,8 +54,6 @@ class State(object):
         self.all_vars = self.gen_vars()
         self.get_continuous_dist_names()
         self.get_discrete_dist_names()
-        self._model = cls
-        #####
         support_size = self.gen_support_size()
         self._unembed_state = Unembed(support_size)
 
@@ -65,18 +63,31 @@ class State(object):
         """
         print(50*'='+'\n'
                      'Now generating prior python code \n'
-              '{}'.format(self._debug_prior()))
+              '{}'.format(self._debug_prior))
         print(50 * '=' + '\n'
                          'Now generating posterior python code \n'
-                         '{}'.format(self._debug_pdf()))
+                         '{}'.format(self._debug_pdf))
         print(50*'=')
-        print(50 * '=' + '\n'
-                         'Now generating graph code \n'
-                         '{}'.format(self._model))
+        print( '\n Now generating graph code \n {}'.format(self._model))
+        print(50 * '=')
+        # print('Now generating distribution code \n')
+        # print(self._distribution_params)
+
+
         # print(50 * '=' + '\n'
         #                  'Debug inside the model\n'
         #                  '{}'.format(Options.log))
 
+    def dist_name_and_params(self):
+        """
+        Returns a dictionary map of vertex names and the corresponding distribution parameters.
+        :return:
+
+        """
+        distribution_params = {}
+        for vertex in self._vertices:
+            if vertex.is_continuous and vertex.observation is None:
+                distribution_params[vertex] = vertex.get_parameter_values('key_of_state')
 
     def get_sample_sizes(self):
         """
@@ -119,7 +130,17 @@ class State(object):
                     cont_names[vertex.name] = vertex.distribution_name
         self._cont_dist =  cont_names
 
+    def get_conds_map(self):
+        """
+        A map of keys from if vars that are continuous and the given predicate  'cond var'
 
+        :return:
+        """
+        cond_map = {}
+        for vertex in self._vertices:
+            if vertex.is_conditional and not vertex.is_observed:
+                cond_map[vertex.name] = vertex.conditions
+        return cond_map
     def gen_vars(self):
         """
         Generates all the variables on which inference is performed
@@ -220,15 +241,6 @@ class State(object):
         else:
             return self._names
 
-    @staticmethod
-    def detach_nodes(x):
-        """
-        Takes either the momentum or latents
-        :param x:
-        :return:
-        """
-        for key, value in x.items():
-            x[key] = Variable(value.data, requires_grad=True)
 
     def _log_pdf(self, state, set_leafs=False, unembed=False, partial_unembed=False, key=None):
         """

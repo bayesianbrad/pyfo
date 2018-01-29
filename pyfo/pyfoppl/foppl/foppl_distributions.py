@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 20. Jan 2018, Tobias Kohn
+# 26. Jan 2018, Tobias Kohn
 #
 distributions = {
     "Bernoulli": "discrete",
@@ -20,6 +20,7 @@ distributions = {
     "Exponential": "continuous",
     "Gamma": "continuous",
     "HalfCauchy": "continuous",
+    "LogGamma": "continuous",
     "LogNormal": "continuous",
     "MultivariateNormal": "continuous",
     "Normal": "continuous",
@@ -41,6 +42,7 @@ continuous_distributions = {
     "Exponential",
     "Gamma",
     "HalfCauchy",
+    "LogGamma"
     "LogNormal",
     "MultivariateNormal",
     "Normal",
@@ -73,14 +75,19 @@ distribution_params = {
     "Cauchy": ["mu", "gamma"],
     "Dirichlet": ["alpha"],
     "Exponential": ["lam"],
-    "LogNormal": ["mu", "sigma"],
     "Gamma": ["alpha", "beta"],
     "HalfCauchy": ["mu", "gamma"],
+    "LogNormal": ["mu", "sigma"],
+    "LogGamma": ["concentration", "rate"],
     "Multinomial": ["ps", "n"],
     "MultivariateNormal": ["mu", "covariance_matrix"],
     "Normal": ["mu", "sigma"],
     "Poisson": ["lam"],
     "Uniform": ["a", "b"]
+}
+
+distributions_with_transform_flag = {
+    "Exponential", "Gamma"
 }
 
 def get_arg_count(distr: str):

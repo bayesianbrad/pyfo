@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 25. Jan 2018, Tobias Kohn
+# 26. Jan 2018, Tobias Kohn
 #
 from . import runtime
 from .basic_imports import *
@@ -126,6 +126,9 @@ class Model(object):
     def get_arcs(self):
         return self.arcs
 
+    def get_conditions(self):
+        return self.conditionals
+
     def get_arcs_names(self):
         return [(u.name, v.name) for (u, v) in self.arcs]
 
@@ -184,6 +187,7 @@ class Model(object):
             node.update(state)
         return state
 
+    @property
     def gen_prior_samples_code(self):
         result = []
         for node in self.compute_nodes:
@@ -199,6 +203,7 @@ class Model(object):
         else:
             return 0.0
 
+    @property
     def gen_pdf_code(self):
         result = []
         for node in self.compute_nodes:

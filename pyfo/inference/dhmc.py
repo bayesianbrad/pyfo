@@ -45,7 +45,7 @@ class DHMCSampler(object):
     will be stored. But for now, we will inherit the model from pyro.models.<model_name>
     """
 
-    def __init__(self, object, scale=None):
+    def __init__(self, object,chains=0, scale=None):
 
         # Note for self:
         ## state is a class that contains a dictionary of the system.
@@ -56,7 +56,7 @@ class DHMCSampler(object):
 
         self.model_graph =object.model # i graphical model object
         self._state = state.State(self.model_graph)
-
+        self._chains = chains
         ## Debugging:::
         #####
         self._state.debug()
@@ -150,7 +150,7 @@ class DHMCSampler(object):
         n_fupdate = 0
 
         #performs shallow copy
-        x = copy.copy(x0)
+        x = copy.deepcopy(x0)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
         if self._cont_keys is not None:
@@ -262,11 +262,9 @@ class DHMCSampler(object):
         # return x, acceptprob[0], n_feval, n_fupdate
         return x, accept, n_feval, n_fupdate
 
-    def sample(self,chain_num=0, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
+    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
                print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
-        # Note currently not doing anything with burn in
         '''
-        :param chain_num:  indicate the number of the chain the sampler is generating
         :param n_samples:  number of samples to draw
         :param burn_in: number of burn in samples, discard by default
         :param stepsize_range:
@@ -299,14 +297,14 @@ class DHMCSampler(object):
         print('The sampler is now performing inference....')
         print(50*'=')
         for i in range(n_samples+burn_in):
-            stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
+            stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1]))
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
-            # TODO I should apply an unembed function here too!
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
             accept.append(accept_prob)
-            x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
+            x_numpy = self._state._unembed(copy.copy(x))
+            # There should be a quicker way to do this at the very end,
             #  using the whole dataframe series. It will require processing a whole byte vector
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
@@ -350,7 +348,7 @@ class DHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'], prefix = 'chain_{}_'.format(chain_num))
+            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'], prefix = 'chain_{}_'.format(self._chains))
         if plot:
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:

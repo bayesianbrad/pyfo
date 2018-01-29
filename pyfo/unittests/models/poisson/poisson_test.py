@@ -28,4 +28,4 @@ all_samples = stats['samples_wo_burin'] # type, panda dataframe
 # samples = stats['samples']
 # means = stats['means']
 # print(means)
-print(stats['accept_prob'])
+print(stats['accept_ratio'])

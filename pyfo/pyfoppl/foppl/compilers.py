@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 25. Jan 2018, Tobias Kohn
+# 27. Jan 2018, Tobias Kohn
 #
 import math
 from . import foppl_objects
@@ -15,6 +15,7 @@ from .foppl_ast import *
 from .code_objects import *
 from .graphs import *
 from . import foppl_dataloader
+from .foppl_transformations import Transformations
 
 
 class Scope(object):
@@ -164,6 +165,17 @@ class Compiler(Walker):
             return ''
 
     def define(self, name, value):
+
+        def _set_original_name(vertex, orig_name, is_transformed=False):
+            original_name = self._get_current_scope_name() + orig_name
+            if is_transformed:
+                original_name = '~' + original_name
+            if vertex is not None:
+                if vertex.original_name is None:
+                    vertex.original_name = original_name
+                if '_' not in vertex.original_name:
+                    vertex.original_name = original_name
+
         if isinstance(name, AstSymbol):
             name = name.name
         if isinstance(name, foppl_objects.Symbol):
@@ -177,16 +189,19 @@ class Compiler(Walker):
                 graph, expr = value
             if isinstance(expr, CodeSample):
                 v = graph.get_vertex_for_distribution(expr.distribution)
-                if v and v.original_name is None:
-                    v.original_name = self._get_current_scope_name() + name
+                _set_original_name(v, name)
+
+            elif isinstance(expr, CodeFunctionCall) and expr.is_transform_inverse and \
+                isinstance(expr.args[0], CodeSample):
+                v = graph.get_vertex_for_distribution(expr.args[0].distribution)
+                _set_original_name(v, name, True)
 
             elif isinstance(expr, CodeVector):
                 for i in range(len(expr.items)):
                     item = expr.items[i]
                     if isinstance(item, CodeSample):
                         v = graph.get_vertex_for_distribution(item.distribution)
-                        if v and (v.original_name is None or '_' not in v.original_name):
-                            v.original_name = "{}_{}".format(self._get_current_scope_name() + name, i)
+                        _set_original_name(v, "{}_{}".format(name, i))
 
                 if all([isinstance(item, CodeVector) for item in expr.items]):
                     for i in range(len(expr.items)):
@@ -195,8 +210,7 @@ class Compiler(Walker):
                             item = vec_items[j]
                             if isinstance(item, CodeSample):
                                 v = graph.get_vertex_for_distribution(item.distribution)
-                                if v and (v.original_name is None or '_' not in v.original_name):
-                                    v.original_name = "{}_{}_{}".format(self._get_current_scope_name() + name, i, j)
+                                _set_original_name(v, "{}_{}_{}".format(name, i, j))
 
             self.scope.add_symbol(name, (graph, expr))
 
@@ -833,8 +847,15 @@ class Compiler(Walker):
         obs_graph, obs_value = node.value.walk(self)
         if not isinstance(dist, CodeDistribution):
             raise TypeError("'observe' requires a distribution as first parameter, not '{}'".format(dist))
+        transform = getattr(Transformations, dist.name, None)
+        if transform is not None:
+            forward, _, new_dist = transform()
+            if forward is not None and forward != "":
+                obs_value = CodeFunctionCall(forward, [obs_value])
+            dist = CodeDistribution(new_dist, dist.args)
         vertex = Vertex(ancestor_graph=merge(graph, obs_graph), distribution=dist, observation=obs_value,
-                        conditions=self.current_conditions(), line_number=node.line_number)
+                        conditions=self.current_conditions(), line_number=node.line_number,
+                        transform_flag=transform is not None)
         graph = Graph({vertex}).merge(graph)
         self._merge_graph(graph)
         return Graph.EMPTY, CodeObserve(vertex)
@@ -843,11 +864,20 @@ class Compiler(Walker):
         graph, dist = node.distribution.walk(self)
         if not isinstance(dist, CodeDistribution):
             raise TypeError("'sample' requires a distribution as first parameter, not '{}'".format(dist))
+        transform = getattr(Transformations, dist.name, None)
+        if transform is not None:
+            _, invert, new_dist = transform()
+            dist = CodeDistribution(new_dist, dist.args)
+        else:
+            invert = None
         vertex = Vertex(ancestor_graph=graph, distribution=dist, conditions=self.current_conditions(),
-                        line_number=node.line_number)
+                        line_number=node.line_number, transform_flag=transform is not None)
         graph = Graph({vertex}).merge(graph)
         self._merge_graph(graph)
-        return graph, CodeSample(vertex)
+        code = CodeSample(vertex)
+        if invert is not None and invert != "":
+            code = CodeFunctionCall(invert, [code], is_transform_inverse=True)
+        return graph, code
 
     def visit_sqrt(self, node: AstSqrt):
         graph, code = node.item.walk(self)
