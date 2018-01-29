@@ -8,7 +8,7 @@ Date created:  20/01/2018
 License: MIT
 '''
 from pyfo.pyfoppl.foppl import imports
-import cat as test
+import pyfo.unittests.models.categorical.cat as test
 
 
 from pyfo.inference.dhmc import DHMCSampler as dhmc

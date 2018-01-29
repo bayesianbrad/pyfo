@@ -7,7 +7,7 @@ from pyfo.utils.eval_stats import *
 
 
 # model
-print(test.model)
+# print(test.model)
 # test.model.display_graph()
 
 dhmc_ = dhmc(test)

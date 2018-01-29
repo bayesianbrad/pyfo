@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 PATH  = sys.path[0]
 n_chain = 5
-var_key = ['x1', 'x2', 'x3']
+var_key = ['mus_1', 'mus_0']#,  'sample-components.zs_0','sample-components.zs_1']
 
 ### load data
 all_stats = load_data(n_chain,var_key,PATH)
@@ -27,12 +27,23 @@ for key in all_vars:
     ess_mc[key] = effective_sample_size(samples)
     r_hat[key] = gelman_rubin_diagnostic(samples)
 
+print('monte carlo ess: ', ess_mc)
+print('r value for: ', r_hat)
 
-print('monte carlo ess for {}: '.format(key), ess_mc)
-print('r value for '.format(key), r_hat)
 
+### other diagnotics by hand
+for i in range(n_chain):
+    # plt.hist(all_stats[i]['samples']['mus_0'], alpha = 0.2, bins='auto', normed=1)
+    plt.figure(1)
+    plt.hist(all_stats[i]['samples']['mus_0'], alpha=0.2, bins='auto', normed=1)
+    plt.figure(2)
+    plt.plot(all_stats[i]['samples']['mus_0'])
+plt.show()
 
-#  other diagnotics by hand
-# for i in range(n_chain):
-#     plt.hist(all_stats[i]['samples']['x3'], alpha = 0.2, bins='auto', normed=1)
-# plt.show()
+for i in range(n_chain):
+    # plt.hist(all_stats[i]['samples']['mus_0'], alpha = 0.2, bins='auto', normed=1)
+    plt.figure(1)
+    plt.hist(all_stats[i]['samples']['mus_1'], alpha=0.2, bins='auto', normed=1)
+    plt.figure(2)
+    plt.plot(all_stats[i]['samples']['mus_1'])
+plt.show()
