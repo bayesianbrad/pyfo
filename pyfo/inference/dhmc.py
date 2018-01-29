@@ -262,7 +262,7 @@ class DHMCSampler(object):
         # return x, acceptprob[0], n_feval, n_fupdate
         return x, accept, n_feval, n_fupdate
 
-    def sample(self,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
+    def sample(self,chain_num=0,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
                print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         '''
         :param n_samples:  number of samples to draw
@@ -348,7 +348,7 @@ class DHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'], prefix = 'chain_{}_'.format(self._chains))
+            save_data(stats['samples'], stats['samples_wo_burin'], stats['param_names'], prefix = 'chain_{}_'.format(chain_num))
         if plot:
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
