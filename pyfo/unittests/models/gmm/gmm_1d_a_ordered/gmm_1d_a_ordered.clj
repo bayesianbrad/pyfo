@@ -1,4 +1,4 @@
-(def N 3)
+(def N 10)
 
 (defn sample-components [_ zs pi]
   (let [z (sample (categorical pi))]

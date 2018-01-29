@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 PATH  = sys.path[0]
 n_chain = 5
-var_key = ['mu1', 'mu2']#,  'sample-components.zs_0','sample-components.zs_1']
+var_key = ['get-ordered-mu.mu1', 'get-ordered-mu.mu2']#,  'sample-components.zs_0','sample-components.zs_1']
 
 ### load data
 all_stats = load_data(n_chain,var_key,PATH)
@@ -35,15 +35,15 @@ print('r value for: ', r_hat)
 for i in range(n_chain):
     # plt.hist(all_stats[i]['samples']['mus_0'], alpha = 0.2, bins='auto', normed=1)
     plt.figure(1)
-    plt.hist(all_stats[i]['samples']['mu1'], alpha=0.2, bins='auto', normed=1)
+    plt.hist(all_stats[i]['samples']['get-ordered-mu.mu1'], alpha=0.2, bins='auto', normed=1)
     plt.figure(2)
-    plt.plot(all_stats[i]['samples']['mu1'])
+    plt.plot(all_stats[i]['samples']['get-ordered-mu.mu1'])
 plt.show()
 
 for i in range(n_chain):
     # plt.hist(all_stats[i]['samples']['mus_0'], alpha = 0.2, bins='auto', normed=1)
     plt.figure(1)
-    plt.hist(all_stats[i]['samples']['mu2'], alpha=0.2, bins='auto', normed=1)
+    plt.hist(all_stats[i]['samples']['get-ordered-mu.mu2'], alpha=0.2, bins='auto', normed=1)
     plt.figure(2)
-    plt.plot(all_stats[i]['samples']['mu2'])
+    plt.plot(all_stats[i]['samples']['get-ordered-mu.mu2'])
 plt.show()
