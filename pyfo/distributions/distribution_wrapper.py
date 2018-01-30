@@ -17,11 +17,11 @@ class TorchDistribution():
     A very thin wrapper around torch distributions
     """
 
-    def __init__(self, torch_dist, Transformed=False, name=None):
+    def __init__(self, torch_dist, transformed=False, name=None):
         super(TorchDistribution, self).__init__()
         self.torch_dist = torch_dist
         self._sample_shape = torch.Size()
-        self._transformed = Transformed
+        self._transformed = transformed
         self._name  = name
 
     def sample(self):

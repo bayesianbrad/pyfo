@@ -50,6 +50,7 @@ class State(object):
         self._if_vars = cls.gen_if_vars()
         self._cond_vars=  cls.gen_cond_vars()
         self._vertices = cls.get_vertices()
+        self._conditions = cls.get_conditions()
         self._arcs = cls.get_arcs()
         self.all_vars = self.gen_vars()
         self.get_continuous_dist_names()
@@ -137,9 +138,10 @@ class State(object):
         :return:
         """
         cond_map = {}
+        print(self._conditions)
         for vertex in self._vertices:
             if vertex.is_conditional and not vertex.is_observed:
-                cond_map[vertex.name] = vertex.conditions
+                cond_map[vertex.name] = [c.name for c in vertex.dependent_conditions][0]
         return cond_map
     def gen_vars(self):
         """

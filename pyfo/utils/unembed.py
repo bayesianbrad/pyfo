@@ -59,7 +59,7 @@ class Unembed():
         int_length = self._support_sizes[key]
         lower = VariableCast(-0.5)
         upper = VariableCast(int_length) + lower
-
+        unit_length = int_length /(upper - lower)
         # # Assumes each parameter represents 1-latent dimension
         # print("Debug statement in unembed.unembed_Categorical \n"
         #       "The type of upper is: {0}  \n"
@@ -74,9 +74,9 @@ class Unembed():
             "outside region return -\inf"
             return VariableCast(-math.inf)
         if torch.lt(state[key],upper).data[0] and torch.gt(state[key],upper + 2*lower).data[0]:
-            state[key] = VariableCast(torch.round(state[key])) #equiv to torch.round(upper)
+            state[key] = VariableCast(torch.round(state[key]) ) #equiv to torch.round(upper)
         else:
-            state[key] = VariableCast(torch.round(state[key] - lower))
+            state[key] = VariableCast(torch.floor(state[key] - lower))
         return state
 
     def unembed_Multinomial(self, state):
@@ -107,7 +107,7 @@ class Unembed():
         if torch.lt(state[key], upper).data[0] and torch.gt(state[key], upper + 2 * lower).data[0]:
             state[key] = VariableCast(torch.round(state[key]))  # equiv to torch.round(upper)
         else:
-            state[key] = VariableCast(torch.round(state[key] - lower))
+            state[key] = VariableCast(torch.floor(state[key] - lower))
         return state
 
     def unembed_Bernoulli(self, state, key):
@@ -139,5 +139,5 @@ class Unembed():
         if torch.lt(state[key], upper).data[0] and torch.gt(state[key], upper + 2 * lower).data[0]:
             state[key] = VariableCast(torch.round(state[key]))  # equiv to torch.round(upper)
         else:
-            state[key] = VariableCast(torch.round(state[key] - lower))
+            state[key] = VariableCast(torch.floor(state[key] - lower))
         return state
