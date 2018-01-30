@@ -239,15 +239,39 @@ def save_data(samples, all_samples, keys, prefix=''):
         samples[key].to_csv(os.path.join(PATH_data,path1), index=False, header=True)
         all_samples[key].to_csv(os.path.join(PATH_data,path2), index=False, header=True)
 
-def load_data(n_chain, var_key, PATH):
+def load_data(n_chain, var_key, PATH, include_burnin_samples=False):
     all_stats = {}
     for i in range(n_chain):
         all_stats[i] = {}
         df = pd.DataFrame()
         for key in var_key:
-            samples_file_dir = PATH + '/data/chain_{}_samples_after_burnin_{}.csv'.format(i, key)
+            if include_burnin_samples:
+                samples_file_dir = PATH + '/chain_{}_samples_with_burnin_{}.csv'.format(i, key)
+            else:
+                samples_file_dir = PATH + '/chain_{}_samples_after_burnin_{}.csv'.format(i, key)
             df_key = pd.read_csv(samples_file_dir, index_col=None, header=0)
             df = pd.concat([df, df_key], axis=1)
         all_stats[i]['samples'] = df
 
     return all_stats
+
+# for HMM model
+def samples_heatmap(num_state, T, samples):
+    heatmap =  np.zeros((num_state, T+1))
+    for i in range(T+1):
+        heatmap[0, i] = np.mean(samples[:, i] == 0)
+        heatmap[1, i] = np.mean(samples[:, i] == 1)
+        heatmap[2, i] = np.mean(samples[:, i] == 2)
+    return heatmap
+
+def l2_norm(samples_post, true_post):
+    result = np.sum((samples_post - true_post)**2)
+    return result
+
+def multi_l2norm_hmm(each_num, total_num, l2_norm, true_post, raw_samples, num_state, T):
+    group_num = int(total_num/each_num)
+    l2norm_result = np.zeros(group_num)
+    for i in range(group_num):
+        heatmap = samples_heatmap(num_state, T, raw_samples[:each_num * (i + 1), :])
+        l2norm_result[i] = l2_norm(heatmap, true_post.transpose())
+    return l2norm_result
