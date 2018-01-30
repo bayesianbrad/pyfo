@@ -341,10 +341,10 @@ class DHMCSampler(object):
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
             save_data(stats['samples'], stats['samples_wo_burin'], prefix = 'chain_{}_'.format(chain_num))
-        # if plot:
-        #     self.create_plots(stats['samples'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
-        # if plot_graphmodel:
-        #     self.model_graph.display_graph()
+        if plot:
+            self.create_plots(stats['samples'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
+        if plot_graphmodel:
+            self.model_graph.display_graph()
         return stats  #dict
 
     def create_plots(self, dataframe_samples, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
