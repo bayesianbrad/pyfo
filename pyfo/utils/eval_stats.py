@@ -265,7 +265,7 @@ def save_data(samples, all_samples, prefix=''):
 
 def load_data(n_chain, PATH, include_burnin_samples=False):
     '''
-        2018-01-29
+        2018-01-30
         :param n_chain: number of chains
         :param PATH: PATH to the csv file
         :param include_burnin_samples: load all samples or samples after burnin
@@ -280,6 +280,15 @@ def load_data(n_chain, PATH, include_burnin_samples=False):
         df = pd.read_csv(samples_file_dir, index_col=None, header=0)
         all_stats[i] = df
     return all_stats
+
+def get_keys(file_name):
+    '''
+    :param file_name: csv file name
+    :return: list of str: header of all columns
+    '''
+    header = pd.read_csv(file_name, header=None, nrows=1)
+    var_key = header.as_matrix()[0]
+    return var_key
 
 # for HMM model
 def samples_heatmap(num_state, T, samples):
