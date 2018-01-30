@@ -1,3 +1,5 @@
+;;; Date 2018-01-26
+
 (def N 10)
 
 (defn sample-components [_ zs pi]
