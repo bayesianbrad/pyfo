@@ -11,10 +11,10 @@ from pyfo.pyfoppl.foppl import imports
 import intro as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
-burn_in = 500
-n_samples = 1000
+burn_in = 2000
+n_samples = 10000
 stepsize_range = [0.05, 0.25]
 n_step_range = [10, 20]
-test.model.display_graph()
+# test.model.display_graph()
 dhmc_ = dhmc(test)
-stats = dhmc_.sample(n_samples=n_samples, burn_in=burn_in, stepsize_range=stepsize_range, n_step_range=n_step_range, seed=123, print_stats=True, plot=True)
+stats = dhmc_.sample(n_samples=n_samples, burn_in=burn_in, stepsize_range=stepsize_range, n_step_range=n_step_range, print_stats=True, plot=True, save_samples=True)

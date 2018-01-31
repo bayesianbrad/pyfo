@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 27. Jan 2018, Tobias Kohn
+# 29. Jan 2018, Tobias Kohn
 #
 """
 # PyFOPPL: Vertices and Graph
@@ -521,6 +521,7 @@ class Graph(object):
         self.data = data
         self.arcs = set(arcs)
         self.conditions = set(conditions)
+        self.debug_prints = []
 
     def __repr__(self):
         if len(self.vertices) == 0 and len(self.data) == 0 and len(self.conditions) == 0:
@@ -619,7 +620,8 @@ class Graph(object):
 
         model = Model(vertices=self.vertices, arcs=self.arcs, data=self.data,
                       conditionals=self.conditions, compute_nodes=compute_nodes,
-                      result_function=result_function)
+                      result_function=result_function,
+                      debug_prints=self.debug_prints if len(self.debug_prints) > 0 else None)
         if Options.log_file is not None and len(Options.log_file) > 0:
             debug_flag = Options.debug
             try:

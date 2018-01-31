@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 26. Jan 2018, Tobias Kohn
+# 29. Jan 2018, Tobias Kohn
 #
 from . import runtime
 from .basic_imports import *
@@ -34,7 +34,7 @@ class Model(object):
     """
 
     def __init__(self, *, vertices: set, arcs: set, data: set, conditionals: set, compute_nodes: list,
-                 result_function = None):
+                 result_function = None, debug_prints: list = None):
         self.vertices = vertices
         self.arcs = arcs
         self.data = data
@@ -42,6 +42,7 @@ class Model(object):
         self.compute_nodes = compute_nodes
         self.result_function = result_function
         self.nodes = { v.name: v for v in self.compute_nodes }
+        self.debug_prints = debug_prints
 
     def __repr__(self):
         V = '  '.join(sorted([repr(v) for v in self.vertices]))
@@ -185,6 +186,12 @@ class Model(object):
         state = {}
         for node in self.compute_nodes:
             node.update(state)
+        if self.debug_prints is not None:
+            try:
+                for n, dp in self.debug_prints:
+                    print("{}: {}".format(n, dp(state)))
+            except:
+                pass
         return state
 
     @property
@@ -198,6 +205,12 @@ class Model(object):
     def gen_pdf(self, state):
         for node in self.compute_nodes:
             node.update_pdf(state)
+        if self.debug_prints is not None:
+            try:
+                for n, dp in self.debug_prints:
+                    print("{}: {}".format(n, dp(state)))
+            except:
+                pass
         if 'log_pdf' in state:
             return state['log_pdf']
         else:
