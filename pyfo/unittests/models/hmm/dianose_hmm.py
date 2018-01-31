@@ -7,14 +7,14 @@ import sys
 
 PATH  = sys.path[0]
 dir_MwG = PATH + '/hmm_MwG_10000_20180129'
-dir_DHMC = PATH + '/data2018-01-30'
+dir_DHMC = PATH + '/data2018-01-31'
 
 num_state = 3
 T = 16
-n_chain = 2
-n_burnin = 10000
+n_chain = 3
+n_burnin = 8000
 n_sample = 2000
-n_sample_total = 12000
+n_sample_total = n_sample + n_burnin
 
 
 ### plot param
@@ -47,7 +47,8 @@ plt.show()
 
 ### load DHMC data
 
-samples_DHMC = load_data(n_chain, dir_DHMC, True)
+samples_DHMC = load_data(n_chain, dir_DHMC, True)  #if true, load all data
+thr = 2000  #the hand tune burnin
 
 new_columns = dict([['hmm-step.states_'+str(i), i] for i in range(16)])
 # x_new  = x.drop(['hmm-step.get-obs-dist.k'], axis=1)
@@ -56,12 +57,11 @@ samples_DHMC_reorder = samples_DHMC
 for i in range(n_chain):
     samples_DHMC_reorder[i].rename(columns=new_columns, inplace=True)
     samples_DHMC_reorder[i] = samples_DHMC_reorder[i][[j for j in range(T + 1)]]
-
-samples_DHMC_reorder_matrix = samples_DHMC_reorder[0][5000:].as_matrix()
-heatmap_DHMC = samples_heatmap(num_state,T, samples_DHMC_reorder_matrix) # 3 by 17
-plt.imshow(heatmap_DHMC, interpolation='None', aspect=1, cmap='binary')
-# plt.savefig(dir_MwG+'/chain_4_5000of10000.pdf')
-plt.show()
+    samples_DHMC_reorder_matrix = samples_DHMC_reorder[i][thr:].as_matrix()
+    heatmap_DHMC = samples_heatmap(num_state,T, samples_DHMC_reorder_matrix) # 3 by 17
+    plt.imshow(heatmap_DHMC, interpolation='None', aspect=1, cmap='binary')
+    # plt.savefig(dir_DHMC+'/chain_4_5000of10000.pdf')
+    plt.show()
 
 
 ### load MwG data

@@ -1,9 +1,8 @@
 (def T 16)
 
 (defn data [n]
-  (let [points (vector 0.9 0.8 0.7 0.0 -0.025
-                       5.0 2.0 0.1 0.0 0.13
-                       0.45 6.0 0.2 0.3 -1.0 -1.0)]
+  (let [points (vector 0.9 0.8 0.7 0.0-0.025 -5.0 -2.0 -0.1
+                       0.0 0.13 0.45 6 0.2 0.3 -1 -1)]
     (get points n)))
 
 ;; Define the init, transition, and observation distributions
@@ -13,7 +12,7 @@
 (defn get-trans-params [k]
   (nth (vector (vector 0.1  0.5  0.4 )
                (vector 0.2  0.2  0.6 )
-               (vector 0.7 0.15 0.15 )) k))
+               (vector 0.15 0.15 0.7 )) k))
 
 (defn get-obs-dist [k]
   (nth (vector (normal -1. 1.)
