@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 27. Jan 2018, Tobias Kohn
+# 29. Jan 2018, Tobias Kohn
 #
 import math
 from . import foppl_objects
@@ -121,6 +121,7 @@ class Compiler(Walker):
         self.scope = Scope()
         self.cond_scope = None
         self.graph = Graph.EMPTY
+        self.debug_prints = []
 
     def begin_scope(self, *, name:str=None):
         self.scope = Scope(prev=self.scope,name=name)
@@ -222,6 +223,13 @@ class Compiler(Walker):
 
     def _merge_graph(self, graph):
         self.graph = self.graph.merge(graph)
+
+    def add_debug_print(self, eval_function):
+        if isinstance(eval_function, CodeSample):
+            name = eval_function.vertex.display_name
+        else:
+            name = repr(eval_function)
+        self.debug_prints.append((name, eval("lambda state: {}".format(eval_function.to_py()))))
 
     def apply_function(self, function: AstFunction, args: list):
         """
@@ -607,7 +615,10 @@ class Compiler(Walker):
 
     def visit_call_print(self, node: AstFunctionCall):
         # This is actually for debugging purposes
-        print(', '.join([repr(arg.walk(self)[1]) for arg in node.args]))
+        args = [arg.walk(self)[1] for arg in node.args]
+        print(', '.join([repr(arg) for arg in args]))
+        for arg in args:
+            self.add_debug_print(arg)
         return Graph.EMPTY, CodeValue(None)
 
     def visit_call_range(self, node: AstFunctionCall):
@@ -968,6 +979,8 @@ def compile(source):
     if ast:
         compiler = Compiler()
         graph, code = compiler.walk(ast)
-        return graph.merge(compiler.graph), code
+        graph = graph.merge(compiler.graph)
+        graph.debug_prints = compiler.debug_prints
+        return graph, code
     else:
         raise RuntimeError("cannot parse '{}'".format(source))
