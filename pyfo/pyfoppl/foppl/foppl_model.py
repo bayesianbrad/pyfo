@@ -38,7 +38,7 @@ class Model(object):
         self.vertices = vertices
         self.arcs = arcs
         self.data = data
-        self.conditionals = conditionals
+        self.conditionals = conditionals  # a set of conditions
         self.compute_nodes = compute_nodes
         self.result_function = result_function
         self.nodes = { v.name: v for v in self.compute_nodes }
