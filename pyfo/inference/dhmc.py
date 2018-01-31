@@ -208,7 +208,7 @@ class DHMCSampler(object):
         else:
             kinetic_disc = VariableCast(0)
         if self._cont_keys is not None:
-            kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys]))
+            kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*torch.dot(p[name], p[name]) for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
         if self._if_keys is not None:
