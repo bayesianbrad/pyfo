@@ -10,18 +10,20 @@ License: MIT
 
 from pyfo.pyfoppl.foppl import imports
 import pyfo.unittests.models.hmm.hmm as test
-
 from pyfo.inference.dhmc import DHMCSampler as dhmc
+### model
+# test.model.display_graph()
 
+### inference
 dhmc_ = dhmc(test)
-burn_in =100
-n_sample = 100
-stepsize_range = [0.03,0.15]
-n_step_range = [10, 20]
-test.model.display_graph()
-stats = dhmc_.sample(n_samples=n_sample,burn_in=burn_in,stepsize_range=stepsize_range,n_step_range=n_step_range, print_stats=True, save_samples=True)
+burn_in = 10000
+n_sample = 2000
+# stepsize_range = [0.03,0.15]
+# n_step_range = [10, 20]
+stepsize_range = [0.01,0.05]  # old parameters
+n_step_range = [5, 10]
+n_chain = 3
 
-samples =  stats['samples']
-all_samples = stats['samples_wo_burin'] # type, panda dataframe
-print(stats['accept_prob'])
+all_stats = dhmc_.sample_multiple_chains(n_chains = n_chain, n_samples=n_sample,burn_in=burn_in,
+                                         stepsize_range=stepsize_range,n_step_range=n_step_range, save_samples=True)
 

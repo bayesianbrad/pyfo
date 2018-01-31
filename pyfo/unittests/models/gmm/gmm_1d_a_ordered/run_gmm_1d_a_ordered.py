@@ -3,15 +3,15 @@ import pyfo.unittests.models.gmm.gmm_1d_a_ordered.gmm_1d_a_ordered as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 ### model
-print(test.model)
-test.model.display_graph()
+# print(test.model)
+# test.model.display_graph()
 
 ### inference
-n_chain  = 5
+n_chain  = 2
 dhmc_ = dhmc(test)
 
-burn_in = 5000
-n_sample = 5000
+burn_in = 10000
+n_sample = 2000
 stepsize_range = [0.03,0.15]
 n_step_range = [10, 20]
 

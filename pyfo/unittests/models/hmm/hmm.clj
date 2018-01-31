@@ -1,3 +1,5 @@
+(def T 16)
+
 (defn data [n]
   (let [points (vector 0.9 0.8 0.7 0.0 -0.025
                        5.0 2.0 0.1 0.0 0.13
@@ -26,4 +28,4 @@
 
 ;; Loop through the data
 (let [init-state (sample (categorical (get-init-params)))]
-  (loop 2 (vector init-state) hmm-step))
+  (loop T (vector init-state) hmm-step))

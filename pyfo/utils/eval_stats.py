@@ -13,6 +13,7 @@ import numpy as np
 import sys
 import os
 import pandas as pd
+import datetime
 
 # ESS from DHMC
 def mono_seq_ess(samples, key, normed=False, mu=None, var=None):
@@ -228,7 +229,7 @@ def save_data(samples, all_samples, prefix=''):
         # Ensures directory for this data exists for model, if not creates it
     PATH  = sys.path[0]
     os.makedirs(PATH, exist_ok=True)
-    PATH_data =  os.path.join(PATH, 'data')
+    PATH_data =  os.path.join(PATH, 'data'+datetime.date.today().isoformat())
     os.makedirs(PATH_data, exist_ok=True)
     print(50 * '=')
     print('Saving data in: {0}'.format(PATH_data))
@@ -238,15 +239,74 @@ def save_data(samples, all_samples, prefix=''):
     samples.to_csv(os.path.join(PATH_data,path1), index=False, header=True)
     all_samples.to_csv(os.path.join(PATH_data,path2), index=False, header=True)
 
-def load_data(n_chain, var_key, PATH):
+# def load_data_old(n_chain, var_key, PATH, include_burnin_samples=False):
+#     '''
+#     2018-01-29
+#     :param n_chain: number of chains
+#     :param var_key: variable keys
+#     :param PATH: PATH to the csv file
+#     :param include_burnin_samples: load all samples or samples after burnin
+#     :return: dictionary of dictionary, each chain is an entry, all_stats[0]['samples'] is df
+#     '''
+#     all_stats = {}
+#     for i in range(n_chain):
+#         all_stats[i] = {}
+#         df = pd.DataFrame()
+#         for key in var_key:
+#             if include_burnin_samples:
+#                 samples_file_dir = PATH + '/chain_{}_samples_with_burnin_{}.csv'.format(i, key)
+#             else:
+#                 samples_file_dir = PATH + '/chain_{}_samples_after_burnin_{}.csv'.format(i, key)
+#             df_key = pd.read_csv(samples_file_dir, index_col=None, header=0)
+#             df = pd.concat([df, df_key], axis=1)
+#         all_stats[i]['samples'] = df
+#
+#     return all_stats
+
+def load_data(n_chain, PATH, include_burnin_samples=False):
+    '''
+        2018-01-30
+        :param n_chain: number of chains
+        :param PATH: PATH to the csv file
+        :param include_burnin_samples: load all samples or samples after burnin
+        :return: dictionary of df, each key(chain number) contains the dataframe of posterior samples
+        '''
     all_stats = {}
     for i in range(n_chain):
-        all_stats[i] = {}
-        df = pd.DataFrame()
-        for key in var_key:
-            samples_file_dir = PATH + '/data/chain_{}_samples_after_burnin_{}.csv'.format(i, key)
-            df_key = pd.read_csv(samples_file_dir, index_col=None, header=0)
-            df = pd.concat([df, df_key], axis=1)
-        all_stats[i]['samples'] = df
-
+        if include_burnin_samples:
+            samples_file_dir = PATH + '/chain_{}_all_samples.csv'.format(i)
+        else:
+            samples_file_dir = PATH + '/chain_{}_samples_after_burnin.csv'.format(i)
+        df = pd.read_csv(samples_file_dir, index_col=None, header=0)
+        all_stats[i] = df
     return all_stats
+
+def get_keys(file_name):
+    '''
+    :param file_name: csv file name
+    :return: list of str: header of all columns
+    '''
+    header = pd.read_csv(file_name, header=None, nrows=1)
+    var_key = header.as_matrix()[0]
+    return var_key
+
+# for HMM model
+def samples_heatmap(num_state, T, samples):
+    heatmap =  np.zeros((num_state, T+1))
+    for i in range(T+1):
+        heatmap[0, i] = np.mean(samples[:, i] == 0)
+        heatmap[1, i] = np.mean(samples[:, i] == 1)
+        heatmap[2, i] = np.mean(samples[:, i] == 2)
+    return heatmap
+
+def l2_norm(samples_post, true_post):
+    result = np.sum((samples_post - true_post)**2)
+    return result
+
+def multi_l2norm_hmm(each_num, total_num, l2_norm, true_post, raw_samples, num_state, T):
+    group_num = int(total_num/each_num)
+    l2norm_result = np.zeros(group_num)
+    for i in range(group_num):
+        heatmap = samples_heatmap(num_state, T, raw_samples[:each_num * (i + 1), :])
+        l2norm_result[i] = l2_norm(heatmap, true_post.transpose())
+    return l2norm_result
