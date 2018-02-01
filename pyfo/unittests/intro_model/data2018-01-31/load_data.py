@@ -14,16 +14,16 @@ import matplotlib.pyplot as plt
 df = pd.read_csv('chain_0_samples_after_burnin.csv')
 col = list(df)
 
-score_lt1 =  df[col[0]] <= 0
-score_lt2 = df[col[0]] > 0
+score_lt1 =  df[col[0]] <= 2
+score_lt2 = df[col[0]] > 2
 sum_of = score_lt1.sum()
-exp_s_g = sum_of/len(df[col[0]])
+exp_low = sum_of/len(df[col[0]])
 sum_of_2  =score_lt2.sum()
-exp_s_ng = sum_of_2 / len(df[col[0]])
+exp_high = sum_of_2 / len(df[col[0]])
 print(score_lt1)
 print(score_lt2)
-print(exp_s_g)
-print(exp_s_ng)
+print(exp_high)
+print(exp_low)
 
 df.hist(bins='auto', normed=1)
 plt.show()
