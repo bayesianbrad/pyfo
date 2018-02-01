@@ -10,7 +10,12 @@ License: MIT
 
 
 import torch
+# import torch.distributions.constraints as constraints
+from torch.distributions.constraint_registry import biject_to
+# import torch.distributions.transforms as transforms
+# from torch.distributions import TransformedDistribution as td
 from pyfo.utils.core import VariableCast
+from torch.autograd import Variable
 
 class TorchDistribution():
     """
@@ -27,19 +32,10 @@ class TorchDistribution():
     def sample(self):
         if self._transformed:
             """
-            Transform sample back to the correct space and then evaluate sample 
-            times by correct 
-            
-            if self._name == 'Gamma':
-                do .....
-                
-            if self._name == 'Exponential'
-                do .....
-        
+            Only care about distribution variables for now, not the support
+            of the parameters.
             """
-            return  self.torch_dist.sample().type(torch.FloatTensor)
-        else:
-            return self.torch_dist.sample(self._sample_shape).type(torch.FloatTensor)
+        return self.torch_dist.sample(self._sample_shape).type(torch.FloatTensor)
 
     def log_pdf(self, x):
         if self._transformed:
@@ -53,7 +49,23 @@ class TorchDistribution():
                 do .....
 
             """
-            return self.torch_dist.log_prob(x)
+            x = VariableCast(x)
+            if self._name =='Gamma':
+                if x.data[0] > 0:
+                    return self.torch_dist.log_prob(x)
+                else:
+                    unconstrained = x
+                    map_to_constrained  =biject_to(self.torch_dist.support)(unconstrained)
+                    return -self.torch_dist.log_prob(map_to_constrained)
+            if self._name == 'Exponential':
+                if x.data[0] > 0:
+                    return self.torch_dist.log_prob(x)
+                else:
+                    unconstrained = x
+                    map_to_constrained  =biject_to(self.torch_dist.support)(unconstrained)
+                    return -self.torch_dist.log_prob(map_to_constrained)
+
+
         else:
             x = VariableCast(x)
             return self.torch_dist.log_prob(x)
