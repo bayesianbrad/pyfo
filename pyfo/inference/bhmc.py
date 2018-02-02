@@ -245,6 +245,7 @@ class BHMCSampler(object):
             else:  # have if keys
                 for key in self._if_keys:
                     x[key] = x[key] + stepsize * self.M * p[key]  #final  full step for postions
+                    _ = self.log_posterior(x, set_leafs=True)
                     if x[self._cond_map[key]] != x0[self._cond_map[key]]:
                         # discontinuity has been crossed
                         print('Debug statement in bhmc.branching_integrator()\n'
