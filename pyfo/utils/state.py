@@ -255,24 +255,25 @@ class State(object):
         here? Then they will be passed to gen_logpdf to create the differentiable logpdf
         . Answer: yes, because
         """
-
+        state_unembed = copy.copy(state) # avoid change the original state
         if unembed:
-            _temp =self._unembed(state)
+            _temp =self._unembed(state_unembed)
             if isinstance(_temp, Variable) and math.isinf(_temp.data[0]):
                 return _temp
             else:
-                state = _temp
+                state_unembed = _temp
         if partial_unembed:
-            _temp = self._partial_unembed(state, key)
+            _temp = self._partial_unembed(state_unembed, key)
             if isinstance(_temp, Variable) and math.isinf(_temp.data[0]):
                 return _temp
             else:
-               state[key] = _temp[key]
+                state_unembed[key] = _temp[key]
 
-        if set_leafs:
-            state = self._to_leaf(state)
+        if set_leafs: # set require_grad = true for keys
+            state = self._to_leaf(state)   # if use state_unembed, then will not change state and RVs can not calculate grad.
+            return self._gen_logpdf(state)
 
-        return self._gen_logpdf(state)
+        return self._gen_logpdf(state_unembed)
 
     def _embed(self, state, disc_key):
         """
@@ -314,12 +315,13 @@ class State(object):
 
         """
         dist_name = 'unembed_' + self._disc_dist[key]
-        unembed_var = getattr(self._unembed_state, dist_name)(state, key)
+        unembed_var = getattr(self._unembed_state, dist_name)(state, key)  # goes into 'unembed_<dist>' function
         return unembed_var
+
     def _unembed(self,state):
         """
 
-        Un-embeds the entire state
+        Un-embeds the entire state, all disc RVs
 
         :param state:
         :param disc_key:
@@ -337,10 +339,11 @@ class State(object):
 
         """
 ##      TODO will have to append this function to deal with discrete if vars at a later date - not necessarily true in the new framework
+        state_unembed = copy.copy(state)
         for key in self._disc_vars:
             dist_name = 'unembed_'+self._disc_dist[key]
-            state = getattr(self._unembed_state, dist_name)(state, key)
-        return state
+            state_unembed = getattr(self._unembed_state, dist_name)(state_unembed, key)
+        return state_unembed
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
