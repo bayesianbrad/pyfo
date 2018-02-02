@@ -1,18 +1,19 @@
 from pyfo.pyfoppl.foppl import imports
-import pyfo.unittests.models.ifmodels.if_1d_models.if_1d as test
+import pyfo.unittests.models.ifmodels.if_bhmc_debug.if_3d_bhmc as test
 from pyfo.inference.bhmc import BHMCSampler as bhmc
 
 # model
 # print(test.model)
 # test.model.display_graph()
+# print(test.model.gen_pdf_code)
 
 # inference
 bhmc_ = bhmc(test)
-burn_in = 0
-n_sample = 1000
+burn_in = 10
+n_sample = 10
 stepsize_range = [0.03,0.15]
 # stepsize_range = [2,5] # force to cross the boundary
-n_step_range = [4, 15]
+n_step_range = [4, 10]
 n_chain = 5
 
 stats = bhmc_.sample(n_samples=n_sample,burn_in=burn_in,stepsize_range=stepsize_range,n_step_range=n_step_range,

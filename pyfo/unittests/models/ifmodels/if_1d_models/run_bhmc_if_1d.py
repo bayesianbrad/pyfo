@@ -8,10 +8,10 @@ from pyfo.inference.bhmc import BHMCSampler as bhmc
 
 # inference
 bhmc_ = bhmc(test)
-burn_in = 0
-n_sample = 1000
-stepsize_range = [0.03,0.15]
-# stepsize_range = [2,5] # force to cross the boundary
+burn_in = 10
+n_sample = 10
+# stepsize_range = [0.03,0.15]
+stepsize_range = [2,5] # force to cross the boundary
 n_step_range = [4, 15]
 n_chain = 5
 
