@@ -92,7 +92,7 @@ class DHMCSampler(object):
                 p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
         return p
 
-    def coordInt(self,x,x_embed,p,stepsize,key, unembed=False):
+    def coordInt(self,x,p,stepsize,key, unembed=False):
         """
         Performs the coordinate wise update. The permutation is done before the
         variables are executed within the function.
@@ -110,8 +110,9 @@ class DHMCSampler(object):
 
         x_star = copy.copy(x)
         x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key]) # Need to change M here again
-        x_star_embed = copy.copy(x_star)
-        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
+        # x_star_embed = copy.copy(x_star)
+        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) \
+                    - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
         # If the discrete parameter is outside of the support, returns -inf and breaks loop and integrator.
         if math.isinf(logp_diff.data[0]):
             return x[key], p[key], logp_diff.data[0]
@@ -119,10 +120,10 @@ class DHMCSampler(object):
         cond = torch.gt(self.M*torch.abs(p[key]),-logp_diff)
         if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
-            return x_star_embed[key], p[key], 0
+            return x_star[key], p[key], 0
         else:
             p[key] = -p[key]
-            return x_embed[key],p[key], 0
+            return x[key],p[key], 0
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize, aux= None):
         """
@@ -172,15 +173,15 @@ class DHMCSampler(object):
             if self._cont_keys is not None:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
-            x_embed = copy.copy(x)
+            # x_embed = copy.copy(x)
             for key in permuted_keys:
                 # print('Debug statement in dhmc.gauss_leapfrog() \n'
                 #       'print the permuted_key : {0} \n'
                 #       'and key[0]: {1}'.format(key, key[0]))
                 if self._if_keys is not None and key[0] in self._if_keys:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=False)
+                    x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=False)
                 else:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=True)
+                    x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=True)
                 if math.isinf(_):
                     return x0, p, n_feval, n_fupdate, _
             n_fupdate += 1
@@ -340,7 +341,7 @@ class DHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], prefix = 'chain_{}_'.format(chain_num))
+            save_data(stats['samples'], stats['samples_wo_burin'], prefix = 'dhmc_chain_{}_'.format(chain_num))
         if plot:
             self.create_plots(stats['samples'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:

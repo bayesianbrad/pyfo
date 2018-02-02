@@ -229,7 +229,7 @@ def save_data(samples, all_samples, prefix=''):
         # Ensures directory for this data exists for model, if not creates it
     PATH  = sys.path[0]
     os.makedirs(PATH, exist_ok=True)
-    PATH_data =  os.path.join(PATH, 'data'+datetime.date.today().isoformat())
+    PATH_data =  os.path.join(PATH, 'data'+datetime.datetime.now().isoformat())
     os.makedirs(PATH_data, exist_ok=True)
     print(50 * '=')
     print('Saving data in: {0}'.format(PATH_data))

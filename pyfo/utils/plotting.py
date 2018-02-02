@@ -23,6 +23,8 @@ import numpy as np
 import os
 import copy
 from matplotlib import pyplot as plt
+import datetime
+
 plt.style.use('ggplot')
 # from pandas.plotting import autocorrelation_plot
 # from statsmodels.graphics import tsaplots
@@ -56,10 +58,10 @@ class Plotting():
         self.keys = keys
         self.PATH  = sys.path[0]
         os.makedirs(self.PATH, exist_ok=True)
-        self.PATH_fig = os.path.join(self.PATH, 'figures')
+        self.PATH_fig = os.path.join(self.PATH, 'figures'+datetime.datetime.now().isoformat())
         os.makedirs(self.PATH_fig, exist_ok=True)
-        self.PATH_data =  os.path.join(self.PATH, 'data')
-        os.makedirs(self.PATH_data, exist_ok=True)
+        # self.PATH_data =  os.path.join(self.PATH, 'data'+datetime.datetime.now().isoformat())
+        # os.makedirs(self.PATH_data, exist_ok=True)
     
         # self.colors = cycle([ "blue", "green","black", "maroon", "navy", "olive", "purple", "red", "teal"])
 
