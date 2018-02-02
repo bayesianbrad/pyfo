@@ -14,6 +14,11 @@ import copy
 import math
 from pyfo.utils.core import VariableCast
 from pyfo.utils.unembed import Unembed
+from torch.distributions.constraint_registry import biject_to , transform_to
+import torch.distributions as dists
+import torch.distributions.transforms as transforms
+from pyfo.utils.core import VariableCast as vc
+from torch.distributions import TransformedDistribution as td
 #for debugging
 # fromm pyfo.pyfoppl import Options
 
@@ -341,6 +346,29 @@ class State(object):
             dist_name = 'unembed_'+self._disc_dist[key]
             state = getattr(self._unembed_state, dist_name)(state, key)
         return state
+
+    def _take_inverse(self, state, key):
+        '''
+        Takes the sampled values from a transformed  unconstrained state and  transforms them back to the  constrained
+        state
+
+        In the future we will have a state that has the transformed parameters in a dictionary
+        for now we will have to hack our way to the solution...
+        :param state:
+        :param key:
+        :return:
+
+
+        '''
+
+        unconstrained = state[key].as_matrix()
+        unconstrained = VariableCast(unconstrained)
+
+        # Have something that returns torch.dist support
+        constrained = torch.log(unconstrained)
+        print(torch.mean(constrained))
+        state[key] = constrained.to_numpy()
+        return state[key]
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
