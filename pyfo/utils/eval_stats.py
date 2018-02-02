@@ -14,6 +14,7 @@ import sys
 import os
 import pandas as pd
 import datetime
+from pathlib import Path
 
 # ESS from DHMC
 def mono_seq_ess(samples, key, normed=False, mu=None, var=None):
@@ -263,7 +264,7 @@ def save_data(samples, all_samples, prefix=''):
 #
 #     return all_stats
 
-def load_data(n_chain, PATH, include_burnin_samples=False):
+def load_data(n_chain, PATH, inference='dhmc', include_burnin_samples=False):
     '''
         2018-01-30
         :param n_chain: number of chains
@@ -274,11 +275,13 @@ def load_data(n_chain, PATH, include_burnin_samples=False):
     all_stats = {}
     for i in range(n_chain):
         if include_burnin_samples:
-            samples_file_dir = PATH + '/chain_{}_all_samples.csv'.format(i)
+            samples_file_dir = PATH + '/{}_chain_{}_all_samples.csv'.format(inference, i)
         else:
-            samples_file_dir = PATH + '/chain_{}_samples_after_burnin.csv'.format(i)
-        df = pd.read_csv(samples_file_dir, index_col=None, header=0)
-        all_stats[i] = df
+            samples_file_dir = PATH + '/{}_chain_{}_samples_after_burnin.csv'.format(inference, i)
+        if Path(samples_file_dir).exists():
+            df = pd.read_csv(samples_file_dir, index_col=None, header=0)
+            all_stats[i] = df
+        else: all_stats[i] = None
     return all_stats
 
 def get_keys(file_name):
