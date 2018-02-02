@@ -316,7 +316,7 @@ class Vertex(GraphNode):
     """
 
     def __init__(self, *, name:str=None, ancestors:set=None, data:set=None, distribution=None, observation=None,
-                 ancestor_graph=None, conditions:list=None, line_number:int=-1, transform_flag:bool=False):
+                 ancestor_graph=None, conditions:list=None, line_number:int=-1, transform_flag:bool=True):
         from . import code_types
         if name is None:
             name = self.__class__.__gen_symbol__('y' if observation is not None else 'x')
@@ -366,7 +366,7 @@ class Vertex(GraphNode):
             self.full_code = "state['{}'] = {}.sample()".format(self.name, code)
             self.full_code_pdf = self._get_cond_code("log_pdf += {}.log_pdf(state['{}'])".format(code, self.name))
         self.line_number = line_number
-        self.transform_flag = transform_flag
+        self.transform_flag = True
 
     def __repr__(self):
         result = "{}:\n" \
@@ -452,7 +452,7 @@ class Vertex(GraphNode):
         try:
             if Options.debug:
                 if self.transform_flag:
-                    print("[{}/P]   transformed = True".format(self.name))
+                    print("[{}/P]   transformed".format(self.name))
                 for cond, truth_value in self.conditions:
                     print("[{}/P]   if {} == {}".format(self.name, repr(state[cond.name]), truth_value))
                     if state[cond.name] != truth_value:
