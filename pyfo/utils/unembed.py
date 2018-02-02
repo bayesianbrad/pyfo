@@ -12,6 +12,9 @@ import torch
 from pyfo.utils.core import VariableCast
 from torch.autograd import Variable
 import time
+import copy
+import warnings
+
 class Unembed():
     """
 
@@ -28,6 +31,7 @@ class Unembed():
     def __init__(self, support_sizes):
         self._support_sizes = support_sizes
 
+
     def unembed_Poisson(self, state,key):
         """
         unembed a poisson random variable
@@ -38,6 +42,7 @@ class Unembed():
         :param state:
         :return:
         """
+        warnings.warn('unembed_Poisson make sure of making copy of state')
         lower = VariableCast(0)
         if torch.lt(state[key], lower).data[0]:
             "outside region return -\inf"
@@ -51,10 +56,13 @@ class Unembed():
         assumes that the categorical is embedded in the region \frac{n}{a_{n+1/2} - a_n{n - 1/2}} where -0.5<<...< n-1/2
         Original support was the set {0,1, ...., n}
         Transformed support (-0.5,n-1/2)
-        :param state:
+        :param state: a copy of the actual state
         :return:
         """
         # print('Printing self._support_sizes :', self._support_sizes)
+
+        # YZ: add a copy to be safe; now do not have to, already made outside
+        # state_unembed = copy.copy(state)
 
         int_length = self._support_sizes[key]
         lower = VariableCast(-0.5)
@@ -73,9 +81,12 @@ class Unembed():
         if torch.lt(state[key], lower).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
+
         if torch.lt(state[key],upper).data[0] and torch.gt(state[key],upper + 2*lower).data[0]:
-            state[key] = VariableCast(torch.round(state[key]) ) #equiv to torch.round(upper)
+            # state_unembed[key] = VariableCast(torch.round(state_unembed[key]) ) #equiv to torch.round(upper)
+            state[key] = VariableCast(torch.round(state[key]))
         else:
+            # state_unembed[key] = VariableCast(torch.floor(state_unembed[key] - lower))
             state[key] = VariableCast(torch.floor(state[key] - lower))
         return state
 
@@ -96,6 +107,7 @@ class Unembed():
         :param state:
         :return:
         """
+        warnings.warn('unembed_Binomial make sure of making copy of state')
         lower = VariableCast(-0.5)
         upper = VariableCast(self._support_sizes[key]) - lower
         if torch.lt(state[key], lower).data[0]:
@@ -119,6 +131,7 @@ class Unembed():
               :param state:
               :return:
         """
+        warnings.warn('unembed_Bernoulli make sure of making copy of state')
         int_length = self._support_sizes[key]
         lower = VariableCast(-0.5)
         upper = int_length
