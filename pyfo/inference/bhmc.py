@@ -1,22 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Author: Bradley Gram-Hansen
-Time created:  23:07
-Date created:  17/01/2018
-
-License: MIT
-'''
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Author: Bradley Gram-Hansen
-Time created:  11:08
-Date created:  08/12/2017
-
-License: MIT
-'''
-
+# Last Modify: 01-02-2018
 import math
 import time
 from itertools import permutations
@@ -48,17 +30,17 @@ class BHMCSampler(object):
 
         ## Debugging:::
         #####
-        print('Debug flug in BHMC sampler is one \n')
-        self._state.debug()
+        # print('Debug flug in BHMC sampler is one \n')
+        # self._state.debug()
 
         # Parameter keys
         self._disc_keys = self._state._return_disc_list()
-        self._cont_keys = self._state._return_cont_list()
+        self._cont_keys = self._state._return_cont_list() # cond_var
         self._cond_keys = self._state._return_cond_list()
-        self._cond_map = self._state.get_conds_map()
+        self._cond_map = self._state.get_conds_map()  # dict {if_var: corresponding cond_var}
         # By construction all keys that are predicates and are continous are put into if_keys, if predicate is dicont-
         # inuous then it is automatically goes into the discrete keys
-        self._if_keys = self._state._return_if_list()
+        self._if_keys = self._state._return_if_list()   # if_var
         # True latent variable names
         self._names = self._state.get_original_names()
         # Generate sample sizes
@@ -92,7 +74,7 @@ class BHMCSampler(object):
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         return p
 
-    def coordInt(self,x,x_embed,p,stepsize,key, unembed=False):
+    def coordInt(self,x,p,stepsize,key, unembed=False):  # name conflict!! unembed as arg to partial_unembed or the actual unembed in method call
         """
         Performs the coordinate wise update. The permutation is done before the
         variables are executed within the function.
@@ -107,8 +89,8 @@ class BHMCSampler(object):
 
         x_star = copy.copy(x)
         x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key]) # Need to change M here again
-        x_star_embed = copy.copy(x_star)
-        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
+        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) \
+                    - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
         # If the discrete parameter is outside of the support, returns -inf and breaks loop and integrator.
         if math.isinf(logp_diff.data[0]):
             return x[key], p[key], logp_diff.data[0]
@@ -116,31 +98,61 @@ class BHMCSampler(object):
         cond = torch.gt(self.M*torch.abs(p[key]),-logp_diff)
         if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
-            return x_star_embed[key], p[key], 0
+            return x_star[key], p[key], 0
         else:
             p[key] = -p[key]
-            return x_embed[key],p[key], 0
+            return x[key],p[key], 0
 
     def append_keys(self, branch=False):
         """
         Creates a temp_dict of previous continuous variables that have to be added to the discrete
         variables
-        :param branch: Type: bool
+        :param branch: Type: bool, YZ: always pass in self._branch
+
+
+        ### NOTES: weird for now. Add all if keys to disc_temp_keys
+        for future: should only add those related to the boundary being crossed
         """
+        ### old
+        # if  branch:
+        #     if self._disc_keys is not None:
+        #         self._disc_temp_keys = self._disc_key + self._if_keys
+        #     else:
+        #         self._disc_temp_keys = self._if_keys
+        # elif self._if_keys is not None:
+        #         self._cont_temp_keys = self._if_keys
+        #         if self._cont_keys is not None:
+        #             self._cont_temp_keys = self._cont_temp_keys + self._cont_keys
+        # else:
+        #     self._cont_temp_keys = self._cont_keys
 
-        if  branch:
+        ### new
+        if not branch: # init;
             if self._disc_keys is not None:
-                self._disc_temp_keys = self._disc_key + self._if_keys
+                self._disc_temp_keys = self._disc_keys.copy()
             else:
+                self._disc_temp_keys = None
+            if self._cont_keys is not None:
+                if self._if_keys is not None:
+                    self._cont_temp_keys = self._cont_keys.copy() + self._if_keys.copy()
+                else:
+                    self._cont_temp_keys = self._cont_keys.copy()
+            else:  # all cont are in ifs
+                self._cont_temp_keys = self._if_keys.copy()
+        else: # branch =  True, cross boundary
+            if self._cont_temp_keys is not None:
+                [self._cont_temp_keys.remove(key) for key in self._if_keys] # remove all for now, should only remove specific ones.
+            if self._cont_temp_keys == []:
+                self._cont_temp_keys = None
+            if self._disc_temp_keys is not None:
+                self._disc_temp_keys = self._disc_temp_keys + self._if_keys
+                self._disc_temp_keys = list(set(self._disc_temp_keys))
+            else: # no disc vars previously
                 self._disc_temp_keys = self._if_keys
-        elif self._if_keys is not None:
-                self._cont_temp_keys = self._if_keys
-                if self._cont_keys is not None:
-                    self._cont_temp_keys = self._cont_temp_keys + self._cont_keys
-        else:
-            self._cont_temp_keys = self._cont_keys
+                self._disc_temp_keys = list(set(self._disc_temp_keys))
 
-    def cross_disc(self, key):
+
+    def cross_disc(self, key): #YZ: not used?
         """
         Retursn the cond to see if it has been triggered
         :param key:
@@ -151,7 +163,7 @@ class BHMCSampler(object):
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
 
-        :param xt: Type dictionary, the pre
+        :param xt: Type dictionary, the pre ### YZ: not sure what it is for ? the same as x0?
         :param x0: Type dictionary, the previous state
         :param p: Type dictionary
         :param stepsize: Type: Variable
@@ -162,21 +174,20 @@ class BHMCSampler(object):
         # number of function evaluations and fupdates for discrete parameters
         n_feval = 0
         n_fupdate = 0
-        if t > 0 and self._branch:
+        if t > 0 and self._branch:   # YZ: may be useful if self._branch is True
             x0 = copy.copy(xt)
         # performs shallow copy
         x = copy.copy(xt)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
-        if self._cont_temp_keys is not None:
+        if self._cont_temp_keys is not None:  # ALL KEYS: include cont or if
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_temp_keys:
                 p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
 
-
-        if self._disc_keys is None:
+        if self._disc_temp_keys is None:
             if self._if_keys is None:
-                # Perform normal hmc
+                # All keys are cont_key, perform normal HMC
                 for key in self._cont_keys:
                     x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
                 logp = self.log_posterior(x, set_leafs=True)
@@ -184,15 +195,12 @@ class BHMCSampler(object):
                     p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
                 return x, p, n_feval, n_fupdate, 0
             else:
-                # Updates according to whether a condition has been satisfied.
+                # All keys: if, maybe cont
                 for key in self._cont_temp_keys:
-                    # print('Debug statement in bhmc.branching_integrator()\n'
-                    #       'This is the current value of cond {0} of the state x: {1}\n'
-                    #       'This is the current value of cond {0} of the intial state x0: {2}'.format(
-                    #     self._cond_map[key], x[self._cond_map[key]], x0[self._cond_map[key]]))
                     x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
+                    _ = self.log_posterior(x, set_leafs=True)  # YZ: 1st bug x[self._cond_map[key]] will not update automatically
                     if x[self._cond_map[key]] != x0[self._cond_map[key]]:
-                        print('Debug statement in bhmc.branching_integrator()\n'
+                        print('Debug statement in bhmc.branching_integrator(), '
                               'the discontinuity has been crossed')
                         # discontinuity has been crossed
                         self._branch=True
@@ -203,42 +211,39 @@ class BHMCSampler(object):
                     p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
                 return x, p, n_feval, n_fupdate, 0
 
-        else:
-            print('Evaluated with the coordinate wise integrator ')
+        else:  # have disc keys, maybe if keys
+            # print('Evaluated with the coordinate wise integrator ')
             permuted_keys_list = []
-            if self._disc_temp_keys is not None:
+            if self._disc_temp_keys is not None: #YZ: no need, because of the upper if
                 permuted_keys_list = permuted_keys_list + self._disc_temp_keys
             permuted_keys = permutations(permuted_keys_list, 1)
             # permutates all keys into one permutated config. It deletes in memory as each key is called
             # returns a tuple ('key', []), hence to call 'key' requires [0] index.
 
-            if self._cont_keys is not None:
+            if self._cont_keys is not None: # YZ or _cont_temp_keys??
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
-            x_embed = copy.copy(x)
+
             for key in permuted_keys:
-                # print('Debug statement in dhmc.gauss_leapfrog() \n'
-                #       'print the permuted_key : {0} \n'
-                #       'and key[0]: {1}'.format(key, key[0]))
-                if self._if_keys is not None and key[0] in self._disc_temp_keys:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x, x_embed, p, stepsize, key[0], unembed=False)
+                if self._disc_keys is not None:
+                    if key[0] in self._disc_keys:  #YZ
+                        x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=True)
                 else:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x, x_embed, p, stepsize, key[0], unembed=True)
+                    x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=False)
                 if math.isinf(_):
                     return x0, p, n_feval, n_fupdate, _
             n_fupdate += 1
 
             if self._if_keys is None:
-                # Perform normal hmc
+                # have only disc and if keys
                 for key in self._cont_keys:
                     x[key] = x[key] + stepsize * self.M * p[key]  # final full step for postions
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
                 return x, p, n_feval, n_fupdate, 0
-            else:
-                # Updates according to whether a condition has been satisfied.
-                for key in self._cont_temp_keys:
+            else:  # have if keys
+                for key in self._if_keys:
                     x[key] = x[key] + stepsize * self.M * p[key]  #final  full step for postions
                     if x[self._cond_map[key]] != x0[self._cond_map[key]]:
                         # discontinuity has been crossed
@@ -248,28 +253,34 @@ class BHMCSampler(object):
                         return x0, p0, n_feval, n_fupdate, 0
                 self._branch = False
                 logp = self.log_posterior(x, set_leafs=True)
-                for key in self._cont_temp_keys:
-                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+
+                if self._cont_keys is not None:
+                    for key in self._cont_keys:
+                        x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
+
+                if self._cont_temp_keys is not None:
+                    for key in self._cont_temp_keys:
+                        p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
                 return x, p, n_feval, n_fupdate, 0
 
     def _energy(self, x, p, branch=False):
         """
-        Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
+        Calculates the hamiltonian  #YZ: shouldn't we just use cont and disc key, since if keys have been appended!
         :param x:
         :param p:
+        :param branch: false when break out and calculate the final energy using Guass; True when start the next iteration, and calculate the initial energy using Laplace
         :return: Tensor
         """
         if self._disc_keys is not None:
-            kinetic_disc = torch.sum(
-                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys]))
+            kinetic_disc = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._disc_keys]))
         else:
             kinetic_disc = VariableCast(0)
         if self._cont_keys is not None:
-            kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys]))
+            kinetic_cont = 0.5 * torch.sum(torch.stack([self.M * torch.dot(p[name], p[name]) for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
         if branch:
-            kinetic_if = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._if_keys]))
+            kinetic_if = torch.sum(torch.stack([self.M * torch.abs(p[name]) for name in self._if_keys]))
         elif self._if_keys is not None:
             kinetic_if = torch.sum(torch.stack([self.M * torch.dot(p[name], p[name]) for name in self._if_keys]))
         else:
@@ -297,18 +308,18 @@ class BHMCSampler(object):
         n_fupdate = 0
         x = copy.copy(x0)
         # if branch was trigger, i.e the condition of the predicate has been changed, we will break out of the
-        # leap and create a new dict of temporary dict of discrete vars. If there are no if stateemnts and
+        # leapfrog and create a new dict of temporary dict of discrete vars. If there are no if stateemnts and
         # there are cont keys, returns self.cont)temp_keys == self.
-        _branch = self._branch
-        self.append_keys(branch=self._branch)
+        _branch = self._branch  #YZ: how is _branch difference from self._branch?
+        self.append_keys(branch=self._branch) # initial append, separate into cont_temp and disc_temp
         for i in range(n_step):
             x,p, n_feval_local, n_fupdate_local, _ = self.branching_integrator(x,x0,p,stepsize,t=i)
             if math.isinf(_):
                 break
-            if self._branch and i>0:
+            if self._branch: # and i>0:   #YZ: i>=0?  i=0 the first step cross the boundary!
                 n_feval += n_feval_local
                 n_fupdate += n_fupdate_local
-                _branch = False
+                _branch = False   # YZ: used in calculating energy, need to use the same Kinetic form
                 self.append_keys(branch=self._branch)
                 break
             else:
@@ -326,12 +337,29 @@ class BHMCSampler(object):
                seed=None, n_update=10, lag=20,
                print_stats=False, plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False,
                plot_ac=False):        # Note currently not doing anything with burn in
+        '''
+        :param chain_num: the number of the chain the sampler is in
+        :param n_samples:  number of samples to draw
+        :param burn_in: number of burn in samples, discard by default
+        :param stepsize_range:
+        :param n_step_range: trajectory length
+        :param seed: seed for generating random numbers, None by default
+        :param n_update: number of printing statement
+        :param lag: plot parameter
+        :param print_stats: print details of sampler
+        :param plot: whether generate posterior plots, False by default
+        :param plot_graphmodel: whether generate GM plot, False by default
+        :param save_samples: whether save posterior samples, False by default
+        :param plot_burnin: plot parameter
+        :param plot_ac: plot parameter
+        :return: stats: dict of inference infomation. stats{'samples': df of posterior samples}
+        '''
 
         if seed is not None:
             torch.manual_seed(seed)
             np.random.seed(seed)
         else:
-            print('seed deactivated')
+            print('seed cecilia')
         x = self.init_state
         n_per_update = math.ceil((n_samples + burn_in)/n_update)
         n_feval = 0
@@ -405,7 +433,7 @@ class BHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], prefix='chain_{}_'.format(chain_num))
+            save_data(stats['samples'], stats['samples_wo_burin'], prefix='bhmc_chain_{}_'.format(chain_num))
         if plot:
             self.create_plots(stats['samples'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
