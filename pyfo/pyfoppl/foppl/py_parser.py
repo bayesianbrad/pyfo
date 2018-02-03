@@ -4,11 +4,11 @@
 # License: MIT (see LICENSE.txt)
 #
 # 19. Jan 2018, Tobias Kohn
-# 21. Jan 2018, Tobias Kohn
+# 31. Jan 2018, Tobias Kohn
 #
 import ast
 from . import Options, foppl_ast
-from .foppl_distributions import distribution_map
+from .distributions import distributions_map
 
 _bin_op = {
     ast.Add: '+',
@@ -87,8 +87,8 @@ class Walker(ast.NodeVisitor):
                 if len(args) != 2:
                     raise SyntaxError("wrong number of arguments for 'observe': {}".format(len(args)))
                 return foppl_ast.AstObserve(args[0], args[1], line_number=line_number)
-            elif name in distribution_map:
-                return foppl_ast.AstDistribution(distribution_map[name], args, line_number=line_number)
+            elif name in distributions_map:
+                return foppl_ast.AstDistribution(distributions_map[name], args, line_number=line_number)
             else:
                 return foppl_ast.AstFunctionCall(name, args)
 

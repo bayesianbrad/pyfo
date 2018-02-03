@@ -4,10 +4,8 @@
 # License: MIT (see LICENSE.txt)
 ##
 # 19. Dec 2017, Tobias Kohn
-# 27. Jan 2018, Tobias Kohn
+# 01. Feb 2018, Tobias Kohn
 #
-from . import test_distributions
-
 class Options(object):
     """
     This class provides flags and general options to control the compilation process.
@@ -43,8 +41,6 @@ class Options(object):
 
     uniform_conditionals = True
 
-    conditional_suffix = '.data[0]'
-
     debug = False
 
     de_vectorize = False
@@ -53,6 +49,19 @@ class Options(object):
 
     # Some models with loops (e.g. neural_net_model) do not compile with this flag set on
     require_unique_names = False
+
+
+class Config(object):
+
+    conditional_suffix = '.data[0]'
+
+    dist_param_wrapper = None
+
+    dist_use_keyword_parameters = True
+
+    sample_method = '.sample()'
+
+    log_pdf_method = '.log_pdf({})'
 
 
 # Stubs to make the Python-IDE happy

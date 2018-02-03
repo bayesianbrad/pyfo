@@ -4,11 +4,11 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 30. Jan 2018, Tobias Kohn
+# 01. Feb 2018, Tobias Kohn
 #
+from . import Config
 from .graphs import *
 from .code_types import *
-from .foppl_distributions import distributions_with_transform_flag
 
 ##############################################################################
 
@@ -66,7 +66,7 @@ class CodeCompare(CodeObject):
 
 class CodeDataSymbol(CodeObject):
 
-    def __init__(self, node: DataNode):
+    def __init__(self, node):
         self.node = node
         self.name = node.name
         self.code_type = get_code_type_for_value(node.data)
@@ -91,66 +91,34 @@ class CodeDataSymbol(CodeObject):
 class CodeDistribution(CodeObject):
 
     def __init__(self, name, args):
+        from . import distributions
         self.name = name
         self.args = args
-        self.code_type = DistributionType(name, [a.code_type for a in args])
-        self.has_transform_flag = name in distributions_with_transform_flag
+        self.distribution = distributions.get_distribution_for_name(name)
+        self.dist_type = str(self.distribution.distribution_type)
+        self.code_type = DistributionType(self.distribution, [a.code_type for a in args])
 
     def __repr__(self):
-        if self.has_transform_flag:
-            return "dist.{}({}, transformed=transform_flag)".format(self.name, ', '.join([repr(a) for a in self.args]))
-        else:
-            return "dist.{}({})".format(self.name, ', '.join([repr(a) for a in self.args]))
+        args = [repr(a) for a in self.args]
+        return self.distribution.generate_code(args)
 
     def to_py(self, state:dict=None):
-        if self.has_transform_flag:
-            return "dist.{}({}, transformed=transform_flag)".format(self.name, ', '.join([a.to_py(state) for a in self.args]))
-        else:
-            return "dist.{}({})".format(self.name, ', '.join([a.to_py(state) for a in self.args]))
+        args = [a.to_py(state) for a in self.args]
+        return self.distribution.generate_code(args)
+
+    def to_py_log_pdf(self, *, state:dict=None, value:str):
+        args = [a.to_py(state) for a in self.args]
+        return self.distribution.generate_code_log_pdf(args, value)
+
+    def to_py_sample(self, *, state:dict=None):
+        args = [a.to_py(state) for a in self.args]
+        return self.distribution.generate_code_sample(args)
 
     def get_sample_size(self):
-        result = self.code_type.result
-        if isinstance(result, SequenceType):
-            return result.size
-        else:
-            return 1
+        return self.distribution.get_sample_size(self.args)
 
     def get_support_size(self):
-
-        if self.name == "Binomial":
-            # This will be turned into an or statement at a later date to accommodate
-            # the Multinomial and mvn, once they are fully tested.
-            arg = self.args[1]
-        else:
-            arg = self.args[0]
-
-        if isinstance(arg, CodeValue) and type(arg.value) is list:
-            if all([type(item) is list for item in arg.value]):
-                return max([len(item) for item in arg.value])
-            else:
-                return len(arg.value)
-
-        elif isinstance(arg, CodeVector) and len(arg.items) > 0:
-            _is_vector = lambda v: isinstance(v, CodeVector) or (isinstance(v, CodeValue) and type(v.value) is list)
-            if all([_is_vector(item) for item in arg.items]):
-                return max([len(item) for item in arg.items])
-            else:
-                return len(arg.items)
-
-        elif isinstance(arg, CodeDataSymbol) and len(arg) > 0:
-            if all([type(item) is list for item in arg.node.data]):
-                return max([len(item) for item in arg.node.data])
-            else:
-                return len(arg.node.data)
-
-        elif isinstance(arg.code_type, SequenceType):
-            if isinstance(arg.code_type.item_type, SequenceType):
-                return arg.code_type.item_type.size
-            else:
-                return arg.code_type.size
-
-        else:
-            return None
+        return self.distribution.get_support_size(self.args)
 
 
 class CodeFunctionCall(CodeObject):
@@ -300,9 +268,9 @@ class CodeIf(CodeObject):
 
 class CodeObserve(CodeObject):
 
-    def __init__(self, vertex: Vertex):
+    def __init__(self, vertex):
         self.vertex = vertex
-        self.distribution = vertex.distribution
+        self.distribution = vertex.co_distribution
         self.value = vertex.observation
         self.code_type = self.distribution.code_type.result_type().union(self.value.code_type)
 
@@ -319,9 +287,9 @@ class CodeObserve(CodeObject):
 
 class CodeSample(CodeObject):
 
-    def __init__(self, vertex: Vertex):
+    def __init__(self, vertex):
         self.vertex = vertex
-        self.distribution = vertex.distribution
+        self.distribution = vertex.co_distribution
         self.code_type = self.distribution.code_type.result_type()
 
     def __repr__(self):
