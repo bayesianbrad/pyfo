@@ -10,7 +10,7 @@ License: MIT
 from pyfo.pyfoppl.foppl import imports
 import pyfo.unittests.models.linear_regression.lr as test
 
-print(test.code)
+print(test)
 
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 

@@ -1,2 +1,1 @@
-(let[z (sample (categorical [0.5 0.5]))]
-                            z)
+(let[z (sample (categorical [0.7,0.15 0.15]])
