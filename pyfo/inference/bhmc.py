@@ -38,6 +38,9 @@ class BHMCSampler(object):
         self._cont_keys = self._state._return_cont_list() # cond_var
         self._cond_keys = self._state._return_cond_list()
         self._cond_map = self._state.get_conds_map()  # dict {if_var: corresponding cond_var}
+
+        self._disc_temp_keys = self._disc_temp_keys.copy()
+        self._cont_temp_keys = self._cont_temp_keys.copy()
         # By construction all keys that are predicates and are continous are put into if_keys, if predicate is dicont-
         # inuous then it is automatically goes into the discrete keys
         self._if_keys = self._state._return_if_list()   # if_var
@@ -53,11 +56,12 @@ class BHMCSampler(object):
 
         self.log_posterior = self._state._log_pdf  # returns a function that is the current state as argument
 
-    def random_momentum(self, branch=False):
+    def random_momentum(self, branch=False, sign_p=None):
         """
         Constructs a momentum dictionary where for the discrete keys we have laplacian momen tum
         and for continous keys we have gaussian
         :return:
+        #sign_p will only be none zero if we have branched
         """
         p = {}
         if self._disc_keys is not None:
@@ -68,7 +72,12 @@ class BHMCSampler(object):
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         if branch:
             for key in self._if_keys:
-                p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
+                if key in sign_p:
+                    p[key] = self.M * sign_p[key] #will be + or - 1
+                    # print('Debug statement in random_momentum() \n '
+                    #       'for key : {0} the momentum is sign_p {1}'.format(key, sign_p[key]))
+                else:
+                    p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
         if self._if_keys is not None and branch is False :
             for key in self._if_keys:
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
@@ -128,10 +137,6 @@ class BHMCSampler(object):
 
         ### new
         if not branch: # init;
-            if self._disc_keys is not None:
-                self._disc_temp_keys = self._disc_keys.copy()
-            else:
-                self._disc_temp_keys = None
             if self._cont_keys is not None:
                 if self._if_keys is not None:
                     self._cont_temp_keys = self._cont_keys.copy() + self._if_keys.copy()
@@ -142,8 +147,6 @@ class BHMCSampler(object):
         else: # branch =  True, cross boundary
             if self._cont_temp_keys is not None:
                 [self._cont_temp_keys.remove(key) for key in self._if_keys] # remove all for now, should only remove specific ones.
-            if self._cont_temp_keys == []:
-                self._cont_temp_keys = None
             if self._disc_temp_keys is not None:
                 self._disc_temp_keys = self._disc_temp_keys + self._if_keys
                 self._disc_temp_keys = list(set(self._disc_temp_keys))
@@ -151,13 +154,25 @@ class BHMCSampler(object):
                 self._disc_temp_keys = self._if_keys
                 self._disc_temp_keys = list(set(self._disc_temp_keys))
 
-
-    def cross_disc(self, key): #YZ: not used?
+    def branch_check(self, x, x0, key ):
         """
-        Retursn the cond to see if it has been triggered
+
+        :param x:
+        :param x0:
         :param key:
         :return:
         """
+        if x[self._cond_map[key]] != x0[self._cond_map[key]]:
+            # print('Debug statement in bhmc.branching_integrator(), '
+            #       'the discontinuity has been crossed')
+            # discontinuity has been crossed
+            self._branch = True
+            _branch = True
+        else:
+            _branch = False
+
+        return  _branch
+
     def branching_integrator(self, xt, x0, p0, stepsize, t):
         """
         Performs the full DHMC update step. It updates the continous parameters using
@@ -180,7 +195,7 @@ class BHMCSampler(object):
         x = copy.copy(xt)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
-        if self._cont_temp_keys is not None:  # ALL KEYS: include cont or if
+        if self._cont_temp_keys:  # ALL KEYS: include cont or if
             logp = self.log_posterior(x, set_leafs=True)
             for key in self._cont_temp_keys:
                 p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
@@ -188,39 +203,33 @@ class BHMCSampler(object):
         if self._disc_temp_keys is None:
             if self._if_keys is None:
                 # All keys are cont_key, perform normal HMC
-                for key in self._cont_keys:
-                    x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
-                logp = self.log_posterior(x, set_leafs=True)
-                for key in self._cont_keys:
-                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
-                return x, p, n_feval, n_fupdate, 0
+                x, p = self._hmc_cont_update(x,p,stepsize)
+                return x, p, 0, n_feval, n_fupdate, 0
             else:
                 # All keys: if, maybe cont
+                x, p ,sign_p = self._branch_cont(x,p,x0,p0,stepsize)
                 for key in self._cont_temp_keys:
                     x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
                     _ = self.log_posterior(x, set_leafs=True)  # YZ: 1st bug x[self._cond_map[key]] will not update automatically
-                    if x[self._cond_map[key]] != x0[self._cond_map[key]]:
-                        print('Debug statement in bhmc.branching_integrator(), '
-                              'the discontinuity has been crossed')
-                        # discontinuity has been crossed
-                        self._branch=True
-                        return x0, p0, n_feval, n_fupdate, 0
+                    if self.branch_check(x,x0,key):
+                        sign_p = {key: torch.sign(p[key])}  # Will rewrite the dictionary each time disc is crossed
+                        return x0, p0, sign_p, n_feval, n_fupdate, 0
                 self._branch = False
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_temp_keys:
                     p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
-                return x, p, n_feval, n_fupdate, 0
+                return x, p, 0, n_feval, n_fupdate, 0
 
         else:  # have disc keys, maybe if keys
             # print('Evaluated with the coordinate wise integrator ')
             permuted_keys_list = []
-            if self._disc_temp_keys is not None: #YZ: no need, because of the upper if
-                permuted_keys_list = permuted_keys_list + self._disc_temp_keys
+            # if self._disc_temp_keys is not None:
+            permuted_keys_list = permuted_keys_list + self._disc_temp_keys
             permuted_keys = permutations(permuted_keys_list, 1)
             # permutates all keys into one permutated config. It deletes in memory as each key is called
             # returns a tuple ('key', []), hence to call 'key' requires [0] index.
 
-            if self._cont_keys is not None: # YZ or _cont_temp_keys??
+            if self._cont_keys is not None: #DO hmc step
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
 
@@ -231,40 +240,139 @@ class BHMCSampler(object):
                 else:
                     x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=False)
                 if math.isinf(_):
-                    return x0, p, n_feval, n_fupdate, _
+                    return x0, p, 0, n_feval, n_fupdate, _
             n_fupdate += 1
 
-            if self._if_keys is None:
+            if self._cont_temp_keys is None:
                 # have only disc and if keys
                 for key in self._cont_keys:
                     x[key] = x[key] + stepsize * self.M * p[key]  # final full step for postions
                 logp = self.log_posterior(x, set_leafs=True)
                 for key in self._cont_keys:
                     p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
-                return x, p, n_feval, n_fupdate, 0
+                return x, p, 0, n_feval, n_fupdate, 0
             else:  # have if keys
-                for key in self._if_keys:
-                    x[key] = x[key] + stepsize * self.M * p[key]  #final  full step for postions
-                    _ = self.log_posterior(x, set_leafs=True)
-                    if x[self._cond_map[key]] != x0[self._cond_map[key]]:
-                        # discontinuity has been crossed
-                        print('Debug statement in bhmc.branching_integrator()\n'
-                              'the discontinuity has been crossed')
-                        self._branch = True
-                        return x0, p0, n_feval, n_fupdate, 0
+                x, p, sign_p = self._branch_2(x,p,x0,p0,stepsize)
+                return x, p, sign_p,  n_feval, n_fupdate, 0
+
+    def _hmc_cont_update(self, x,p, stepsize):
+        """
+
+        :param x:
+        :param p:
+        :param stepsize:
+        :return:
+        """
+        for key in self._cont_keys:
+            x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
+        logp = self.log_posterior(x, set_leafs=True)
+        for key in self._cont_keys:
+            p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+        return x, p
+
+    def _branch_cont(self, x, p, x0, p0, stepsize):
+        """
+
+        :param x:
+        :param p:
+        :param xo:
+        :param po:
+        :param stepsize:
+        :return:
+        """
+        for key in self._cont_temp_keys:
+            x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
+            _ = self.log_posterior(x,
+                                   set_leafs=True)  # YZ: 1st bug x[self._cond_map[key]] will not update automatically
+            if self.branch_check(x, x0, key):
+                sign_p = {key: torch.sign(p[key])}  # Will rewrite the dictionary each time disc is crossed
+                x= x0
+                p= p0
+            else:
                 self._branch = False
                 logp = self.log_posterior(x, set_leafs=True)
+                for key in self._cont_temp_keys:
+                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
 
-                if self._cont_keys is not None:
-                    for key in self._cont_keys:
-                        x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
+        return x, p, sign_p
 
-                if self._cont_temp_keys is not None:
-                    for key in self._cont_temp_keys:
-                        p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
-                return x, p, n_feval, n_fupdate, 0
+    def _branch_1(self,x, p, x0, p0, stepsize):
+        """
+
+        :param x:
+        :param p:
+        :param x0:
+        :param p0:
+        :param stepsize:
+        :return:
+        """
+        if self._if_keys is None:
+            # All keys are cont_key, perform normal HMC
+            sign_p = 0
+            for key in self._cont_keys:
+                x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
+            logp = self.log_posterior(x, set_leafs=True)
+            for key in self._cont_keys:
+                p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+
+        else:
+            # All keys: if, maybe cont
+            for key in self._cont_temp_keys:
+                x[key] = x[key] + stepsize * self.M * p[key]  # full step for postions
+                _ = self.log_posterior(x,
+                                       set_leafs=True)  # YZ: 1st bug x[self._cond_map[key]] will not update automatically
+                if x[self._cond_map[key]] != x0[self._cond_map[key]]:
+                    # print('Debug statement in bhmc.branching_integrator(), '
+                    #       'the discontinuity has been crossed')
+                    # discontinuity has been crossed
+                    self._branch = True
+                    sign_p = {key: torch.sign(p[key])}  # Will rewrite the dictionary each time disc is crossed
+                    return x0, p0, sign_p, n_feval, n_fupdate, 0
+            self._branch = False
+            logp = self.log_posterior(x, set_leafs=True)
+            for key in self._cont_temp_keys:
+                p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+            return x, p, 0, n_feval, n_fupdate, 0
+        return x, p, sign_p
+    def _branch_2(self, x, p, x0, p0,stepsize):
+        """
+
+        :param x:
+        :param p:
+        :param x0:
+        :param p0:
+        :return:
+        """
+        for key in self._if_keys:
+            x[key] = x[key] + stepsize * self.M * p[key]  # final  full step for postions
+            _ = self.log_posterior(x, set_leafs=True)
+        x[key] = x[key] + stepsize * self.M * p[key]  # final  full step for postions
+        _ = self.log_posterior(x, set_leafs=True)
+        if x[self._cond_map[key]] != x0[self._cond_map[key]]:
+            # discontinuity has been crossed
+            # print('Debug statement in bhmc.branching_integrator()\n'
+            #       'the discontinuity has been crossed')
+            sign_p = {key: torch.sign(p[key])}
+            self._branch = True
+            x = x0
+            p = p0
+            sign_p= sign_p
+
+        else:
+            self._branch = False
+            logp = self.log_posterior(x, set_leafs=True)
+            sign_p = 0
+            if self._cont_keys is not None:
+                for key in self._cont_keys:
+                    x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
+
+            if self._cont_temp_keys is not None:
+                for key in self._cont_temp_keys:
+                    p[key] = p[key] + 0.5 * stepsize * self.grad_logp(logp, x[key])
+        return x, p, sign_p
 
     def _energy(self, x, p, branch=False):
+
         """
         Calculates the hamiltonian  #YZ: shouldn't we just use cont and disc key, since if keys have been appended!
         :param x:
@@ -291,19 +399,17 @@ class BHMCSampler(object):
 
         return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
 
-    def hmc(self, stepsize, n_step, x0):
+    def hmc(self, stepsize, n_step, x0, sign_p):
         """
 
         :param stepsize_range: List
         :param n_step_range: List
         :param x0:
-        :param logp0: probably won't require as will be handled by state self.log_posterior
-        :param grad0: probably won't require as will be handled by state self._grad_log
-        :param aux0:
+        :param sign_p : dict If self_branch = True sign_p = {'cond_name': sign(p^{s-1}[key])
         :return:
         """
 
-        p = self.random_momentum(branch=self._branch)
+        p = self.random_momentum(branch=self._branch, sign_p=sign_p)
         intial_energy = self._energy(x0,p, branch=self._branch)
         n_feval = 0
         n_fupdate = 0
@@ -311,13 +417,13 @@ class BHMCSampler(object):
         # if branch was trigger, i.e the condition of the predicate has been changed, we will break out of the
         # leapfrog and create a new dict of temporary dict of discrete vars. If there are no if stateemnts and
         # there are cont keys, returns self.cont)temp_keys == self.
-        _branch = self._branch  #YZ: how is _branch difference from self._branch?
+        _branch = self._branch
         self.append_keys(branch=self._branch) # initial append, separate into cont_temp and disc_temp
         for i in range(n_step):
-            x,p, n_feval_local, n_fupdate_local, _ = self.branching_integrator(x,x0,p,stepsize,t=i)
+            x,p, sign_p, n_feval_local, n_fupdate_local, _ = self.branching_integrator(x,x0,p,stepsize,t=i)
             if math.isinf(_):
                 break
-            if self._branch: # and i>0:   #YZ: i>=0?  i=0 the first step cross the boundary!
+            if self._branch:
                 n_feval += n_feval_local
                 n_fupdate += n_fupdate_local
                 _branch = False   # YZ: used in calculating energy, need to use the same Kinetic form
@@ -332,7 +438,7 @@ class BHMCSampler(object):
         if acceptprob[0] < np.random.uniform(0,1):
             x = x0
             accept = 0
-        return x, accept, n_feval, n_fupdate
+        return x, sign_p, accept, n_feval, n_fupdate
 
     def sample(self, chain_num=0, n_samples=1000, burn_in=1000, stepsize_range=[0.05, 0.20], n_step_range=[5, 20],
                seed=None, n_update=10, lag=20,
@@ -374,10 +480,11 @@ class BHMCSampler(object):
         print(50*'=')
         i = 0
         times_branched = 0
+        sign_p = 0 #either a dict of keys that crossed branch or 0
         while i < n_samples+burn_in:
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
-            x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
+            x, sign_p, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x, sign_p)
             if self._branch:
                 times_branched += 1
                 i = i

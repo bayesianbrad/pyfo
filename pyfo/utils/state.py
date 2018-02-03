@@ -14,11 +14,6 @@ import copy
 import math
 from pyfo.utils.core import VariableCast
 from pyfo.utils.unembed import Unembed
-from torch.distributions.constraint_registry import biject_to , transform_to
-import torch.distributions as dists
-import torch.distributions.transforms as transforms
-from pyfo.utils.core import VariableCast as vc
-from torch.distributions import TransformedDistribution as td
 #for debugging
 # fromm pyfo.pyfoppl import Options
 
@@ -55,7 +50,6 @@ class State(object):
         self._if_vars = cls.gen_if_vars()
         self._cond_vars=  cls.gen_cond_vars()
         self._vertices = cls.get_vertices()
-        self._conditions = cls.get_conditions()
         self._arcs = cls.get_arcs()
         self.all_vars = self.gen_vars()
         self.get_continuous_dist_names()
@@ -136,18 +130,7 @@ class State(object):
                     cont_names[vertex.name] = vertex.distribution_name
         self._cont_dist =  cont_names
 
-    def get_conds_map(self):
-        """
-        A map of keys from if vars that are continuous and the given predicate  'cond var'
 
-        :return:
-        """
-        cond_map = {}
-        print(self._conditions)
-        for vertex in self._vertices:
-            if vertex.is_conditional and not vertex.is_observed:
-                cond_map[vertex.name] = [c.name for c in vertex.dependent_conditions][0]
-        return cond_map
     def gen_vars(self):
         """
         Generates all the variables on which inference is performed
@@ -190,6 +173,7 @@ class State(object):
         for vertex in self._vertices:
             if vertex.is_discrete:
                 support_size[vertex.name] = vertex.support_size
+        print('Debug statement: return support size: {}'.format(support_size))
         return support_size
 
     def intiate_state(self):
@@ -248,6 +232,15 @@ class State(object):
         else:
             return self._names
 
+    @staticmethod
+    def detach_nodes(x):
+        """
+        Takes either the momentum or latents
+        :param x:
+        :return:
+        """
+        for key, value in x.items():
+            x[key] = Variable(value.data, requires_grad=True)
 
     def _log_pdf(self, state, set_leafs=False, unembed=False, partial_unembed=False, key=None):
         """
@@ -260,25 +253,24 @@ class State(object):
         here? Then they will be passed to gen_logpdf to create the differentiable logpdf
         . Answer: yes, because
         """
-        state_unembed = copy.copy(state) # avoid change the original state
+
         if unembed:
-            _temp =self._unembed(state_unembed)
+            _temp =self._unembed(state)
             if isinstance(_temp, Variable) and math.isinf(_temp.data[0]):
                 return _temp
             else:
-                state_unembed = _temp
+                state = _temp
         if partial_unembed:
-            _temp = self._partial_unembed(state_unembed, key)
+            _temp = self._partial_unembed(state, key)
             if isinstance(_temp, Variable) and math.isinf(_temp.data[0]):
                 return _temp
             else:
-                state_unembed[key] = _temp[key]
+               state[key] = _temp[key]
 
-        if set_leafs: # set require_grad = true for keys
-            state = self._to_leaf(state)   # if use state_unembed, then will not change state and RVs can not calculate grad.
-            return self._gen_logpdf(state)
+        if set_leafs:
+            state = self._to_leaf(state)
 
-        return self._gen_logpdf(state_unembed)
+        return self._gen_logpdf(state)
 
     def _embed(self, state, disc_key):
         """
@@ -320,13 +312,12 @@ class State(object):
 
         """
         dist_name = 'unembed_' + self._disc_dist[key]
-        unembed_var = getattr(self._unembed_state, dist_name)(state, key)  # goes into 'unembed_<dist>' function
+        unembed_var = getattr(self._unembed_state, dist_name)(state, key)
         return unembed_var
-
     def _unembed(self,state):
         """
 
-        Un-embeds the entire state, all disc RVs
+        Un-embeds the entire state
 
         :param state:
         :param disc_key:
@@ -344,34 +335,10 @@ class State(object):
 
         """
 ##      TODO will have to append this function to deal with discrete if vars at a later date - not necessarily true in the new framework
-        state_unembed = copy.copy(state)
         for key in self._disc_vars:
             dist_name = 'unembed_'+self._disc_dist[key]
-            state_unembed = getattr(self._unembed_state, dist_name)(state_unembed, key)
-        return state_unembed
-
-    def _take_inverse(self, state, key):
-        '''
-        Takes the sampled values from a transformed  unconstrained state and  transforms them back to the  constrained
-        state
-
-        In the future we will have a state that has the transformed parameters in a dictionary
-        for now we will have to hack our way to the solution...
-        :param state:
-        :param key:
-        :return:
-
-
-        '''
-
-        unconstrained = state[key].as_matrix()
-        unconstrained = VariableCast(unconstrained)
-
-        # Have something that returns torch.dist support
-        constrained = torch.log(unconstrained)
-        print(torch.mean(constrained))
-        state[key] = constrained.to_numpy()
-        return state[key]
+            state = getattr(self._unembed_state, dist_name)(state, key)
+        return state
 
     def _log_pdf_update(self, state, step_size, log_prev, disc_params,j):
         """
