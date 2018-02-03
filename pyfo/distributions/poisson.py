@@ -1,5 +1,3 @@
-
-# Unccomment once torch distribtuion is implemented
 import torch
 from pyfo.distributions.distribution_wrapper import TorchDistribution
 from pyfo.utils.core import VariableCast as vc
