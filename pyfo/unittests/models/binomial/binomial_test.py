@@ -22,7 +22,7 @@ def base_bin_test():
     # test.model.display_graph()
     dhmc_ = dhmc(test)
 
-    stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range, seed=123, print_stats=True)
+    stats = dhmc_.sample(chain_num=0, n_samples=n_samples, burn_in=burn_in, stepsize_range=stepsize_range, n_step_range=n_step_range, seed=123, print_stats=True)
 
 def main():
     base_bin_test()

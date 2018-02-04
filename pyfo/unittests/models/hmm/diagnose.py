@@ -7,11 +7,11 @@ import sys
 
 PATH  = sys.path[0]
 dir_MwG = PATH + '/hmm_MwG_10000_20180129'
-dir_DHMC = PATH + '/data2018-01-31'
+dir_DHMC = PATH + '/data'
 
 num_state = 3
 T = 16
-n_chain = 3
+n_chain = 4
 n_burnin = 8000
 n_sample = 2000
 n_sample_total = n_sample + n_burnin
@@ -43,12 +43,13 @@ true_posterior =   np.array(\
    [ 0.2545, 0.0611, 0.6844]])  # 17 by 3
 plt.imshow(true_posterior.transpose(), interpolation='None', aspect=1, cmap='binary')
 # plt.savefig()
+plt.title('True posterior')
 plt.show()
 
 ### load DHMC data
 
-samples_DHMC = load_data(n_chain, dir_DHMC, True)  #if true, load all data
-thr = 2000  #the hand tune burnin
+samples_DHMC = load_data(n_chain, dir_DHMC, include_burnin_samples=True)  #if true, load all data
+thr = 20 #the hand tune burnin
 
 new_columns = dict([['hmm-step.states_'+str(i), i] for i in range(16)])
 # x_new  = x.drop(['hmm-step.get-obs-dist.k'], axis=1)

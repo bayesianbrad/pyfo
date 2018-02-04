@@ -12,12 +12,12 @@ import pyfo.unittests.models.hmm.hmm as test
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 ### model
 # test.model.display_graph()
-stepsize_range = [0.01,0.1]
+stepsize_range = [0.01,0.085]
 n_step_range = [10, 40]
 ### inference
 dhmc_ = dhmc(test)
 burn_in = 8000
-n_sample = 2000
+n_sample = 50000
 # stepsize_range = [0.03,0.15]
 # n_step_range = [10, 20]
 # stepsize_range = [0.01,0.05]  # old parameters

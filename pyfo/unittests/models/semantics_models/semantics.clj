@@ -1,0 +1,5 @@
+(let [z (sample (uniform 0 1))
+      q (sample (binomial 1 [z]))
+      y (if (= q 1 )
+          (normal 1 1)
+          (normal 2 1))])
