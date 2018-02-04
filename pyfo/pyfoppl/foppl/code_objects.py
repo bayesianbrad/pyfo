@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 01. Feb 2018, Tobias Kohn
+# 04. Feb 2018, Tobias Kohn
 #
 from . import Config
 from .graphs import *
@@ -58,10 +58,12 @@ class CodeCompare(CodeObject):
         return self.op == '>=' and repr(self.right) == '0'
 
     def __repr__(self):
-        return "({}{}{})".format(repr(self.left), self.op, repr(self.right))
+        op = "==" if self.op == "=" else self.op
+        return "({}{}{})".format(repr(self.left), op, repr(self.right))
 
     def to_py(self, state:dict=None):
-        return "({}{}{})".format(self.left.to_py(state), self.op, self.right.to_py(state))
+        op = "==" if self.op == "=" else self.op
+        return "({}{}{})".format(self.left.to_py(state), op, self.right.to_py(state))
 
 
 class CodeDataSymbol(CodeObject):
@@ -261,7 +263,7 @@ class CodeIf(CodeObject):
     def to_py(self, state:dict=None):
         else_expr = self.else_expr.to_py(state) if self.else_expr else "None"
         result = "({} if {}{} else {})".format(
-            self.if_expr.to_py(state), self.cond.to_py(state), Options.conditional_suffix, else_expr
+            self.if_expr.to_py(state), self.cond.to_py(state), Config.conditional_suffix, else_expr
         )
         return result
 
