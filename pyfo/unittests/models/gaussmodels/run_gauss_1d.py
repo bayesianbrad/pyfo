@@ -6,7 +6,7 @@ import pyfo.unittests.models.gaussmodels.gauss_1d as test
 from pyfo.utils.eval_stats import *
 
 # model
-print(test.model)  # test.model a obj of foppl_model class
+print(test.model)
 test.model.display_graph()
 
 # inference

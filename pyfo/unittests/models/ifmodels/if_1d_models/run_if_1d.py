@@ -18,4 +18,4 @@ n_chain = 5
 #                      plot=True, print_stats=True, save_samples=True, plot_ac=True)
 
 all_stats = dhmc_.sample_multiple_chains(n_chains=n_chain, n_samples=n_sample,burn_in=burn_in,
-                                         stepsize_range=stepsize_range,n_step_range=n_step_range)
+                                         stepsize_range=stepsize_range,n_step_range=n_step_range, save_samples=True)

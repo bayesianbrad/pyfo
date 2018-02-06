@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 29. Jan 2018, Tobias Kohn
+# 01. Feb 2018, Tobias Kohn
 #
 """
 # PyFOPPL: Vertices and Graph
@@ -65,8 +65,8 @@ log_pdf += dist.Normal((state['x1'] + state['x2'])/2, 1).log_pdf(3)
 ```
 Both computations are facilitated by the methods `update` and `update_pdf` of the node.
 """
-from . import Options, runtime
-from .foppl_distributions import distributions
+from . import Options, Config, runtime
+from . import distributions
 from .basic_imports import *
 
 ####################################################################################################
@@ -121,15 +121,18 @@ class GraphNode(object):
         else:
             return None
 
-    def update(self, state: dict):
+    def _update(self, state: dict):
         result = self.evaluate(state)
         state[self.name] = result
         if Options.debug:
             print("[{}]  => {}".format(self.name, result))
         return result
 
+    def update_sampling(self, state: dict):
+        return self._update(state)
+
     def update_pdf(self, state: dict):
-        self.update(state)
+        self._update(state)
         return 0.0
 
 
@@ -137,7 +140,10 @@ class GraphNode(object):
 
 # This is used to generate the various `evaluate`-methods later on.
 _LAMBDA_PATTERN_ = "lambda state: {}"
-_LAMBDA_PATTERN_TF_ = "lambda state, transform_flag: {}"
+# _LAMBDA_PATTERN_TF_ = "lambda state, transform_flag: {}"
+
+def make_lambda(body:str):
+    return eval("lambda state: {}".format(body))
 
 
 class ConditionNode(GraphNode):
@@ -168,7 +174,7 @@ class ConditionNode(GraphNode):
         self.op = op
         self.condition = condition
         self.function = function
-        code = (condition.to_py() + Options.conditional_suffix if condition else "None")
+        code = (condition.to_py() + Config.conditional_suffix if condition else "None")
         self.code = _LAMBDA_PATTERN_.format(code)
         self.full_code = "state['{}'] = {}".format(self.name, code)
         self.function_code = _LAMBDA_PATTERN_.format(function.to_py() if function else "None")
@@ -209,7 +215,7 @@ class ConditionNode(GraphNode):
     def is_discrete(self):
         return not self.is_continuous
 
-    def update(self, state: dict):
+    def _update(self, state: dict):
         if self.function is not None:
             f_result = self.evaluate_function(state)
             result = f_result >= 0
@@ -258,7 +264,7 @@ class DataNode(GraphNode):
             result += " FROM <{}>".format(self.source)
         return result
 
-    def update(self, state: dict):
+    def _update(self, state: dict):
         result = self.data
         state[self.name] = result
         if Options.debug:
@@ -296,7 +302,7 @@ class Vertex(GraphNode):
     `distribution_name`:
       The name of the distribution, such as `Normal` or `Gamma`.
     `distribution_type`:
-      Either `continuous` or `discrete`. You will usually query this field using one of the properties
+      Either `"continuous"` or `"discrete"`. You will usually query this field using one of the properties
       `is_continuous` or `is_discrete`.
     `observation`:
       The observation in an AST/IR-structure, which is usually not used directly, but rather for internal purposes.
@@ -316,7 +322,7 @@ class Vertex(GraphNode):
     """
 
     def __init__(self, *, name:str=None, ancestors:set=None, data:set=None, distribution=None, observation=None,
-                 ancestor_graph=None, conditions:list=None, line_number:int=-1, transform_flag:bool=True):
+                 ancestor_graph=None, conditions:list=None, line_number:int=-1):
         from . import code_types
         if name is None:
             name = self.__class__.__gen_symbol__('y' if observation is not None else 'x')
@@ -343,37 +349,33 @@ class Vertex(GraphNode):
             self.cond_ancestors = set()
         self.ancestors = ancestors.union(self.cond_ancestors)
         self.data = data
-        self.distribution = distribution
+        self.co_distribution = distribution
         self.observation = observation
         self.conditions = conditions
         self.dependent_conditions = set()
         self.distribution_name = distribution.name
-        self.distribution_type = distributions.get(distribution.name, 'unknown')
+        self.distribution_type = distribution.dist_type
         self.support_size = distribution.get_support_size()
         self.sample_size = distribution.get_sample_size()
-        self.code = _LAMBDA_PATTERN_TF_.format(self.distribution.to_py())
-        self.evaluate = eval(self.code)
-        if self.observation is not None:
-            obs = self.observation.to_py()
-            self.evaluate_observation = eval(_LAMBDA_PATTERN_TF_.format(obs))
-            self.evaluate_observation_pdf = eval("lambda state, dist: dist.log_pdf({})".format(obs))
-            self.full_code = "state['{}'] = {}".format(self.name, obs)
-            self.full_code_pdf = self._get_cond_code("log_pdf += {}.log_pdf({})".format(self.distribution.to_py(), obs))
-        else:
-            self.evaluate_observation = None
-            self.evaluate_observation_pdf = None
-            code = self.distribution.to_py()
-            self.full_code = "state['{}'] = {}.sample()".format(self.name, code)
-            self.full_code_pdf = self._get_cond_code("log_pdf += {}.log_pdf(state['{}'])".format(code, self.name))
         self.line_number = line_number
-        self.transform_flag = True
+
+        if self.observation is not None:
+            self.code = self.observation.to_py()
+            self.code_pdf = self.co_distribution.to_py_log_pdf(value=self.code)
+        else:
+            self.code = self.co_distribution.to_py_sample()
+            self.code_pdf = self.co_distribution.to_py_log_pdf(value="state['{}']".format(self.name))
+        self.full_code = "state['{}'] = {}".format(self.name, self.code)
+        self.full_code_pdf = self._get_cond_code("log_pdf += {}".format(self.code_pdf))
+        self.evaluate = make_lambda(self.code)
+        self.evaluate_log_pdf = make_lambda(self.code_pdf)
 
     def __repr__(self):
         result = "{}:\n" \
                  "\tAncestors: {}\n" \
                  "\tDistribution: {}\n".format(self.name,
                                                ', '.join(sorted([v.name for v in self.ancestors])),
-                                               repr(self.distribution))
+                                               repr(self.co_distribution))
         if len(self.conditions) > 0:
             result += "\tConditions: {}\n".format(', '.join(["{} == {}".format(c.name, v) for c, v in self.conditions]))
         if self.observation is not None:
@@ -412,11 +414,11 @@ class Vertex(GraphNode):
 
     @property
     def is_continuous(self):
-        return self.distribution_type == 'continuous'
+        return self.distribution_type == str(distributions.DistributionType.CONTINUOUS)
 
     @property
     def is_discrete(self):
-        return self.distribution_type == 'discrete'
+        return self.distribution_type == str(distributions.DistributionType.DISCRETE)
 
     @property
     def is_observed(self):
@@ -427,21 +429,19 @@ class Vertex(GraphNode):
         return self.observation is None
 
     def get_parameter_values(self, state):
-        args = [eval(_LAMBDA_PATTERN_.format(arg.to_py())) for arg in self.distribution.args]
+        args = [eval(_LAMBDA_PATTERN_.format(arg.to_py())) for arg in self.co_distribution.args]
         args = [arg(state) for arg in args]
         return args
 
-    def update(self, state: dict):
+    def update_sampling(self, state: dict):
         try:
-            if self.evaluate_observation is not None:
-                result = self.evaluate_observation(state, self.transform_flag)
-                if Options.debug:
-                    #print("[{}] distr = {}".format(self.name, self.distribution.to_py(state)))
+            result = self.evaluate(state)
+            if Options.debug:
+                if self.observation is not None:
+                    print("[{}] {}".format(self.name, self.co_distribution.to_py(state)))
                     print("[{}] observe {} => {}".format(self.name, self.observation.to_py(state), result))
-            else:
-                result = self.evaluate(state, self.transform_flag).sample()
-                if Options.debug:
-                    print("[{}] {}.sample() => {}".format(self.name, self.distribution.to_py(state), result))
+                else:
+                    print("[{}] {} => {}".format(self.name, self.co_distribution.to_py_sample(state=state), result))
             state[self.name] = result
             return result
         except:
@@ -451,8 +451,6 @@ class Vertex(GraphNode):
     def update_pdf(self, state: dict):
         try:
             if Options.debug:
-                if self.transform_flag:
-                    print("[{}/P]   transformed".format(self.name))
                 for cond, truth_value in self.conditions:
                     print("[{}/P]   if {} == {}".format(self.name, repr(state[cond.name]), truth_value))
                     if state[cond.name] != truth_value:
@@ -463,22 +461,15 @@ class Vertex(GraphNode):
                     if state[cond.name] != truth_value:
                         return 0.0
 
-            distr = self.evaluate(state, self.transform_flag)
-            if self.evaluate_observation_pdf is not None:
-                log_pdf = self.evaluate_observation_pdf(state, distr)
-            elif self.name in state:
-                log_pdf = distr.log_pdf(state[self.name])
-            else:
-                log_pdf = 0.0
+            log_pdf = self.evaluate_log_pdf(state)
 
             if Options.debug:
-                print("[{}/P]   distr = {}".format(self.name, self.distribution.to_py(state)))
-                if self.evaluate_observation_pdf is not None:
-                    print("[{}/P]   distr.log_pdf({}) => {}".format(self.name, self.observation.to_py(state), log_pdf))
-                elif self.name in state:
-                    print("[{}/P]   distr.log_pdf({}) => {}".format(self.name, repr(state[self.name]), log_pdf))
-                else:
-                    print("[{}/P]   => {}".format(self.name, log_pdf))
+                obs = self.observation.to_py(state) if self.observation is not None else repr(state[self.name])
+                print("[{}/P]   {} => {}".format(
+                    self.name,
+                    self.co_distribution.to_py_log_pdf(state=state, value=obs),
+                    log_pdf)
+                )
 
             state['log_pdf'] = state.get('log_pdf', 0.0) + log_pdf
             return log_pdf
@@ -560,7 +551,7 @@ class Graph(object):
         :return:              Either a `Vertex` or `None`.
         """
         for v in self.vertices:
-            if v.distribution == distribution:
+            if v.co_distribution == distribution:
                 return v
         return None
 

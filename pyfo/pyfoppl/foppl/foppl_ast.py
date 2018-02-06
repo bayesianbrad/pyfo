@@ -4,11 +4,12 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 23. Jan 2018, Tobias Kohn
+# 31. Jan 2018, Tobias Kohn
 #
 from .graphs import *
 from .foppl_objects import Symbol
-from .foppl_distributions import continuous_distributions, discrete_distributions
+from .distributions import get_distribution_for_name
+# from .foppl_distributions import continuous_distributions, discrete_distributions
 
 def _has_second_argument(f):
     try:
@@ -132,8 +133,14 @@ class AstDistribution(Node):
     def __init__(self, name: str, args, line_number:int=-1):
         self.name = name
         self.args = args
-        self.is_continuous = name.lower() in continuous_distributions
-        self.is_discrete = name.lower() in discrete_distributions
+        dist = get_distribution_for_name(name)
+        if dist is not None:
+            self.is_continuous = dist.is_continuous
+            self.is_discrete = dist.is_discrete
+        else:
+            self.is_continuous = False
+            self.is_discrete = False
+            raise RuntimeError("???")
         if self.is_continuous or self.is_discrete and name[0].islower():
             self.name = name[0].upper() + name[1:]
         self.line_number = line_number

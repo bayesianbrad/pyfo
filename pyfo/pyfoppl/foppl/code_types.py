@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 22. Jan 2018, Tobias Kohn
+# 01. Feb 2018, Tobias Kohn
 #
 class AnyType(object):
 
@@ -214,10 +214,9 @@ class ListType(SequenceType):
 
 class DistributionType(AnyType):
 
-    def __init__(self, name: str, args: list):
-        from .code_distributions import get_result_type
+    def __init__(self, distribution, args:list):
         self.args = __instantiate__(args)
-        self.result = get_result_type(name, self.args)
+        self.result = distribution.get_sample_type(self.args)
 
     def result_type(self):
         return self.result

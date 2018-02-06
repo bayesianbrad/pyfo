@@ -4,11 +4,11 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 26. Jan 2018, Tobias Kohn
+# 31. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
-from .foppl_distributions import distribution_map
+from .distributions import distributions_map
 from . import Options
 
 def _register(name):
@@ -111,8 +111,8 @@ class ExprParser(object):
             elif f.name == "apply":
                 return AstFunctionCall(self._parse(form[1]), self._parse(form[2:]))
 
-            elif f.name in distribution_map:
-                return AstDistribution(distribution_map[f.name], args, line_number=form.line_number)
+            elif f.name in distributions_map:
+                return AstDistribution(distributions_map[f.name], args, line_number=form.line_number)
 
             else:
                 return AstFunctionCall(f.name, args)
