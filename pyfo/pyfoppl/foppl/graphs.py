@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 01. Feb 2018, Tobias Kohn
+# 06. Feb 2018, Tobias Kohn
 #
 """
 # PyFOPPL: Vertices and Graph
@@ -217,11 +217,12 @@ class ConditionNode(GraphNode):
 
     def _update(self, state: dict):
         if self.function is not None:
+            if Options.debug:
+                print("[{}] [function] {}".format(self.name, repr(self.function)))
             f_result = self.evaluate_function(state)
             result = f_result >= 0
             state[self.name + ".function"] = f_result
             if Options.debug:
-                print("[{}] [function] {}".format(self.name, repr(self.function)))
                 print("[{}] [function] {} => {}".format(self.name, self.function.to_py(state), repr(f_result)))
                 print("[{}] {} >= 0 => {}".format(self.name, repr(f_result), result))
         else:

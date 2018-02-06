@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 04. Feb 2018, Tobias Kohn
+# 06. Feb 2018, Tobias Kohn
 #
 from . import Config
 from .graphs import *
@@ -257,11 +257,11 @@ class CodeIf(CodeObject):
             self.code_type = if_expr.code_type
 
     def __repr__(self):
-        else_expr = repr(self.else_expr) if self.else_expr else "None"
+        else_expr = repr(self.else_expr) if self.else_expr is not None else "None"
         return "({} if {} else {})".format(repr(self.if_expr), repr(self.cond), else_expr)
 
     def to_py(self, state:dict=None):
-        else_expr = self.else_expr.to_py(state) if self.else_expr else "None"
+        else_expr = self.else_expr.to_py(state) if self.else_expr is not None else "None"
         result = "({} if {}{} else {})".format(
             self.if_expr.to_py(state), self.cond.to_py(state), Config.conditional_suffix, else_expr
         )

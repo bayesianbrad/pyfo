@@ -13,6 +13,7 @@ import numpy as np
 
 np.random.seed(1234)
 import pystan
+
 #
 model_code = '''
 data {
@@ -29,31 +30,24 @@ parameters {
 model {
      x ~ normal(0, 1);
      if (x >= 0)
-        if (x <1)
-            target += normal_lpdf(y1 | x,1);
-            if (x > 0.5)
-                target += normal_lpdf(y1 | x, 1);
-            else
-                target += normal_lpdf(y1 | -x, 1);
-        else
-            target += normal_lpdf(y1 | x, 2);
+        target += normal_lpdf(y1 | x, 1);
      else
-        target += normal_lpdf(y2 | x,3);
+        target += normal_lpdf(y2 | x,-1);
 }
 
 
  '''
 
-model_code = '''
+model_code_1 = '''
 data {
-int y ;
+int y;
 }
 
 parameters {
 
-      real<lower=0, upper=1>  q;
-      real<lower=0, upper=1>  z;
-      # real<lower=0, upper=1> x;
+      real<lower=0, upper=1> q;
+      real<lower=0, upper=1> z;
+      real<lower=0, upper=1> x;
 
 }
 
@@ -63,37 +57,126 @@ parameters {
 # tildeq 
 #     
 # }
+
 model {
-     q ~ uniform(0, 1);
-     z ~ uniform(0,1);
-     
-     
-    
-    {y ~ normal(z<q ? 0 : 1 ,1);}
-        
-    
-    }
+    q ~ uniform(0, 1);
+    z ~ uniform(0,1);
+
+    x = z<q ? 0:1;
+    y ~ normal(x ,1);
+}
 
 
 #  '''
 
-# set up the model
-def initfun():
-    return dict(y=0)
+model_code_2 = '''
+data {
+int y;
+}
+
+parameters {
+
+      real<lower=0, upper=1> q;
+      real<lower=0, upper=1> z;
+      real<lower=0, upper=1> x;
+}
+
+# transformed parameters {
+     real<lower=0, upper=1> x; }
+
+model {
+    q ~ uniform(0,1);
+    z ~ uniform(0,1);
+    x <- -1;
+    
+    if(z<q) {
+       y ~ normal(0 ,1);
+       x <- 0;
+    } else {
+       y ~ normal(1 ,1);
+       x <- 1;
+    }
+}
+
+
+#  '''
+
+
+
+
+
 
 #
-model = pystan.stan(model_code=model_code, data=initfun(), iter=2000, chains=1)
+# model_code = '''
+# data {
+# int y ;
+# }
+#
+# parameters {
+#
+#       real q;
+#       real  z;
+#
+# }
+# model {
+#      q ~ normal(-20, 10);
+#      z ~ normal(70,5);
+#
+#
+#
+#     y ~ normal(z<q ? -10 : 25 ,1);
+#     h ~ normal(y |
+#
+#
+#     }
+#
+#
+# #  '''
+
+# model_code = '''
+# data {
+# int y ;
+# }
+#
+# parameters {
+#
+#       real q;
+#       real  z;
+#
+# }
+# model {
+#      q ~ normal(-20, 10);
+#      z ~ normal(70,5);
+#
+#
+#
+#     y ~ normal(z<q ? -10 : 25 ,1);
+#     h ~ normal(y |
+#
+#
+#     }
+#
+#
+# #  '''
+# set up the model
+def initfun():
+    return dict(y=0.25, p=0.5)
+
+
+#
+model = pystan.stan(model_code=model_bin_1, data=initfun(), iter=2000, chains=1)
 print(model)
 trace = model.extract()
+plt.figure(figsize=(10, 4))
+plt.hist(trace['y'][:], bins='auto', normed=1)
+plt.savefig('conif_y.png')
+print('Completed plots')
+
 # print(trace)
 # # dat = trace['x'][:]
 # # print(dat)
 # # with open('trace.pkl', 'wb') as f:
 # #     pickle.dump(dat,f)
-# plt.figure(figsize=(10, 4))
-# plt.hist(trace['y'][:], bins='auto', normed=1)
-# plt.savefig('conif_y.png')
-# print('Completed plots')
 # # PyStan uses pickle to save objects for future use.
 # with open('model.pkl', 'wb') as f:
 #     pickle.dump(model,f)
