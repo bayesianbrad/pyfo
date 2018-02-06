@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 01. Feb 2018, Tobias Kohn
+# 06. Feb 2018, Tobias Kohn
 #
 import math
 from . import foppl_objects
@@ -758,20 +758,6 @@ class Compiler(Walker):
             self.end_scope()
         return result
 
-    def visit_multifor(self, node: AstMultiFor):
-        sources = [self._make_sequence(source) for source in node.sources]
-        iter_count = min([len(source) for source in sources])
-        result = Graph.EMPTY, CodeValue(None)
-        self.begin_scope()
-        try:
-            for i in range(iter_count):
-                for j in range(len(node.targets)):
-                    self.define(node.targets[j], sources[j][i])
-                result = node.body.walk(self)
-        finally:
-            self.end_scope()
-        return result
-
     def visit_functioncall(self, node: AstFunctionCall):
         # NB: some functions are handled directly by visit_call_XXX-methods!
         func = node.function
@@ -807,7 +793,7 @@ class Compiler(Walker):
         self.begin_conditional_scope(cond, cond_graph.vertices, node.line_number)
         try:
             graph, if_code = node.if_body.walk(self)
-            if node.else_body:
+            if node.else_body is not None:
                 self.invert_conditional_scope()
                 else_graph, else_code = node.else_body.walk(self)
                 graph = merge(graph, else_graph)
@@ -852,6 +838,20 @@ class Compiler(Walker):
         while i < iter_count:
             result = self.apply_function(function, [AstValue(i), AstExpr(*result)] + args)
             i += 1
+        return result
+
+    def visit_multifor(self, node: AstMultiFor):
+        sources = [self._make_sequence(source) for source in node.sources]
+        iter_count = min([len(source) for source in sources])
+        result = Graph.EMPTY, CodeValue(None)
+        self.begin_scope()
+        try:
+            for i in range(iter_count):
+                for j in range(len(node.targets)):
+                    self.define(node.targets[j], sources[j][i])
+                result = node.body.walk(self)
+        finally:
+            self.end_scope()
         return result
 
     def visit_observe(self, node: AstObserve):
@@ -904,6 +904,12 @@ class Compiler(Walker):
     def visit_symbol(self, node: AstSymbol):
         result = self.resolve_symbol(node.name)
         if result is None:
+            if len(node.name) > 1 and node.name.startswith('-'):
+                result = self.resolve_symbol(node.name[1:])
+                if result is not None:
+                    raise NameError("the symbol '{}' cannot be found. Did you mean '(- {})'?".format(
+                        node.name, node.name[1:]
+                    ))
             raise NameError("symbol '{}' not found".format(node.name))
         return result
 

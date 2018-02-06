@@ -41,7 +41,7 @@ class Options(object):
 
     uniform_conditionals = True
 
-    debug = False
+    debug = True
 
     de_vectorize = False
 
