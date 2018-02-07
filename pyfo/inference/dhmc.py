@@ -366,6 +366,7 @@ class DHMCSampler(object):
         plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
         plot_object.plot_density(all_on_one)
         plot_object.plot_trace(all_on_one)
+        plot_object.plot_hist()
         if ac:
             plot_object.auto_corr()
 

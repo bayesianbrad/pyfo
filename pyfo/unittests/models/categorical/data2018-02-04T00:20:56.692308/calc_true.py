@@ -20,7 +20,7 @@ License: MIT
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-df = pd.read_csv('dhmc_chain_0_samples_after_burnin.csv')
+df = pd.read_csv('dhmc_chain_1.csv')
 col = list(df)
 
 z = [0,1,2]

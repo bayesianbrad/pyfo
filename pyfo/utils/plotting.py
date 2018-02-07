@@ -22,6 +22,7 @@ import sys
 import numpy as np
 import os
 import copy
+import seaborn as sns
 from matplotlib import pyplot as plt
 plt.style.use('ggplot')
 # from pandas.plotting import autocorrelation_plot
@@ -104,6 +105,22 @@ class Plotting():
             print('Saving trace of all samples to {0} \n and with burnin to {1}'.format(path_image1, path_image2))
             print(50 * '=')
 
+    def plot_hist(self):
+        """
+        Plots histogram
+        :return:
+        """
+        plt.clf()
+        fname = 'hist_density_plot_of_params.pdf'
+        path_image =  self.PATH_fig + '/' + fname
+        # weights = np.ones_like(self.samples) / len(self.samples)
+        fig_width = 3.39  # width in inches
+        golden_mean = (np.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
+        fig_height = fig_width * golden_mean  # height in inches
+        plt.figure(figsize=(fig_width, fig_height))
+        sns.distplot(self.samples,bins='auto', norm_hist=True, kde=False )
+
+        plt.savefig(os.path.join(self.PATH_fig, fname))
     def plot_density(self, all_on_one=True):
         """
         Plots either all the histograms for each param on one plot, or does it indiviually
@@ -119,7 +136,7 @@ class Plotting():
             self.samples.plot(subplots=True, kind='kde')
             plt.savefig(os.path.join(self.PATH_fig,fname))
             print(50 * '=')
-            print('Saving desnity of samples w/o burnin plot to {0}'.format(path_image))
+            print('Saving histogram w/o burnin plot to {0}'.format(path_image))
             print(50 * '=')
 
     def auto_corr(self):
