@@ -47,10 +47,16 @@ class DHMCSampler(object):
 
     def __init__(self, object,chains=0, scale=None):
 
+        # Note for self:
+        ## state is a class that contains a dictionary of the system.
+        ## to get log_posterior and log_update call the methods on the
+        ## state
         # Note:
         ## Need to deal with a M matrix. Using the identity matrix for now.
+
         self.model_graph =object.model # i graphical model object
         self._state = state.State(self.model_graph)
+        self._chains = chains
         ## Debugging:::
         #####
         self._state.debug()
@@ -87,12 +93,13 @@ class DHMCSampler(object):
         if self._cont_keys is not None:
             for key in self._cont_keys:
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
+                # TODO in the future make for multiple dims
         if self._if_keys is not None:
             for key in self._if_keys:
                 p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
         return p
 
-    def coordInt(self,x,p,stepsize,key, unembed=False):
+    def coordInt(self,x,x_embed,p,stepsize,key, unembed=False):
         """
         Performs the coordinate wise update. The permutation is done before the
         variables are executed within the function.
@@ -109,10 +116,9 @@ class DHMCSampler(object):
         """
 
         x_star = copy.copy(x)
-        x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key]) # Need to change M here again
-        # x_star_embed = copy.copy(x_star)
-        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) \
-                    - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
+        x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key])
+        x_star_embed = copy.copy(x_star)
+        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
         # If the discrete parameter is outside of the support, returns -inf and breaks loop and integrator.
         if math.isinf(logp_diff.data[0]):
             return x[key], p[key], logp_diff.data[0]
@@ -120,10 +126,10 @@ class DHMCSampler(object):
         cond = torch.gt(self.M*torch.abs(p[key]),-logp_diff)
         if cond.data[0]:
             p[key] = p[key] + torch.sign(p[key])*self.M*logp_diff
-            return x_star[key], p[key], 0
+            return x_star_embed[key], p[key], 0
         else:
             p[key] = -p[key]
-            return x[key],p[key], 0
+            return x_embed[key],p[key], 0
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize, aux= None):
         """
@@ -173,15 +179,15 @@ class DHMCSampler(object):
             if self._cont_keys is not None:
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
-            # x_embed = copy.copy(x)
+            x_embed = copy.copy(x)
             for key in permuted_keys:
                 # print('Debug statement in dhmc.gauss_leapfrog() \n'
                 #       'print the permuted_key : {0} \n'
                 #       'and key[0]: {1}'.format(key, key[0]))
                 if self._if_keys is not None and key[0] in self._if_keys:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=False)
+                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=False)
                 else:
-                    x[key[0]], p[key[0]], _ = self.coordInt(x, p, stepsize, key[0], unembed=True)
+                    x[key[0]], p[key[0]], _ = self.coordInt(x,x_embed, p, stepsize, key[0], unembed=True)
                 if math.isinf(_):
                     return x0, p, n_feval, n_fupdate, _
             n_fupdate += 1
@@ -205,15 +211,15 @@ class DHMCSampler(object):
         :return: Tensor
         """
         if self._disc_keys is not None:
-            kinetic_disc = torch.sum(torch.stack([self.M *torch.abs(p[name]) for name in self._disc_keys]))
+            kinetic_disc = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]),torch.abs(p[name])) for name in self._disc_keys]))
         else:
             kinetic_disc = VariableCast(0)
         if self._cont_keys is not None:
-            kinetic_cont = 0.5 * torch.sum(torch.stack([self.M*torch.dot(p[name], p[name]) for name in self._cont_keys]))
+            kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys]))
         else:
             kinetic_cont = VariableCast(0)
         if self._if_keys is not None:
-            kinetic_if =  torch.sum(torch.stack([self.M *torch.abs(p[name]) for name in self._if_keys]))
+            kinetic_if =  torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]),torch.abs(p[name])) for name in self._if_keys]))
         else:
             kinetic_if = VariableCast(0)
         kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if
@@ -253,10 +259,11 @@ class DHMCSampler(object):
             x = x0
             accept = 0
 
+        # return x, acceptprob[0], n_feval, n_fupdate
         return x, accept, n_feval, n_fupdate
 
-    def sample(self,chain_num=0,n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
-               print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
+    def sample(self, chain_num=0, n_samples=1000, burn_in=1000, stepsize_range=[0.05, 0.20], n_step_range=[5, 20],
+               seed=None, n_update=10, lag=20, print_stats=False, plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         '''
         :param n_samples:  number of samples to draw
         :param burn_in: number of burn in samples, discard by default
@@ -290,14 +297,14 @@ class DHMCSampler(object):
         print('The sampler is now performing inference....')
         print(50*'=')
         for i in range(n_samples+burn_in):
-            stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1]))
+            stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
+            # TODO I should apply an unembed function here too!
             n_feval += n_feval_local
             n_fupdate += n_fupdate_local
             accept.append(accept_prob)
-            x_numpy = self._state._unembed(copy.copy(x))
-            # There should be a quicker way to do this at the very end,
+            x_numpy = self._state._unembed(copy.copy(x)) # There should be a quicker way to do this at the very end,
             #  using the whole dataframe series. It will require processing a whole byte vector
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
@@ -328,7 +335,7 @@ class DHMCSampler(object):
         all_samples = all_samples[self._state.all_vars]
         all_samples.rename(columns=self._names, inplace=True)
         # here, names.values() are the true keys
-        samples =  copy.copy(all_samples.loc[burn_in:])
+        samples =  all_samples.loc[burn_in:, :]
         # WORKs REGARDLESS OF type of params (i.e np.arrays, variables, torch.tensors, floats etc) and size. Use samples['param_name'] to extract
         # all the samples for a given parameter
 
@@ -341,14 +348,14 @@ class DHMCSampler(object):
             print(stats['stats'])
             print('The acceptance ratio is: {0}'.format(stats['accept_rate']))
         if save_samples:
-            save_data(stats['samples'], stats['samples_wo_burin'], prefix = 'dhmc_chain_{}_'.format(chain_num))
+            save_data(stats['samples'], stats['samples_wo_burin'], prefix='dhmc_chain_{}_'.format(chain_num))
         if plot:
-            self.create_plots(stats['samples'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
+            self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
             self.model_graph.display_graph()
         return stats  #dict
 
-    def create_plots(self, dataframe_samples, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
+    def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
 
         :param keys:
@@ -356,9 +363,10 @@ class DHMCSampler(object):
         :return: Generates plots
         """
 
-        plot_object = plot(dataframe_samples=dataframe_samples, keys=keys,lag=lag, burn_in=burn_in )
+        plot_object = plot(dataframe_samples=dataframe_samples,dataframe_samples_woburin=dataframe_samples_woburin, keys=keys,lag=lag, burn_in=burn_in )
         plot_object.plot_density(all_on_one)
         plot_object.plot_trace(all_on_one)
+        plot_object.plot_hist()
         if ac:
             plot_object.auto_corr()
 

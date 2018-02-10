@@ -275,13 +275,13 @@ def load_data(n_chain, PATH, inference='dhmc', include_burnin_samples=False):
     all_stats = {}
     for i in range(n_chain):
         if include_burnin_samples:
-            samples_file_dir = PATH + '/{}_chain_{}_all_samples.csv'.format(inference, i)
+            samples_file_dir = PATH + '/{}_chain_{}_all_samples.csv'.format(inference, i+1)
         else:
-            samples_file_dir = PATH + '/{}_chain_{}_samples_after_burnin.csv'.format(inference, i)
+            samples_file_dir = PATH + '/{}_chain_{}_samples_after_burnin.csv'.format(inference, i+1)
         if Path(samples_file_dir).exists():
             df = pd.read_csv(samples_file_dir, index_col=None, header=0)
             all_stats[i] = df
-        else: all_stats[i] = None
+        else: all_stats[i+1] = None
     return all_stats
 
 def get_keys(file_name):

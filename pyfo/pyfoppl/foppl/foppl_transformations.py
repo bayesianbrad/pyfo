@@ -33,4 +33,3 @@ class Transformations(object):
         We replace `Gamma(X, Y)` by `Exp(LogGamma(X, Y))`.
         """
         return "bijector.Log", "bijector.Exp", "LogGamma"
-

@@ -7,23 +7,23 @@ from pyfo.utils.interface import interface
 class model(interface):
 	'''
 	Vertices V:
-	#{y30316 x30315}
+	#{x33079 y33080}
 	Arcs A:
-	#{[x30315 y30316]}
+	#{[x33079 y33080]}
 	Conditional densities P:
-	x30315 -> (fn [] (normal 1.0 5.0))
-	y30316 -> (fn [x30315] (normal (+ x30315 1) 2.0))
+	x33079 -> (fn [] (normal 1.0 5.0))
+	y33080 -> (fn [x33079] (normal (+ x33079 1) 2.0))
 	Observed values O:
-	y30316 -> 7.0
+	y33080 -> 7.0
 	'''
 
 	@classmethod
 	def gen_vars(self):
-		return ['x30315']
+		return ['x33079']
 
 	@classmethod
 	def gen_cont_vars(self):
-		return ['x30315']
+		return ['x33079']
 
 	@classmethod
 	def gen_disc_vars(self):
@@ -31,20 +31,20 @@ class model(interface):
 
 	@classmethod
 	def get_vertices(self):
-		return ['y30316', 'x30315']
+		return ['x33079', 'y33080']
 
 	@classmethod
 	def get_arcs(self):
-		return [('x30315', 'y30316')]
+		return [('x33079', 'y33080')]
 
 	# prior samples 
 	@classmethod
 	def gen_prior_samples(self):
-		dist30339 = dist.Normal(mu=1.0, sigma=5.0)
-		x30315 = dist30339.sample()   #sample 
-		x30341 =  x30315 + 1  
-		dist30342 = dist.Normal(mu=x30341, sigma=2.0)
-		y30316 = 7.0 
+		dist33103 = dist.Normal(mu=1.0, sigma=5.0)
+		x33079 = dist33103.sample()   #sample 
+		x33105 =  x33079 + 1  
+		dist33106 = dist.Normal(mu=x33105, sigma=2.0)
+		y33080 = 7.0 
 		state = {}
 		for _gv in self.gen_vars():
 			state[_gv] = locals()[_gv]
@@ -53,13 +53,13 @@ class model(interface):
 	# compute pdf 
 	@classmethod
 	def gen_pdf(self, state):
-		dist30339 = dist.Normal(mu=1.0, sigma=5.0)
-		x30315 =  state['x30315']   # get the x from input arg
-		p30340 = dist30339.log_pdf( x30315) # from prior
-		x30341 =  x30315 + 1  
-		dist30342 = dist.Normal(mu=x30341, sigma=2.0)
-		y30316 = 7.0 
-		p30343 = dist30342.log_pdf(y30316) # from observe  
-		logp =  p30340 + p30343  # total log joint 
+		dist33103 = dist.Normal(mu=1.0, sigma=5.0)
+		x33079 =  state['x33079']   # get the x from input arg
+		p33104 = dist33103.log_pdf( x33079) # from prior
+		x33105 =  x33079 + 1  
+		dist33106 = dist.Normal(mu=x33105, sigma=2.0)
+		y33080 = 7.0 
+		p33107 = dist33106.log_pdf(y33080) # from observe  
+		logp =  p33104 + p33107  # total log joint 
 		return logp # need to modify output format
 

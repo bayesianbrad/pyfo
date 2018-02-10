@@ -12,7 +12,6 @@
 ;                 4.0 7.7 5.0 10.2 6.0 12.9)]
 ;      (loop 6 data observe-data slope bias)
 ;      (vector slope bias))
-
 (defn observe-data [_ data slope bias]
                     ;;_ loop index
                     ;;data value

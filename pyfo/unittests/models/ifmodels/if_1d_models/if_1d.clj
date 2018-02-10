@@ -1,10 +1,39 @@
-(let [x (sample (normal 0 1))]
-  (if (> x 0)
-    (observe (normal 1 1) 1)
-    (observe (normal -1 1) 1))
-  x)
+
+(let [y 0.25
+      p 0.5
+      x (let [z (sample (uniform 0 1))]
+              (if (< z p) 0 1))]
+      (if (< x 1)
+        (observe (normal x 1) y)
+        (observe (normal x 1) y))
+      x)
+
+;(let [y 0.25
+;      q 0.5
+;      z (sample (binomial 1 [q]))]
+;      (if (> z 0)
+;        (observe (normal 1 1) y)
+;        (observe (normal 0 1) y))
+
+(let [y 0.25
+      q 0.5
+      x  (sample (uniform 0 1))
+      z (> q x) ]
+      (if z
+        (observe (normal 1 1) y)
+        (observe (normal 0 1) y))
+      z)
+;(let [y 0.25
+;      p 0.5
+;      x (let [z (sample (uniform 0 1))]
+;              (if (< z p) 0 1))]
+;      (if (< x 1)
+;        (observe (normal x 1) y)
+;        (observe (normal x 1) y))
+;      x)
 
 ;(let [x1 (sample (normal 0 1))
+
 ;      x2 (sample (normal 1 2))
 ;      x3 (+ x1 x2)]
 ;  (if (> x3 0)

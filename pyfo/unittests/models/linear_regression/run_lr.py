@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 Author: Bradley Gram-Hansen
-Time created:  21:34
+Time created:  21:34®
 Date created:  20/01/2018
 
 License: MIT
@@ -10,7 +10,7 @@ License: MIT
 from pyfo.pyfoppl.foppl import imports
 import pyfo.unittests.models.linear_regression.lr as test
 
-print(test.code)
+print(test)
 
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 

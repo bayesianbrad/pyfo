@@ -38,7 +38,7 @@ class Model(object):
         self.vertices = vertices
         self.arcs = arcs
         self.data = data
-        self.conditionals = conditionals  # a set of conditions
+        self.conditionals = conditionals
         self.compute_nodes = compute_nodes
         self.result_function = result_function
         self.nodes = { v.name: v for v in self.compute_nodes }
@@ -185,7 +185,7 @@ class Model(object):
     def gen_prior_samples(self):
         state = {}
         for node in self.compute_nodes:
-            node.update(state)
+            node.update_sampling(state)
         if self.debug_prints is not None:
             try:
                 for n, dp in self.debug_prints:

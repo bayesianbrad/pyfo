@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Jan 2018, Tobias Kohn
-# 26. Jan 2018, Tobias Kohn
+# 01. Feb 2018, Tobias Kohn
 #
 import math as _math
 import random as _random
@@ -19,56 +19,36 @@ class dist(object):
 
     class Dummy(object):
 
-        def __init__(self, *args):
+        def __init__(self, *args, **kwargs):
             pass
 
         def log_pdf(self, value):
             return 0
+
+        log_prob = log_pdf
 
         def sample(self):
             return 1
 
     Binomial = Dummy
+    Categorical = Dummy
     Dirichlet = Dummy
+    Exponential = Dummy
+    Gamma = Dummy
+    LogGamma = Dummy
     MultivariateNormal = Dummy
     Poisson = Dummy
 
-    class Categorical(object):
-
-        def __init__(self, ps):
-            if type(ps) is list:
-                self.ps = ps
-            else:
-                self.ps = [ps]
-
-        def log_pdf(self, value):
-            if type(value) is int and 0 <= value < len(self.ps):
-                return _math.log(self.ps[value])
-            else:
-                return 1
-
-        def sample(self):
-            return _random.randint(0, len(self.ps)-1)
-
-    class Gamma(object):
-
-        def __init__(self, *arg, transformed:bool=None):
-            pass
-
-        def log_pdf(self, value):
-            return 0
-
-        def sample(self):
-            return 1
-
     class Normal(object):
 
-        def __init__(self, mu, sigma):
-            self.mu = mu
-            self.sigma = sigma
+        def __init__(self, *args, **kwargs):
+            self.mu = 0.0
+            self.sigma = 1.0
 
         def log_pdf(self, value):
             return -1/2 * (((value - self.mu)**2 / self.sigma) + _math.log(2 * _math.pi * self.sigma))
+
+        log_prob = log_pdf
 
         def sample(self):
             return _random.gauss(self.mu, self.sigma)

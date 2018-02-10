@@ -22,9 +22,8 @@ import sys
 import numpy as np
 import os
 import copy
+import seaborn as sns
 from matplotlib import pyplot as plt
-import datetime
-
 plt.style.use('ggplot')
 # from pandas.plotting import autocorrelation_plot
 # from statsmodels.graphics import tsaplots
@@ -51,20 +50,26 @@ import platform
 # mpl.rcParams.update(pgf_with_latex)
 class Plotting():
 
-    def __init__(self, dataframe_samples, keys,lag, burn_in=False):
+    def __init__(self, dataframe_samples,dataframe_samples_woburin, keys,lag, burn_in=False):
         self.samples = dataframe_samples[keys]
+        self.samples_withbin = dataframe_samples_woburin[keys]
         self.lag = lag
         self.burn_in = burn_in
         self.keys = keys
         self.PATH  = sys.path[0]
         os.makedirs(self.PATH, exist_ok=True)
-        self.PATH_fig = os.path.join(self.PATH, 'figures'+datetime.datetime.now().isoformat())
+        self.PATH_fig = os.path.join(self.PATH, 'figures')
         os.makedirs(self.PATH_fig, exist_ok=True)
-        # self.PATH_data =  os.path.join(self.PATH, 'data'+datetime.datetime.now().isoformat())
-        # os.makedirs(self.PATH_data, exist_ok=True)
+        self.PATH_data =  os.path.join(self.PATH, 'data')
+        os.makedirs(self.PATH_data, exist_ok=True)
     
         # self.colors = cycle([ "blue", "green","black", "maroon", "navy", "olive", "purple", "red", "teal"])
 
+    def trace_plot(self):
+        '''
+        Plots the trace
+        :return:
+        '''
     def plot_trace(self, all_on_one=True):
         '''
         Plots the traces for all parameters on one plot, if all_on_one flag is true
@@ -78,7 +83,7 @@ class Plotting():
             # self.samples.plot(subplots=True, figsize=(6,6))
             # plt.savefig(os.path.join(self.PATH_fig, fname1))
             # plt.clf()
-            self.samples.plot(subplots=True, figsize=(6,6))
+            self.samples_withbin.plot(subplots=True, figsize=(6,6))
             plt.savefig(os.path.join(self.PATH_fig,fname1))
             path_image1 = self.PATH_fig + '/' + fname1
             # path_image2= self.PATH_fig + '/' + fname2
@@ -86,7 +91,36 @@ class Plotting():
             print('Saving trace of all samples with burnin {0}'.format(path_image1))
             # print('Saving trace of all samples to {0} \n and with burnin to {1}'.format(path_image1,path_image2))
             print(50 * '=')
+        else:
+            fname1 = 'trace_of_parameters.pdf'
+            fname2 = 'trace_of_parameters_wo_burnin.pdf'
+            self.samples.plot(subplots=True, figsize=(6,6))
+            plt.savefig(os.path.join(self.PATH_fig, fname1))
+            plt.clf()
+            self.samples_withbin.plot(subplots=True, figsie=(6,6))
+            plt.savefig(os.path.join(self.PATH_fig, fname2))
+            path_image2 = self.PATH_fig + '/' + fname2
+            path_image1 = self.PATH_fig + '/' + fname1
+            print(50 * '=')
+            print('Saving trace of all samples to {0} \n and with burnin to {1}'.format(path_image1, path_image2))
+            print(50 * '=')
 
+    def plot_hist(self):
+        """
+        Plots histogram
+        :return:
+        """
+        plt.clf()
+        fname = 'hist_density_plot_of_params.pdf'
+        path_image =  self.PATH_fig + '/' + fname
+        # weights = np.ones_like(self.samples) / len(self.samples)
+        fig_width = 3.39  # width in inches
+        golden_mean = (np.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
+        fig_height = fig_width * golden_mean  # height in inches
+        plt.figure(figsize=(fig_width, fig_height))
+        sns.distplot(self.samples,bins='auto', norm_hist=True, kde=False )
+
+        plt.savefig(os.path.join(self.PATH_fig, fname))
     def plot_density(self, all_on_one=True):
         """
         Plots either all the histograms for each param on one plot, or does it indiviually
@@ -102,7 +136,7 @@ class Plotting():
             self.samples.plot(subplots=True, kind='kde')
             plt.savefig(os.path.join(self.PATH_fig,fname))
             print(50 * '=')
-            print('Saving desnity of samples w/o burnin plot to {0}'.format(path_image))
+            print('Saving histogram w/o burnin plot to {0}'.format(path_image))
             print(50 * '=')
 
     def auto_corr(self):

@@ -7,23 +7,23 @@ from pyfo.utils.interface import interface
 class model(interface):
 	'''
 	Vertices V:
-	#{x30497 y30502}
+	#{y33266 x33261}
 	Arcs A:
-	#{[x30497 y30502]}
+	#{[x33261 y33266]}
 	Conditional densities P:
-	x30497 -> (fn [] (categorical [0.3 0.7]))
-	y30502 -> (fn [x30497] (normal (get [-5 5] x30497) 2))
+	x33261 -> (fn [] (categorical [0.3 0.7]))
+	y33266 -> (fn [x33261] (normal (get [-5 5] x33261) 2))
 	Observed values O:
-	y30502 -> clojure.lang.LazySeq@147ad982
+	y33266 -> clojure.lang.LazySeq@137e8980
 	'''
 
 	@classmethod
 	def gen_vars(self):
-		return ['x30497']
+		return ['x33261']
 
 	@classmethod
 	def gen_cont_vars(self):
-		return ['x30497']
+		return ['x33261']
 
 	@classmethod
 	def gen_disc_vars(self):
@@ -31,24 +31,24 @@ class model(interface):
 
 	@classmethod
 	def get_vertices(self):
-		return ['x30497', 'y30502']
+		return ['y33266', 'x33261']
 
 	@classmethod
 	def get_arcs(self):
-		return [('x30497', 'y30502')]
+		return [('x33261', 'y33266')]
 
 	# prior samples 
 	@classmethod
 	def gen_prior_samples(self):
-		x30529 = [0.3,0.7]
-		dist30530 = dist.Categorical(ps=x30529)
-		x30497 = dist30530.sample()   #sample 
-		x30532 = [-5,5]
-		x30533 = x30532[int(x30497)]
-		dist30534 = dist.Normal(mu=x30533, sigma=2)
-		x30535 = [-7,7]
-		x30536 = x30535[int(x30497)]
-		y30502 = x30536 
+		x33293 = [0.3,0.7]
+		dist33294 = dist.Categorical(ps=x33293)
+		x33261 = dist33294.sample()   #sample 
+		x33296 = [-5,5]
+		x33297 = x33296[int(x33261)]
+		dist33298 = dist.Normal(mu=x33297, sigma=2)
+		x33299 = [-7,7]
+		x33300 = x33299[int(x33261)]
+		y33266 = x33300 
 		state = {}
 		for _gv in self.gen_vars():
 			state[_gv] = locals()[_gv]
@@ -57,17 +57,17 @@ class model(interface):
 	# compute pdf 
 	@classmethod
 	def gen_pdf(self, state):
-		x30529 = [0.3,0.7]
-		dist30530 = dist.Categorical(ps=x30529)
-		x30497 =  state['x30497']   # get the x from input arg
-		p30531 = dist30530.log_pdf( x30497) # from prior
-		x30532 = [-5,5]
-		x30533 = x30532[int(x30497)]
-		dist30534 = dist.Normal(mu=x30533, sigma=2)
-		x30535 = [-7,7]
-		x30536 = x30535[int(x30497)]
-		y30502 = x30536 
-		p30537 = dist30534.log_pdf(y30502) # from observe  
-		logp =  p30531 + p30537  # total log joint 
+		x33293 = [0.3,0.7]
+		dist33294 = dist.Categorical(ps=x33293)
+		x33261 =  state['x33261']   # get the x from input arg
+		p33295 = dist33294.log_pdf( x33261) # from prior
+		x33296 = [-5,5]
+		x33297 = x33296[int(x33261)]
+		dist33298 = dist.Normal(mu=x33297, sigma=2)
+		x33299 = [-7,7]
+		x33300 = x33299[int(x33261)]
+		y33266 = x33300 
+		p33301 = dist33298.log_pdf(y33266) # from observe  
+		logp =  p33295 + p33301  # total log joint 
 		return logp # need to modify output format
 

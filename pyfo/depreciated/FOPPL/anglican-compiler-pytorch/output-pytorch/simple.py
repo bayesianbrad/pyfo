@@ -7,23 +7,23 @@ from pyfo.utils.interface import interface
 class model(interface):
 	'''
 	Vertices V:
-	#{x30776 y30777}
+	#{y33541 x33540}
 	Arcs A:
-	#{[x30776 y30777]}
+	#{[x33540 y33541]}
 	Conditional densities P:
-	x30776 -> (fn [] (normal 1.0 5.0))
-	y30777 -> (fn [x30776] (normal x30776 2.0))
+	x33540 -> (fn [] (normal 1.0 5.0))
+	y33541 -> (fn [x33540] (normal x33540 2.0))
 	Observed values O:
-	y30777 -> 7.0
+	y33541 -> 7.0
 	'''
 
 	@classmethod
 	def gen_vars(self):
-		return ['x30776']
+		return ['x33540']
 
 	@classmethod
 	def gen_cont_vars(self):
-		return ['x30776']
+		return ['x33540']
 
 	@classmethod
 	def gen_disc_vars(self):
@@ -31,19 +31,19 @@ class model(interface):
 
 	@classmethod
 	def get_vertices(self):
-		return ['x30776', 'y30777']
+		return ['y33541', 'x33540']
 
 	@classmethod
 	def get_arcs(self):
-		return [('x30776', 'y30777')]
+		return [('x33540', 'y33541')]
 
 	# prior samples 
 	@classmethod
 	def gen_prior_samples(self):
-		dist30800 = dist.Normal(mu=1.0, sigma=5.0)
-		x30776 = dist30800.sample()   #sample 
-		dist30802 = dist.Normal(mu=x30776, sigma=2.0)
-		y30777 = 7.0 
+		dist33564 = dist.Normal(mu=1.0, sigma=5.0)
+		x33540 = dist33564.sample()   #sample 
+		dist33566 = dist.Normal(mu=x33540, sigma=2.0)
+		y33541 = 7.0 
 		state = {}
 		for _gv in self.gen_vars():
 			state[_gv] = locals()[_gv]
@@ -52,12 +52,12 @@ class model(interface):
 	# compute pdf 
 	@classmethod
 	def gen_pdf(self, state):
-		dist30800 = dist.Normal(mu=1.0, sigma=5.0)
-		x30776 =  state['x30776']   # get the x from input arg
-		p30801 = dist30800.log_pdf( x30776) # from prior
-		dist30802 = dist.Normal(mu=x30776, sigma=2.0)
-		y30777 = 7.0 
-		p30803 = dist30802.log_pdf(y30777) # from observe  
-		logp =  p30801 + p30803  # total log joint 
+		dist33564 = dist.Normal(mu=1.0, sigma=5.0)
+		x33540 =  state['x33540']   # get the x from input arg
+		p33565 = dist33564.log_pdf( x33540) # from prior
+		dist33566 = dist.Normal(mu=x33540, sigma=2.0)
+		y33541 = 7.0 
+		p33567 = dist33566.log_pdf(y33541) # from observe  
+		logp =  p33565 + p33567  # total log joint 
 		return logp # need to modify output format
 
