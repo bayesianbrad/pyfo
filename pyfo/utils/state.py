@@ -343,7 +343,6 @@ class State(object):
         "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
 
         """
-##      TODO will have to append this function to deal with discrete if vars at a later date - not necessarily true in the new framework
         state_unembed = copy.copy(state)
         for key in self._disc_vars:
             dist_name = 'unembed_'+self._disc_dist[key]
