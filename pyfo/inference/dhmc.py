@@ -108,18 +108,17 @@ class DHMCSampler(object):
         :param p: Dict of state of momentum
         :param stepsize: Float
         :param key: unique parameter String
-        :param unembed: type: bool If if statement which is continous, in the models we currently run, it will not
-         need to be embedded. # TODO in the future if_keys may be discrete and will need embedding.
-         To resolve this issue add another check before calling the coordinate wise integrator, to see if the key exists
-         in the self._if_cont_vars or self._if_disc_vars
+        :param unembed: type: bool
         :return: Updated x and p indicies
         """
 
         x_star = copy.copy(x)
-        x_star[key] = x_star[key] + stepsize*self.M*torch.sign(p[key])
+        x_star[key] = x_star[key] + stepsize*(torch.sign(p[key]) / self.M)
         x_star_embed = copy.copy(x_star)
 
-        logp_diff = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key) - self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
+        logp_xstar = self.log_posterior(x_star, set_leafs=False, partial_unembed=unembed, key=key)
+        logp_x = self.log_posterior(x, set_leafs=False, partial_unembed=unembed, key=key)
+        logp_diff = logp_xstar - logp_x
         # If the discrete parameter is outside of the support, returns -inf and breaks loop and integrator.
         if math.isinf(logp_diff.data[0]):
             return x[key], p[key], logp_diff.data[0]
@@ -180,8 +179,6 @@ class DHMCSampler(object):
                 for key in self._cont_keys:
                     x[key] = x[key] + 0.5 * stepsize * self.M * p[key]
             x_embed = copy.copy(x)
-            aux1 = self.log_posterior(x, set_leafs=False, partial_unembed=False, key=key)
-            aux2 = self.log_posterior(x, set_leafs=False, partial_unembed=True, key=key)
             for key in permuted_keys:
                 # print('Debug statement in dhmc.gauss_leapfrog() \n'
                 #       'print the permuted_key : {0} \n'
