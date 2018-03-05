@@ -83,4 +83,4 @@ all_samples = stats['samples_wo_burin'] # type, panda dataframe
 
 <a name="fn3">3</a>: Hadi Mohasel Afshar, Justin Domke. "Reflection, Refraction, and Hamiltonian Monte Carlo."
 
-<a name="fn4">4</a>: Bradley Gram-Hansen*, Yuan Zhou*, Tobias Kohn, Sam Staton, Hongseok Yang, Frank Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
+<a name="fn4">4</a>: Bradley Gram-Hansen*, Yuan Zhou*, Tobias Kohn, Sam Stanton, Hongseok Yang, Frank Wood. "Hamiltonian Monte Carlo for Non-Differentiable Points in Probabilistic Programming Languages."
