@@ -55,26 +55,25 @@ class Unembed():
         :return:
         """
         # print('Printing self._support_sizes :', self._support_sizes)
-
-        int_length = self._support_sizes[key]
-        lower = VariableCast(-0.5)
-        upper = VariableCast(int_length) + lower
+        if not isinstance(state[key], Variable):
+            state[key]= VariableCast(state[key])
+        int_length = VariableCast(self._support_sizes[key]).expand(state[key].size())
+        lower = VariableCast(0).expand(state[key].size())
+        upper = int_length+ lower
 
         # # Assumes each parameter represents 1-latent dimension
         # print("Debug statement in unembed.unembed_Categorical \n"
         #       "The type of upper is: {0}  \n"
         #       "The type of state[{2}] is: {1} \n"
         #       "The value of state[{2}] is: {3} ".format(type(upper), type(state[key]), key, state[key]))
-        if not isinstance(state[key], Variable):
-            state[key]= VariableCast(state[key])
         if torch.gt(state[key],upper).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
-        if torch.lt(state[key], lower).data[0]:
+        elif torch.lt(state[key], lower).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
-        if torch.le(state[key],upper + 2*lower).data[0] and torch.le(state[key],upper) :
-            state[key] = VariableCast(torch.round(state[key])) #equiv to torch.round(upper)
+        # if torch.le(state[key],upper + 2*lower).data[0] and torch.le(state[key],upper).data[0] :
+        #     state[key] = torch.round(state[key]) #equiv to torch.round(upper)
         else:
             state[key] = torch.floor(state[key])
         return state
@@ -96,8 +95,8 @@ class Unembed():
         :param state:
         :return:
         """
-        lower = VariableCast(0)
-        upper = VariableCast(self._support_sizes[key]) - lower
+        lower = VariableCast(0).expand(state[key].size())
+        upper = VariableCast(self._support_sizes[key]).expand(state[key].size()) - lower
         if torch.lt(state[key], lower).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
@@ -119,9 +118,8 @@ class Unembed():
               :param state:
               :return:
         """
-        int_length = self._support_sizes[key]
-        lower = VariableCast(-0.5)
-        upper = int_length
+        lower = VariableCast(0).expand(state[key].size())
+        upper = VariableCast(self._support_sizes[key]).expand(state[key].size()) - lower
 
         # # Assumes each parameter represents 1-latent dimension
         # print("Debug statement in unembed.unembed_Categorical \n"
@@ -130,13 +128,13 @@ class Unembed():
         #       "The value of state[{2}] is: {3} ".format(type(upper), type(state[key]), key, state[key]))
         if not isinstance(state[key], Variable):
             state[key] = VariableCast(state[key])
-        if torch.gt(state[key], upper).data[0]:
-            "outside region return -\inf"
-            return VariableCast(-math.inf)
         if torch.lt(state[key], lower).data[0]:
             "outside region return -\inf"
             return VariableCast(-math.inf)
-        if torch.le(state[key], upper).data[0] and torch.gt(state[key], upper + 2 * lower).data[0]:
+        if torch.gt(state[key], upper).data[0]:
+            "outside region return -\inf"
+            return VariableCast(-math.inf)
+        if torch.lt(state[key], upper).data[0] and torch.gt(state[key], upper + 2 * lower).data[0]:
             state[key] = VariableCast(torch.round(state[key]))  # equiv to torch.round(upper)
         else:
             state[key] = VariableCast(torch.round(state[key] - lower))
