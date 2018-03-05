@@ -15,9 +15,9 @@ def base_bin_test():
     from pyfo.pyfoppl.foppl import imports
     import pyfo.unittests.models.binomial.bin as test
     from pyfo.inference.dhmc import DHMCSampler as dhmc
-    burn_in = 100
-    n_samples = 1000
-    stepsize_range = [0.05, 0.25]
+    burn_in = 1000
+    n_samples = 5000
+    stepsize_range = [0.02, 0.025]
     n_step_range = [10, 20]
     # test.model.display_graph()
     dhmc_ = dhmc(test)
