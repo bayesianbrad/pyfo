@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import torch
 import copy
+from tqdm import tqdm
 from torch.autograd import Variable
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
@@ -295,7 +296,7 @@ class DHMCSampler(object):
         print(50*'=')
         print('The sampler is now performing inference....')
         print(50*'=')
-        for i in range(n_samples+burn_in):
+        for i in tqdm(range(n_samples+burn_in)):
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)
@@ -307,7 +308,7 @@ class DHMCSampler(object):
             #  using the whole dataframe series. It will require processing a whole byte vector
             x_dicts.append(self._state.convert_dict_vars_to_numpy(x_numpy))
             if (i + 1) % n_per_update == 0:
-                print('{:d} iterations have been completed.'.format(i + 1))
+                print()
         toc = time.process_time()
         time_elapsed = toc - tic
         n_feval_per_itr = n_feval / (n_samples + burn_in)

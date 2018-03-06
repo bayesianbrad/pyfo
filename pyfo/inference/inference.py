@@ -133,6 +133,5 @@ class Inference(ABCMeta):
         else:
             n_print
 
-        self.indices = np.random.randint(0, n_chians * len_trace, n_iters)
 
 
