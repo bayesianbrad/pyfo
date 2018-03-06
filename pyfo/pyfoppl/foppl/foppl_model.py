@@ -203,6 +203,7 @@ class Model(object):
         return '\n'.join(result)
 
     def gen_pdf(self, state):
+        # state['log_pdf'] = 0.0
         for node in self.compute_nodes:
             node.update_pdf(state)
         if self.debug_prints is not None:
