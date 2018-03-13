@@ -29,6 +29,7 @@ boolean = torch.gt(x1, 0)
 truth_index = boolean.nonzero() # indices for which the statement is true
 false_index = (boolean==0).nonzero() # indices for which the statements are false.
 
+# These may be able to vectorized further
 for index in truth_index:
     observe(normal(x2[index], 1*torch.tensor(len(x2[index]))),observations[index])
 for index in false_index:
