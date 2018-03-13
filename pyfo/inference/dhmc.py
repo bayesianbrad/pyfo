@@ -89,11 +89,9 @@ class DHMCSampler(object):
         p = {}
         if self._disc_keys is not None:
             for key in self._disc_keys:
-                p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key])) #in the future add support for multiple dims
-        if self._cont_keys is not None:
+                p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
             for key in self._cont_keys:
                 p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
-                # TODO in the future make for multiple dims
         if self._if_keys is not None:
             for key in self._if_keys:
                 p[key] = self.M * VariableCast(np.random.laplace(size=self._sample_sizes[key]))
