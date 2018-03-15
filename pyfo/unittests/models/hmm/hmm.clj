@@ -27,3 +27,4 @@
 ;; Loop through the data
 (let [init-state (sample (categorical (get-init-params)))]
   (loop 16 (vector init-state) hmm-step))
+
