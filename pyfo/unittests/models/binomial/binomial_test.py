@@ -7,13 +7,11 @@ Date created:  25/01/2018
 
 License: MIT
 '''
-import unittest
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 
 def base_bin_test():
     from pyfo.pyfoppl.foppl import imports
-    import pyfo.unittests.models.binomial.bin as test
     from pyfo.inference.dhmc import DHMCSampler as dhmc
     burn_in = 1000
     n_samples = 5000

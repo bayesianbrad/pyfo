@@ -102,11 +102,11 @@ class CodeDistribution(CodeObject):
 
     def __repr__(self):
         args = [repr(a) for a in self.args]
-        return self.distribution.generate_code(args)
+        return self.distribution._generate_code_for_node(args)
 
     def to_py(self, state:dict=None):
         args = [a.to_py(state) for a in self.args]
-        return self.distribution.generate_code(args)
+        return self.distribution._generate_code_for_node(args)
 
     def to_py_log_pdf(self, *, state:dict=None, value:str):
         args = [a.to_py(state) for a in self.args]
