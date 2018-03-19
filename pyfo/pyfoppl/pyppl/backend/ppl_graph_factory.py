@@ -36,7 +36,11 @@ class GraphFactory(object):
     def create_condition_node(self, test: AstNode, parents: set):
         name = self.generate_symbol('cond_')
         code = self._generate_code_for_node(test)
-        result = ConditionNode(name, ancestors=parents, cond_code=code)
+        if isinstance(test, AstCompare) and is_zero(test.right) and test.second_right is None:
+            result = ConditionNode(name, ancestors=parents, condition=code,
+                                   function=self._generate_code_for_node(test.left), op=test.op)
+        else:
+            result = ConditionNode(name, ancestors=parents, condition=code)
         self.nodes.append(result)
         return result
 
@@ -82,10 +86,11 @@ class GraphFactory(object):
         self.nodes.append(result)
         return result
 
-    def generate_code(self, *, class_name: Optional[str] = None, imports: Optional[str]=None):
+    def generate_code(self, *, class_name: Optional[str] = None, imports: Optional[str]=None,
+                      base_class: Optional[str]=None):
         code_gen = GraphCodeGenerator(self.nodes, self.code_generator.state_object,
                                       imports=imports if imports is not None else '')
-        return code_gen.generate_model_code(class_name=class_name)
+        return code_gen.generate_model_code(class_name=class_name, base_class=base_class)
 
 
 def _get_dist_name(dist: AstNode):

@@ -86,15 +86,23 @@ class ConditionNode(GraphNode):
     can also gain information about the 'distance' to the 'border'.
     """
 
-    def __init__(self, name: str, *, ancestors: Optional[set]=None, cond_code: str):
+    def __init__(self, name: str, *, ancestors: Optional[set]=None,
+                 condition: str,
+                 function: Optional[str]=None,
+                 op: Optional[str]=None):
         super().__init__(name, ancestors)
-        self.cond_code = cond_code
+        self.condition = condition
+        self.function = function
+        self.op = op
+        for a in ancestors:
+            if isinstance(a, Vertex):
+                a.add_dependent_condition(self)
 
     def __repr__(self):
-        return self.create_repr("Condition", Condition=self.cond_code)
+        return self.create_repr("Condition", Condition=self.condition)
 
     def get_code(self):
-        return self.cond_code
+        return self.condition
 
 
 class DataNode(GraphNode):
@@ -195,6 +203,11 @@ class Vertex(GraphNode):
                 args.append("{}={}".format(key, flags[key]))
             return "{}({})".format(self.distribution_func, ', '.join(args))
         return self.distribution_code
+
+    def add_dependent_condition(self, cond: ConditionNode):
+        self.dependent_conditions.add(cond)
+        for a in self.ancestors:
+            a.add_dependent_condition(cond)
 
     @property
     def has_observation(self):

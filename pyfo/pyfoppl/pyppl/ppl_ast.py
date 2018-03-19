@@ -1603,3 +1603,9 @@ def is_value(node:AstNode):
 
 def is_vector(node:AstNode):
     return isinstance(node, AstValueVector) or isinstance(node, AstVector)
+
+def is_zero(node: AstNode):
+    if isinstance(node, AstValue):
+        return node.value == 0
+    else:
+        return False

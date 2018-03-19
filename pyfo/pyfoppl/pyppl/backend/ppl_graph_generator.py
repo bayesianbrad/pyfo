@@ -236,7 +236,8 @@ class GraphGenerator(ScopedVisitor):
         elif node.predef:
             return node, set()
         else:
-            raise RuntimeError("symbol not found: '{}'".format(node.original_name))
+            line = " [line {}]".format(node.lineno) if hasattr(node, 'lineno') else ''
+            raise RuntimeError("symbol not found: '{}'{}".format(node.original_name, line))
 
     def visit_unary(self, node: AstUnary):
         item, parents = self.visit(node.item)
@@ -259,7 +260,9 @@ class GraphGenerator(ScopedVisitor):
         result = makeVector(items)
         return result, parents
 
-    def generate_code(self, imports: Optional[str]=None):
+    def generate_code(self, imports: Optional[str]=None, *,
+                      base_class: Optional[str]=None,
+                      class_name: Optional[str]=None):
         if len(self.imports) > 0:
             _imports = '\n'.join(['import {}'.format(item) for item in self.imports])
             if imports is not None:
@@ -268,9 +271,10 @@ class GraphGenerator(ScopedVisitor):
             _imports = imports
         else:
             _imports = ''
-        return self.factory.generate_code(class_name='Model', imports=_imports)
+        return self.factory.generate_code(class_name=class_name, imports=_imports,
+                                          base_class=base_class)
 
-    def generate_model(self, imports: Optional[str]=None):
+    def generate_model(self, imports: Optional[str]=None, base_class: Optional[str]=None, class_name: str='Model'):
         vertices = set()
         arcs = set()
         data = set()
@@ -285,10 +289,10 @@ class GraphGenerator(ScopedVisitor):
             elif isinstance(node, ConditionNode):
                 conditionals.add(node)
 
-        code = self.generate_code(imports=imports)
+        code = self.generate_code(imports=imports, base_class=base_class, class_name=class_name)
         c_globals = {}
         exec(code, c_globals)
-        Model = c_globals['Model']
+        Model = c_globals[class_name]
         result = Model(vertices, arcs, data, conditionals)
         result.code = code
         return result
