@@ -8,10 +8,8 @@ Date created:  19/03/2018
 License: MIT
 '''
 
-import torch
 from abc import ABC, abstractmethod, ABCMeta
-import os
-from tqdm import tqdm
+
 
 class base_model(ABCMeta):
     @abstractmethod
