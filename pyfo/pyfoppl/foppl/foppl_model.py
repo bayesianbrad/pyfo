@@ -4,9 +4,9 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 29. Jan 2018, Tobias Kohn
+# 21. Feb 2018, Tobias Kohn
 #
-from . import runtime
+from . import runtime, Options
 from .basic_imports import *
 from .graphs import Vertex
 
@@ -43,6 +43,7 @@ class Model(object):
         self.result_function = result_function
         self.nodes = { v.name: v for v in self.compute_nodes }
         self.debug_prints = debug_prints
+        self.log_pdf_history = None
 
     def __repr__(self):
         V = '  '.join(sorted([repr(v) for v in self.vertices]))
@@ -203,18 +204,35 @@ class Model(object):
         return '\n'.join(result)
 
     def gen_pdf(self, state):
+        if Options.debug:
+            init_log_pdf = state.get('log_pdf', 0.0)
+            if init_log_pdf != 0.0:
+                print("[gen_pdf] *** log_pdf at start: {} ***".format(init_log_pdf))
+            if len(state) <= 5:
+                d = []
+                for key in state:
+                    value = state[key]
+                    try:
+                        s = repr(value.data[0])
+                    except:
+                        s = repr(value)
+                    if len(s) > 6: s = s[:6]
+                    d.append(key + ': ' + s)
+                print("[gen_pdf] >> {}".format('; '.join(d)))
         for node in self.compute_nodes:
             node.update_pdf(state)
+        if self.log_pdf_history is not None:
+            self.log_pdf_history.append(state.get('log_pdf', 0.0))
         if self.debug_prints is not None:
             try:
                 for n, dp in self.debug_prints:
                     print("{}: {}".format(n, dp(state)))
             except:
                 pass
-        if 'log_pdf' in state:
-            return state['log_pdf']
-        else:
-            return 0.0
+        result = state.get('log_pdf', 0.0)
+        if Options.debug:
+            print("[gen_pdf] << LOG-PDF: {}".format(result))
+        return result
 
     @property
     def gen_pdf_code(self):

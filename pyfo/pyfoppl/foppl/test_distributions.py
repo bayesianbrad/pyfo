@@ -38,6 +38,7 @@ class dist(object):
     LogGamma = Dummy
     MultivariateNormal = Dummy
     Poisson = Dummy
+    Uniform = Dummy
 
     class Normal(object):
 
