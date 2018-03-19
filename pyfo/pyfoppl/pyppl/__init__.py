@@ -14,8 +14,7 @@ from .backend import ppl_graph_generator
 def compile_model(source, *,
                   language: Optional[str]=None,
                   imports=None,
-                  # base_class: Optional[str]=None):
-                  base_class: 'from pyfo.pyfoppl.pyppl.ppl_base_model import base_model')
+                  base_class: Optional[str]=None):
     if type(imports) in (list, set, tuple):
         imports = '\n'.join(imports)
     ast = parser.parse(source, language=language, namespace=distributions.namespace)
