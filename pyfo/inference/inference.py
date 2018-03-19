@@ -18,8 +18,8 @@ from abc import ABC, abstractmethod, ABCMeta
 import os
 from tqdm import tqdm
 import numpy as np
-
-
+from pyfo.utils.core import transform_latent_support as tls
+from pyfo.pyfoppl.pyppl import compile_model
 class Inference(ABCMeta):
     '''
     Avstract base class for all inference methods. All inference methods will inherit from this class and will thus share
@@ -43,8 +43,7 @@ class Inference(ABCMeta):
         from pyfo.pyfoppl.foppl import imports
         from pyfo.pyfoppl.foppl import compilers
 
-        graph, expr = compilers.compile(model_code)
-        self.model = graph.create_model(result_expr=expr)
+        self.model = compile_model(model_code, base_class='base_model', imports='from pyfo.pyfoppl.pyppl.ppl_base_model import base_model')
         
         self._cont_latents = None if len(self.model.gen_cont_vars())==0 else self.model.gen_cont_vars
         self._disc_latents = None if len(self.model.gen_disc_vars())==0 else self.model.gen_disc_vars
@@ -68,6 +67,12 @@ class Inference(ABCMeta):
         # original parameter names. Parameter names are transformed in the compiler to ensure uniqueness
         self._names = dict([ (vertex.name, vertex.original_name) for vertex in self._vertices if vertex.name in self._all_vars ])
 
+        # generate prior state (intialized state)
+        self._initial = self.model.gen_prior_samples()
+        self._initial_transfomed = self.model.gen_prior_samples
+        self._log_pdf = self.model.gen_pdf
+        self._log_pdf_transformed = self.model.gen_pdf_transformed
+
 
     @abstractmethod
     def initialize(self, n_iters=1000, n_chains=1, n_print=None, scale=None,
@@ -88,14 +93,7 @@ class Inference(ABCMeta):
             type: int
             description: Number of iterations for each print progress. To suppress print
             progress, then specify 0. Default is `int(n_iter / 100)`.
-        :param scale:
-        :param auto_transform:
-            type: bool
-            description: Whether to automatically transform continuous latent variables
-            of unequal support to be on the unconstrained space. It is
-            only applied if the argument is `True`, the latent variable
-            pair are `torch`s with the `support` attribute,
-            the supports are both continuous and unequal.
+
         :param debug:
             type: bool
             If true, prints out graphical model.
@@ -107,12 +105,6 @@ class Inference(ABCMeta):
             self.n_print = int(n_iters / 100)
         else:
             n_print
-
-        # map from original latent vars to unconstrained vars
-        self.transformations = {}
-
-        if auto_transform:
-            latent_vars =
 
 
         if debug:
