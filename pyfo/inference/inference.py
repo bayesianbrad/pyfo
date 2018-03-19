@@ -7,12 +7,6 @@ Date created:  06/03/2018
 
 License: MIT
 '''
-
-# !/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-
-
 import torch
 from abc import ABC, abstractmethod, ABCMeta
 import os
@@ -31,7 +25,6 @@ class Inference(ABCMeta):
     def __init__(self, model_code):
         '''
         Creates an inference algorithm.
-
         :param model_code
             type: str
             description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program
@@ -80,6 +73,13 @@ class Inference(ABCMeta):
         '''
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
+  
+    @abstractmethod
+    def initialize(self, n_iters=1000, n_chains=1, n_print=None, scale=None,
+                 auto_transform=True, debug=False):
+        '''
+        Initialize inference algorithm. It initializes hyperparameters
+        and builds ops for the algorithm's computation graph.
 
         :param n_iters
             type: int
@@ -93,7 +93,6 @@ class Inference(ABCMeta):
             type: int
             description: Number of iterations for each print progress. To suppress print
             progress, then specify 0. Default is `int(n_iter / 100)`.
-
         :param debug:
             type: bool
             If true, prints out graphical model.
@@ -103,9 +102,9 @@ class Inference(ABCMeta):
         self.n_iters = n_iters
         if n_print is None:
             self.n_print = int(n_iters / 100)
+            self.n_print = int(n_iters/100)
         else:
             n_print
-
 
         if debug:
             debug_prior = self.model.gen_prior_samples_code
@@ -119,3 +118,4 @@ class Inference(ABCMeta):
             print(50 * '=')
             print('\n Now generating graph code \n {}'.format(self.model))
             print(50 * '=')
+
