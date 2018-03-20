@@ -4,14 +4,14 @@
 # License: MIT (see LICENSE.txt)
 #
 # 22. Feb 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 19. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 
 from pyppl.transforms import ppl_simplifier
 from pyppl.transforms import ppl_raw_simplifier
-from pyppl.transforms import ppl_functions_inliner
-from . import ppl_symbol_table, ppl_ast
+from . import ppl_symbol_table
+from .fe_clojure import ppl_clojure_parser
 from .fe_clojure import ppl_foppl_parser
 from .fe_python import ppl_python_parser
 
@@ -46,19 +46,17 @@ def parse(source:str, *, simplify:bool=True, language:Optional[str]=None, namesp
         elif lang == 'foppl':
             result = ppl_foppl_parser.parse(source)
 
-    if type(result) is list:
-        result = ppl_ast.makeBody(result)
+    if simplify and result is not None:
+        result = ppl_raw_simplifier.RawSimplifier().visit(result)
 
     if result is not None:
-        raw_sim = ppl_raw_simplifier.RawSimplifier()
-        result = raw_sim.visit(result)
-        if simplify or True:
-            result = ppl_functions_inliner.FunctionInliner().visit(result)
-            result = raw_sim.visit(result)
+        symbol_table = ppl_symbol_table.SymbolTableGenerator(namespace=namespace)
+        symbol_table.visit(result)
+        symbol_list = symbol_table.get_symbols()
+    else:
+        symbol_list = []
 
     if simplify and result is not None:
-        sym_table = ppl_symbol_table.SymbolTableGenerator()
-        sym_table.visit(result)
-        result = ppl_simplifier.simplify(result, sym_table.symbols)
+        result = ppl_simplifier.simplify(result, symbol_list)
 
     return result

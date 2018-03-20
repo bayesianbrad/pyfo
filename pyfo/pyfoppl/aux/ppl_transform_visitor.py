@@ -4,12 +4,12 @@
 # License: MIT (see LICENSE.txt)
 #
 # 15. Mar 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 16. Mar 2018, Tobias Kohn
 #
 from pyppl.ppl_ast import *
 from ast import copy_location as _cl
 
-class TransformVisitor(ScopedVisitor):
+class TransformVisitor(Visitor):
 
     def do_visit_dict(self, items:dict):
         result = {}

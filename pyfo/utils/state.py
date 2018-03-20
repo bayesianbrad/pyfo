@@ -41,7 +41,6 @@ class State(object):
         :param cls: this is the interface cls of the model.
         """
         self._state_init = cls.gen_prior_samples()
-        self._gen_logpdf = cls.gen_pdf
         self._arcs = cls.get_arcs()
         support_size = self.gen_support_size()
         self._unembed_state = Unembed(support_size)
@@ -314,3 +313,4 @@ class State(object):
             state[i] =  state[i].data.numpy()
             # state[i] = state[i].data.numpy()
         return state
+

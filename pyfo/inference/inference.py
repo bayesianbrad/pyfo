@@ -9,11 +9,7 @@ License: MIT
 '''
 import torch
 from abc import ABC, abstractmethod, ABCMeta
-import os
-from tqdm import tqdm
-import numpy as np
-from pyfo.utils.core import transform_latent_support as tls
-from pyfo.pyfoppl.pyppl import compile_model
+
 class Inference(ABCMeta):
     '''
     Avstract base class for all inference methods. All inference methods will inherit from this class and will thus share
@@ -21,67 +17,67 @@ class Inference(ABCMeta):
 
 
     '''
-
-    def __init__(self, model_code):
+    @abstractmethod
+    def generate_model(self, *args, **kwargs):
         '''
         Creates an inference algorithm.
         :param model_code
             type: str
             description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program
-            generate a graph describing that model. This class contains many methods for extracting latent parameters
-            and generating the lod_Pdf.
-
+            generate a graph describing that model. This class, depending on what compiler you use, should contains
+            methods for extracting latent parameters and generating the lod_Pdf. See MCMC.py for more details.
 
         '''
-        from pyfo.pyfoppl.foppl import imports
-        from pyfo.pyfoppl.foppl import compilers
-
-        self.model = compile_model(model_code, base_class='base_model', imports='from pyfo.pyfoppl.pyppl.ppl_base_model import base_model')
-        
-        self._cont_latents = None if len(self.model.gen_cont_vars())==0 else self.model.gen_cont_vars
-        self._disc_latents = None if len(self.model.gen_disc_vars())==0 else self.model.gen_disc_vars
-        self._if_latents =   None if len(self.model.gen_if_vars())==0 else self.model.gen_if_vars
-        # each predicate has a cond boolean parameter, which represents the evaluated value of the predicate, whenever
-        # the log_pdf is calculated.
-        self._cond_bools = None if len(self.model.gen_if_vars()) ==0 else self.model.gen_cond_vars
-        # all vertices of the graph are objects.
-        self._vertices = self.model.get_vertices()
-        self.observables = dict([ (vertex.name, vertex.observation) for vertex in self._vertices if vertex.is_observed])
-        # a list of all vars
-        self._all_vars =  [vertex.name for vertex in self._vertices if vertex.is_sampled]
-
-        # distribution type of each latent variable, used for the bijections and embeddings
-        self._cont_dists = dict([ (vertex.name, vertex.distribution_name) for vertex in self._vertices if (vertex.is_continuous and vertex.name in self._all_vars)])
-        self._disc_dists = dict([ (vertex.name, vertex.distribution_name) for vertex in self._vertices if (vertex.is_discrete and vertex.name in self._all_vars)])
-
-        # discrete support sizes
-        self._disc_support =dict([ (vertex.name, vertex.support_size) for vertex in self._vertices if vertex.is_discrete ])
-
-        # original parameter names. Parameter names are transformed in the compiler to ensure uniqueness
-        self._names = dict([ (vertex.name, vertex.original_name) for vertex in self._vertices if vertex.name in self._all_vars ])
-
-        # generate prior state (intialized state)
-        self._initial = self.model.gen_prior_samples()
-        self._initial_transfomed = self.model.gen_prior_samples
-        self._log_pdf = self.model.gen_pdf
-        self._log_pdf_transformed = self.model.gen_pdf_transformed
+        raise NotImplementedError
 
 
     @abstractmethod
-    def initialize(self, n_iters=1000, n_chains=1, n_print=None, scale=None,
-                   auto_transform=True, debug=False):
+    def generate_latent_vars(self, *args, **kwargs):
+        '''
+        See MCMC.py for ideas.
+
+        :param model: :Type cls  contains methods for extracting latent variables from the DAG directed acyclic graph.
+
+        Although the user can implement their own graph and pass that to this inference engine. Provided
+        there exists  individual lists of the continuous, discrete and conditional variables as strings.
+        i.e. cont_vars = ['x1', 'x2'] , disc_vars = ['x3'], cond_vars = ['x4']
+
+        For each cond_var there exists a predicate which must also be handled correctly. You will need a dictionary
+        of pairs {'condition": boolean} of the conditioning statement and the boolean value associated with that statement
+        i.e  {'cond101': True} comes from
+        x4 ~ sample(Normal(0,1))
+        if  x4 > 0 :
+            observe(N(1,0,1))
+        else:
+            observe(N(-1,0,2))
+
+        'cond101' == x4 - 0
+        Assume x4 = 1.73121, therefore {'cond101': True}
+
+
+
+        You will also need the len_of_support of the discrete parameters, as pairs {'str_of_discrete_latent' : len_of_support}
+        i.e. if x3 ~ sample(cat[0.1, 0.5, 0.4]) support = 3 ==> x3 \in [0,2]
+
+        Depending on how you implement the unique names for generating your model and using those parameters in the
+        inference, you will need a dict of pairs {'original_name':'inference_name'}
+
+
+
+
+        '''
+
+
+    @abstractmethod
+    def initialize(self, *args, **kwargs):
         '''
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
-  
-    @abstractmethod
-    def initialize(self, n_iters=1000, n_chains=1, n_print=None, scale=None,
-                 auto_transform=True, debug=False):
-        '''
+
         Initialize inference algorithm. It initializes hyperparameters
         and builds ops for the algorithm's computation graph.
 
-        :param n_iters
+        :param n_itersy
             type: int
             description: Number of iterations for algorithm when calling 'run()'.
             If called manually, it is the number of expected calls of 'update()';
@@ -89,33 +85,27 @@ class Inference(ABCMeta):
         :param n_chains
             type: int
             description: Number of chains for MCMC inference.
-        :param n_print:
-            type: int
-            description: Number of iterations for each print progress. To suppress print
-            progress, then specify 0. Default is `int(n_iter / 100)`.
+        :param generate_prior_sample
+            type: dictionary
+             description: Intilaizes all model parameters with float or int values and stores that in a dictionary of the
+             entire state of the model. [See gen_prior_samples function within pyfo.pyppl.ppl_graoh_codegen.py
+             for more details.
         :param debug:
             type: bool
             If true, prints out graphical model.
             TODO : Link with a tensorboard style framework
         '''
+        raise NotImplementedError
 
-        self.n_iters = n_iters
-        if n_print is None:
-            self.n_print = int(n_iters / 100)
-            self.n_print = int(n_iters/100)
-        else:
-            n_print
+    @abstractmethod
+    def generate_log_pdf(self, *args, **kwargs):
+        '''
+        A function to generate the correct log posterior. You may have to implement a transformed version if the support
+        of the model has to be unconstrained.
 
-        if debug:
-            debug_prior = self.model.gen_prior_samples_code
-            debug_pdf = self.model.gen_pdf_code
-            print(50 * '=' + '\n'
-                             'Now generating prior python code \n'
-                             '{}'.format(debug_prior))
-            print(50 * '=' + '\n'
-                             'Now generating posterior python code \n'
-                             '{}'.format(debug_pdf))
-            print(50 * '=')
-            print('\n Now generating graph code \n {}'.format(self.model))
-            print(50 * '=')
+        :param args:
+        :param kwargs:
+        :return:
+        '''
 
+        raise NotImplementedError

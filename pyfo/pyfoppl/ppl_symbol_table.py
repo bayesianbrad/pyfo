@@ -4,12 +4,14 @@
 # License: MIT (see LICENSE.txt)
 #
 # 07. Mar 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 19. Mar 2018, Tobias Kohn
 #
 from pyppl.types import ppl_types
 from .types import ppl_type_inference
 from .ppl_ast import *
 from .ppl_namespaces import namespace_from_module
+
+_symbol_counter = 1000
 
 class Symbol(object):
 
@@ -27,7 +29,8 @@ class Symbol(object):
             self.full_name = self.name
             self.is_predef = True
         else:
-            self.full_name = name
+            self.full_name = "{}__sym_{}__".format(name, _symbol_counter)
+            _symbol_counter += 1
             self.is_predef = False
         if missing:
             self.modify_count = -1

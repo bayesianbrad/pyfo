@@ -20,7 +20,7 @@ License: MIT
 import math
 import time
 from itertools import permutations
-
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import torch
@@ -295,7 +295,7 @@ class DHMCSampler(object):
         print(50*'=')
         print('The sampler is now performing inference....')
         print(50*'=')
-        for i in tqdm(range(n_samples+burn_in)):
+        for i in tqdm(range(n_samples + burn_in)):
             stepsize = VariableCast(np.random.uniform(stepsize_range[0], stepsize_range[1])) #  may need to transforms to variables.
             n_step = np.ceil(np.random.uniform(n_step_range[0], n_step_range[1])).astype(int)
             x, accept_prob, n_feval_local, n_fupdate_local = self.hmc(stepsize,n_step,x)

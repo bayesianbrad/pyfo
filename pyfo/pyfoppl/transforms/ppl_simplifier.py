@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 22. Feb 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 16. Mar 2018, Tobias Kohn
 #
 import math
 from ast import copy_location as _cl
@@ -24,6 +24,9 @@ from pyppl.types import ppl_types, ppl_type_inference
 #   more than zero times), leading to wrong results.
 #   Hence, whenever we enter a new scope, we scan for all variables that are "defined" more than once, and then
 #   protect them, making them kind of "read-only".
+
+
+# TODO: we need proper scoping for the application of functions
 
 
 def _all_(coll, p):
@@ -216,6 +219,20 @@ class Simplifier(BranchScopeVisitor):
 
     def visit_body(self, node:AstBody):
         items = [self.visit(item) for item in node.items]
+
+        if False:
+            free_vars = [get_info(item).free_vars for item in items]
+            i = 0
+            while i < len(items):
+                item = items[i]
+                if isinstance(item, AstDef) and not item.global_context:
+                    name = items[i].name
+                    if all([name not in fv for fv in free_vars]):
+                        del items[i]
+                        del free_vars[i]
+                        continue
+                i += 1
+
         return _cl(makeBody(items), node)
 
     def visit_call(self, node:AstCall):
@@ -424,7 +441,7 @@ class Simplifier(BranchScopeVisitor):
         return node
 
     def visit_if(self, node:AstIf):
-        # Handle the case of chained conditionals, which (in Lisp) would be written using `cond`.
+        # Handle the case of chained conditionals, which--in Lisp--would be written using `cond`.
         cond = node.cond_tuples()
         if len(cond) > 1:
             with self.create_write_lock():
@@ -532,13 +549,13 @@ class Simplifier(BranchScopeVisitor):
     def visit_let(self, node:AstLet):
         source = self.visit_expr(node.source)
         src_info = get_info(source)
-        if isinstance(source, AstBody) and len(source) > 1:
+        if isinstance(source, AstBody) and len(node.source) > 1:
             result = _cl(AstLet(node.target, source.items[-1], node.body,
                                 original_target=node.original_target), node)
             result = _cl(makeBody(source.items[:-1], result), node.source)
             return self.visit(result)
 
-        elif src_info.is_independent(get_info(node.body)) and count_variable_usage(node.target, node.body) <= 1:
+        elif src_info.is_independent(get_info(node.body)):
             self.define(node.target, self.visit(node.source))
             return _cl(self.visit(node.body), node)
 
@@ -694,7 +711,7 @@ class Simplifier(BranchScopeVisitor):
         value = self.resolve(node.name)
         if isinstance(value, AstFunction):
             return value
-        elif value is not None: #  and get_info(value).can_embed:
+        elif value is not None and get_info(value).can_embed:
             return value
         else:
             return node
