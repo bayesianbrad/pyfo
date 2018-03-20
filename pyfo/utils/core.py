@@ -9,52 +9,52 @@ License: MIT
 '''
 import torch
 import numpy as np
-from torch.autograd import Variable
+import torch.tensor as tt
+import torch.distributions as dists
 
 def VariableCast(value, grad = False, dist=None):
-    '''casts an input to torch Variable object
-    input
-    -----
-    value - Type: scalar, Variable object, torch.Tensor, numpy ndarray
-    grad  - Type: bool . If true then we require the gradient of that object
+    '''casts an input to torch.tensor object
+
+    :param value Type: scalar, torch.Tensor object, torch.Tensor, numpy ndarray
+    :param  grad Type: bool . If true then we require the gradient of that object
 
     output
     ------
-    torch.autograd.variable.Variable object
+    torch.tensor object
     '''
     if value is None:
         return None
-    elif isinstance(value, Variable):
+    elif isinstance(value, tt):
         return value
     elif torch.is_tensor(value):
-        return Variable(value, requires_grad = grad)
+        return tt(value, requires_grad = grad)
     elif isinstance(value, np.ndarray):
         tensor = torch.from_numpy(value).float()
-        return Variable(tensor, requires_grad = grad)
+        return tt(tensor, requires_grad = grad)
     elif isinstance(value,list):
-        return Variable(torch.FloatTensor(value), requires_grad=grad)
+        return tt(torch.FloatTensor(value), requires_grad=grad)
     else:
-        return Variable(torch.FloatTensor([value]), requires_grad = grad)
+        return tt(torch.FloatTensor([value]), requires_grad = grad)
 
 def tensor_to_list(self,values):
     ''' Converts a tensor to a list
-    values = torch.FloatTensor or Variable'''
+    values = torch.FloatTensor or torch.tensor'''
     params = []
     for value in values:
-        if isinstance(value, Variable):
-            temp = Variable(value.data, requires_grad=True)
+        if isinstance(value, tt):
+            temp = tt(value.data, requires_grad=True)
             params.append(temp)
         else:
             temp = VariableCast(value)
-            temp = Variable(value.data, requires_grad=True)
+            temp = tt(value.data, requires_grad=True)
             params.append(value)
     return params
 
 def TensorCast(value):
-    if isinstance(value, torch.Tensor):
+    if isinstance(value, tt):
         return value
     else:
-        return torch.Tensor([value])
+        return tt([value])
 
 def list_to_tensor(self, params):
     '''
@@ -66,7 +66,7 @@ def list_to_tensor(self, params):
     '''
     print('Warning ---- UNSTABLE FUNCTION ----')
     assert(isinstance(params, list))
-    temp = Variable(torch.Tensor(len(params)).unsqueeze(-1))
+    temp = tt(torch.Tensor(len(params)).unsqueeze(-1))
     for i in range(len(params)):
         temp[i,:] = params[i]
     return temp
@@ -87,10 +87,10 @@ def logical_trans(var):
 def get_tensor_data(t):
     """
     Returns data of torch.Tensor.autograd.Variable
-    :param t: Variable
+    :param t: torch.tensor
     :return: torch.Tensor
     """
-    if isinstance(t, Variable):
+    if isinstance(t, tt):
         return t.data
     return t
 
@@ -110,3 +110,14 @@ def my_import(name):
         mod = getattr(mod, comp)
     return mod
 
+def transform_latent_support(latent_vars, name_to_latent):
+    """
+    Returns a new state with the required transformations for the log pdf. It checks the support of each continuous
+    distribution and if that support does not encompass the whole real line, the required bijector is added to a
+    transform list.
+
+    :param latent_vars: dictionary of {latent_var: distribution_name}
+    :param name_to_latent: dictionary that maps true latent_variable names to names used within inference engine.
+
+    :return: transform: dictionary of {latent_var: name}
+    """
