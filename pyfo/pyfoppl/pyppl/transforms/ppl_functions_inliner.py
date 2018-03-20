@@ -6,8 +6,8 @@
 # 20. Mar 2018, Tobias Kohn
 # 20. Mar 2018, Tobias Kohn
 #
-from pyppl.ppl_ast import *
-from pyppl.aux.ppl_transform_visitor import TransformVisitor
+from pyfo.pyfoppl.pyppl.ppl_ast import *
+from pyfo.pyfoppl.pyppl.aux.ppl_transform_visitor import TransformVisitor
 
 
 class FunctionInliner(TransformVisitor):

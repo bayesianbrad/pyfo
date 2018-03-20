@@ -7,8 +7,8 @@
 # 16. Mar 2018, Tobias Kohn
 #
 from ast import copy_location as _cl
-from pyppl.ppl_ast import *
-from pyppl.ppl_ast_annotators import get_info
+from pyfo.pyfoppl.pyppl.ppl_ast import *
+from pyfo.pyfoppl.pyppl.ppl_ast_annotators import get_info
 
 class RawSimplifier(Visitor):
 

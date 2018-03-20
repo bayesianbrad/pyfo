@@ -7,7 +7,7 @@
 # 20. Mar 2018, Tobias Kohn
 #
 from typing import Optional
-from pyppl import distributions
+from pyfo.pyfoppl.pyppl import distributions
 
 
 class GraphNode(object):

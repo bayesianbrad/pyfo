@@ -6,8 +6,8 @@
 # 19. Feb 2018, Tobias Kohn
 # 16. Mar 2018, Tobias Kohn
 #
-from pyppl.ppl_ast import *
-from pyppl.ppl_namespaces import namespace_from_module
+from pyfo.pyfoppl.pyppl.ppl_ast import *
+from pyfo.pyfoppl.pyppl.ppl_namespaces import namespace_from_module
 import ast
 
 

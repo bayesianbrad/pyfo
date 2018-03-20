@@ -9,11 +9,11 @@
 import math
 from ast import copy_location as _cl
 
-from pyppl import ppl_namespaces
-from pyppl.ppl_ast_annotators import *
-from pyppl.ppl_branch_scopes import BranchScopeVisitor
-from pyppl.transforms import ppl_var_substitutor
-from pyppl.types import ppl_types, ppl_type_inference
+from pyfo.pyfoppl.pyppl import ppl_namespaces
+from pyfo.pyfoppl.pyppl.ppl_ast_annotators import *
+from pyfo.pyfoppl.pyppl.ppl_branch_scopes import BranchScopeVisitor
+from pyfo.pyfoppl.pyppl.transforms import ppl_var_substitutor
+from pyfo.pyfoppl.pyppl.types import ppl_types, ppl_type_inference
 
 
 # Note: Why do we need to protect all mutable variables?

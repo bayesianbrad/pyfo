@@ -6,7 +6,7 @@
 # 27. Feb 2018, Tobias Kohn
 # 15. Mar 2018, Tobias Kohn
 #
-from pyppl.ppl_ast import *
+from pyfo.pyfoppl.pyppl.ppl_ast import *
 
 class ClojureRepr(Visitor):
 

@@ -6,7 +6,7 @@
 # 19. Feb 2018, Tobias Kohn
 # 16. Mar 2018, Tobias Kohn
 #
-from pyppl.ppl_ast import *
+from pyfo.pyfoppl.pyppl.ppl_ast import *
 from .ppl_types import *
 
 class TypeInferencer(Visitor):

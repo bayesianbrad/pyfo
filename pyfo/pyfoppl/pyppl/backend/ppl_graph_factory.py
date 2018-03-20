@@ -6,8 +6,8 @@
 # 12. Mar 2018, Tobias Kohn
 # 19. Mar 2018, Tobias Kohn
 #
-from pyppl.ppl_ast import *
-from pyppl.graphs import *
+from pyfo.pyfoppl.pyppl.ppl_ast import *
+from pyfo.pyfoppl.pyppl.graphs import *
 from .ppl_code_generator import CodeGenerator
 from .ppl_graph_codegen import GraphCodeGenerator
 

@@ -8,9 +8,9 @@
 #
 from typing import Optional
 
-from pyppl.transforms import ppl_simplifier
-from pyppl.transforms import ppl_raw_simplifier
-from pyppl.transforms import ppl_functions_inliner
+from pyfo.pyfoppl.pyppl.transforms import ppl_simplifier
+from pyfo.pyfoppl.pyppl.transforms import ppl_raw_simplifier
+from pyfo.pyfoppl.pyppl.transforms import ppl_functions_inliner
 from . import ppl_symbol_table, ppl_ast
 from .fe_clojure import ppl_foppl_parser
 from .fe_python import ppl_python_parser
