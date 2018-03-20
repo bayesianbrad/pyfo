@@ -23,10 +23,10 @@ from pyfo.utils.core import VariableCast
 from pyfo.utils.eval_stats import extract_stats
 from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
-from pyfo.inference.inference import Inference
+from pyfo.inference.mcmc import MCMC
 
 
-class HMC(Inference):
+class HMC(MCMC):
     '''
     Built on top the inference class. This is the base class for all HMC variants and implements the original
     HMC algorithm .
@@ -93,4 +93,9 @@ class HMC(Inference):
 
         return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
 
+    def sample(self):
+        '''
+
+        :return:
+        '''
 
