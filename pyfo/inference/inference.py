@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod, ABCMeta
 
 class Inference(ABCMeta):
     '''
-    Avstract base class for all inference methods. All inference methods will inherit from this class and will thus share
+    Abstract base class for all inference methods. All inference methods will inherit from this class and will thus share
     all common methods and attributes.
 
 
@@ -69,7 +69,7 @@ class Inference(ABCMeta):
 
 
     @abstractmethod
-    def initialize(self, *args, **kwargs):
+    def initialize_latents(self, *args, **kwargs):
         '''
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
@@ -90,6 +90,8 @@ class Inference(ABCMeta):
              description: Intilaizes all model parameters with float or int values and stores that in a dictionary of the
              entire state of the model. [See gen_prior_samples function within pyfo.pyppl.ppl_graoh_codegen.py
              for more details.
+        :param auto_transform
+            type:
         :param debug:
             type: bool
             If true, prints out graphical model.

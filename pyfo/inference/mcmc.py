@@ -9,12 +9,17 @@ License: MIT
 '''
 
 from pyfo.inference.inference import Inference
-from pyppl import compile_model
+from pyfo.pyfoppl.pyppl import compile_model
+from pyfo.utils.core import transform_latent_support as tls
 
 class MCMC(Inference):
     """
 
     """
+    def __int__(self, debug_on):
+        if debug_on:
+            self.debug()
+
     def generate_model(self, model_code):
         '''
         Creates an inference algorithm.
@@ -31,11 +36,6 @@ class MCMC(Inference):
         self.model = compile_model(model_code, base_class='base_model',
                                    imports='from pyfo.pyfoppl.pyppl.ppl_base_model import base_model')
 
-        # generate prior state (intialized state)
-        self._initial = self.model.gen_prior_samples()
-        self._initial_transfomed = self.model.gen_prior_samples_transformed()
-        self._log_pdf = self.model.gen_pdf
-        self._log_pdf_transformed = self.model.gen_pdf_transformed
 
     def generate_latent_vars(self):
         """
@@ -73,7 +73,7 @@ class MCMC(Inference):
             [(vertex.name, vertex.original_name) for vertex in self._vertices if vertex.name in self._all_vars])
 
     def initialize(self, n_iters=1000, n_chains=1,
-                   auto_transform=True, debug=False):
+                   auto_transform=True):
         '''
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
@@ -96,39 +96,41 @@ class MCMC(Inference):
         self.n_iters = n_iters
         self.n_chains = n_chains
         self.auto_transform = auto_transform
+        if self._cont_dists is not None:
+            self.transforms = self.transform_check(self._cont_dists)
+            # Returns {} of the support does not need to be changed.
+        if self.transforms:
+            self.state = self.model.gen_prior_samples()
+            self._log_pdf = self.model.gen_pdf
+        else:
+            self.state  = self.model.gen_prior_samples_transformed()
+            self._log_pdf = self.model.gen_pdf_transformed
 
 
 
-        if debug:
-            debug_prior = self.model.gen_prior_samples_code
-            debug_pdf = self.model.gen_pdf_code
-            print(50 * '=' + '\n'
-                             'Now generating prior python code \n'
-                             '{}'.format(debug_prior))
-            print(50 * '=' + '\n'
-                             'Now generating posterior python code \n'
-                             '{}'.format(debug_pdf))
-            print(50 * '=')
-            print('\n Now generating graph code \n {}'.format(self.model))
-            print(50 * '=')
+
+    def debug(self):
+        debug_prior = self.model.gen_prior_samples_code
+        debug_pdf = self.model.gen_pdf_code
+        print(50 * '=' + '\n'
+                         'Now generating prior python code \n'
+                         '{}'.format(debug_prior))
+        print(50 * '=' + '\n'
+                         'Now generating posterior python code \n'
+                         '{}'.format(debug_pdf))
+        print(50 * '=')
+        print('\n Now generating graph code \n {}'.format(self.model))
+        print(50 * '=')
+
+
 
     def transform_check(self, latent_vars):
         '''
-        Transforms latent variables to the correct support
-        :param latent_vars:
-        :return:
+        State whether or not the support will need transforming
+        :param latent_vars
+        :return: bool
         '''
-
-    def generate_log_pdf(self):
-        '''
-        Generates the correct log_pdf. Depending on whether the model support is unconstrained.
-
-        :return:
-        '''
-        if self.auto_transform:
-            return self.model.gen_pdf_transformed
-        else:
-            return self.model.gen_pdf
+        self.transforms = tls(self._cont_latents,self._cont_dists)
 
 
     def run_inference(self):

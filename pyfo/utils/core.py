@@ -11,7 +11,7 @@ import torch
 import numpy as np
 import torch.tensor as tt
 import torch.distributions as dists
-
+from torch.distributions import constraints, biject_to
 def VariableCast(value, grad = False, dist=None):
     '''casts an input to torch.tensor object
 
@@ -110,14 +110,21 @@ def my_import(name):
         mod = getattr(mod, comp)
     return mod
 
-def transform_latent_support(latent_vars, name_to_latent):
+def transform_latent_support(latent_vars, dist_to_latent):
     """
     Returns a new state with the required transformations for the log pdf. It checks the support of each continuous
     distribution and if that support does not encompass the whole real line, the required bijector is added to a
     transform list.
 
     :param latent_vars: dictionary of {latent_var: distribution_name}
-    :param name_to_latent: dictionary that maps true latent_variable names to names used within inference engine.
+    :param dist_to_latent: dictionary that maps tlatent_variable names to distribution name
 
     :return: transform: dictionary of {latent_var: name}
     """
+    transforms = {}
+    for latent in latent_vars:
+        temp_support = getattr(dists, dist_to_latent[latent]).support
+        if temp_support is not constraints.real:
+            transforms[latent_vars] = biject_to(temp_support).inv
+    return transforms
+
