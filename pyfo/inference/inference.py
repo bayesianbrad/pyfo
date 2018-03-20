@@ -7,12 +7,6 @@ Date created:  06/03/2018
 
 License: MIT
 '''
-
-# !/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-
-
 import torch
 from abc import ABC, abstractmethod, ABCMeta
 
@@ -27,7 +21,6 @@ class Inference(ABCMeta):
     def generate_model(self, *args, **kwargs):
         '''
         Creates an inference algorithm.
-
         :param model_code
             type: str
             description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program
@@ -81,6 +74,9 @@ class Inference(ABCMeta):
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
 
+        Initialize inference algorithm. It initializes hyperparameters
+        and builds ops for the algorithm's computation graph.
+
         :param n_itersy
             type: int
             description: Number of iterations for algorithm when calling 'run()'.
@@ -113,6 +109,3 @@ class Inference(ABCMeta):
         '''
 
         raise NotImplementedError
-
-
-
