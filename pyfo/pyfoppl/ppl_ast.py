@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 07. Feb 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 19. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 import enum
@@ -335,14 +335,6 @@ class Scope(object):
         else:
             return self.bindings.get(name, None)
 
-    def depth(self):
-        result = 1
-        p = self.prev
-        while p is not None:
-            result += 1
-            p = p.prev
-        return result
-
 
 class ScopeContext(object):
     """
@@ -365,11 +357,8 @@ class ScopedVisitor(Visitor):
     def __init__(self):
         self.scope = Scope(None)
         self.global_scope = self.scope
-        self.MAX_SCOPE_DEPTH = 100
 
     def enter_scope(self, name:Optional[str]=None):
-        if self.scope.depth() >= self.MAX_SCOPE_DEPTH:
-            raise RuntimeError("exceeding max scope depth")
         self.scope = Scope(self.scope, name)
 
     def leave_scope(self):
@@ -804,18 +793,15 @@ class AstFor(AstControl):
 class AstFunction(AstNode):
 
     def __init__(self, name:Optional[str], parameters:list, body:AstNode, *, vararg:Optional[str]=None,
-                 defaults:Optional[list]=None, doc_string:Optional[str]=None, f_locals:Optional[set]=None):
+                 doc_string:Optional[str]=None, f_locals:Optional[set]=None):
         if name is None:
             name = '__lambda__'
         if f_locals is None:
             f_locals = set()
-        if defaults is None:
-            defaults = []
         self.name = name
         self.parameters = parameters
         self.body = body
         self.vararg = vararg
-        self.defaults = defaults
         self.doc_string = doc_string
         self.param_names = set(parameters + [vararg] if vararg is not None else parameters)
         self.f_locals = f_locals
@@ -823,70 +809,14 @@ class AstFunction(AstNode):
         assert type(parameters) is list and all([type(p) is str for p in parameters])
         assert isinstance(body, AstNode)
         assert vararg is None or type(vararg) is str
-        assert type(defaults) is list and all([isinstance(item, AstNode) for item in defaults])
         assert doc_string is None or type(doc_string) is str
         assert type(f_locals) is set and all([type(n) is str for n in f_locals])
-        assert self.vararg is None or len(self.defaults) == 0
 
     def __repr__(self):
         params = self.parameters
         if self.vararg is not None:
             params.append('*' + self.vararg)
         return "{}({}): ({})".format(self.name, ', '.join(params), repr(self.body))
-
-    def order_arguments(self, arguments: list, keywords: list):
-        parameters = self.parameters
-        arg_count = len(arguments)
-        param_count = len(parameters)
-        if len(keywords) == 0:
-            if arg_count == param_count or (arg_count > param_count and self.vararg is not None):
-                if self.vararg is not None:
-                    result = arguments[:param_count]
-                    if arg_count > param_count:
-                        result.append(makeVector(arguments[param_count:]))
-                    else:
-                        result.append(makeVector([]))
-                    return result
-
-                else:
-                    return arguments
-
-            elif arg_count < param_count <= arg_count + len(self.defaults):
-                delta = param_count - arg_count
-                return arguments + self.defaults[-delta:]
-
-            else:
-                raise TypeError("{}() takes {} positional arguments but {} were given"
-                                .format(self.name, param_count, arg_count))
-
-        else:
-            delta = arg_count - len(keywords)
-            result = [None] * param_count
-            for i in range(delta):
-                result[i] = arguments[i]
-            for i in range(len(keywords)):
-                key = keywords[i]
-                if key not in parameters:
-                    raise TypeError("{}() got an unexpected keyword argument '{}'".format(self.name, key))
-                j = parameters.index(key)
-                if result[j] is None:
-                    result[j] = arguments[delta + i]
-                else:
-                    raise TypeError("{}() got multiple values for argument for '{}'".format(self.name, key))
-
-            if self.vararg is not None:
-                result.append(makeVector([]))
-            elif len(self.defaults) > 0:
-                delta = len(parameters) - len(self.defaults)
-                for i in range(len(self.defaults)):
-                    if result[delta + i] is None:
-                        result[delta + i] = self.defaults[i]
-
-            for key, item in zip(parameters, result):
-                if item is None:
-                    raise TypeError("{}() missing a required positional argument: '{}'".format(self.name, key))
-
-            return result
 
 
 class AstIf(AstControl):
@@ -990,7 +920,7 @@ class AstLet(AstNode):
 
     def __repr__(self):
         bindings = '{} := {}'.format(self.target, repr(self.source))
-        return "let [{}] in ({})".format(bindings, repr(self.body))
+        return "let [{}] in ({})".format('; '.join(bindings), repr(self.body))
 
     def append(self, node):
         if node is not None:

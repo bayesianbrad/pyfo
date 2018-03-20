@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 19. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 from pyppl import distributions
@@ -54,7 +54,7 @@ class GraphNode(object):
         if len(fields) > 0:
             key_len = max(max([len(key) for key in fields]), 9)
             fmt = "  {:" + str(key_len+2) + "}{}"
-            result = [fmt.format(key+':', fields[key]) for key in fields if fields[key] is not None]
+            result = [fmt.format(key+':', fields[key]) for key in fields]
         else:
             fmt = "  {:11}{}"
             result = []
@@ -99,7 +99,7 @@ class ConditionNode(GraphNode):
                 a.add_dependent_condition(self)
 
     def __repr__(self):
-        return self.create_repr("Condition", Condition=self.condition, Function=self.function, Op=self.op)
+        return self.create_repr("Condition", Condition=self.condition)
 
     def get_code(self):
         return self.condition

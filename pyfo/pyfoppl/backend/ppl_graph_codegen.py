@@ -184,3 +184,34 @@ class GraphCodeGenerator(object):
         if state is not None:
             sample_code.append("return " + state)
         return '\n'.join(sample_code)
+
+    def gen_prior_samples_transformed(self):
+        distribution = None
+        state = self.state_object
+        if state is not None:
+            sample_code = [state + " = {}"]
+        for node in self.nodes:
+            name = node.name
+            if state is not None:
+                name = "{}['{}']".format(state, name)
+
+            if isinstance(node, Vertex):
+                if node.has_observation:
+                    sample_code.append("{} = {}".format(name, node.observation))
+                else:
+                    code = "dst_ = {}".format(node.get_code(transformed=True))
+                    if code != distribution:
+                        sample_code.append(code)
+                        distribution = code
+                    if node.sample_size > 1:
+                        sample_code.append("{} = dst_.sample(sample_size={})".format(name, node.sample_size))
+                    else:
+                        sample_code.append("{} = dst_.sample()".format(name))
+
+            else:
+                code = "{} = {}".format(name, node.get_code())
+                sample_code.append(code)
+
+        if state is not None:
+            sample_code.append("return " + state)
+        return '\n'.join(sample_code)
