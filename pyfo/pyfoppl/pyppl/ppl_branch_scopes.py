@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 07. Mar 2018, Tobias Kohn
-# 09. Mar 2018, Tobias Kohn
+# 20. Mar 2018, Tobias Kohn
 #
 from .ppl_ast import *
 
@@ -255,3 +255,9 @@ class BranchScopeVisitor(Visitor):
             if sym.name == name:
                 return sym.read_only or sym.modify_count == 0
         return False
+
+    def get_usage_count(self, name:str):
+        for sym in self.symbols:
+            if sym.name == name:
+                return sym.usage_count
+        return None

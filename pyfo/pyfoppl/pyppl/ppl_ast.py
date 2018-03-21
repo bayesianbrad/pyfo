@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 07. Feb 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 21. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 import enum
@@ -514,6 +514,7 @@ class AstBody(AstNode):
         self.context = context
         assert type(self.items) is list
         assert all([isinstance(item, AstNode) for item in self.items])
+        assert all([not isinstance(item, AstBody) for item in self.items]), self.items
 
     def __getitem__(self, item):
         return self.items[item]
@@ -641,6 +642,11 @@ class AstCall(AstNode):
             name = self.function.original_name
             if '.' in name:
                 return name[:name.index('.')]
+        elif isinstance(self.function, AstAttribute):
+            if isinstance(self.function.base, AstSymbol):
+                return self.function.base.name
+            elif isinstance(self.function.base, AstNamespace):
+                return self.function.base.name
         return None
 
     @property
@@ -795,7 +801,7 @@ class AstFor(AstControl):
         self.original_target = target if original_target is None else original_target
         assert type(target) is str
         assert isinstance(source, AstNode)
-        assert isinstance(body, AstNode)
+        assert isinstance(body, AstNode), body
 
     def __repr__(self):
         return "for {} in {}: ({})".format(self.target, repr(self.source), repr(self.body))
@@ -1140,11 +1146,14 @@ class AstSubscript(AstNode):
 
 class AstSymbol(AstLeaf):
 
-    def __init__(self, name:str, import_source:Optional[str]=None, protected:bool=False, node=None, predef=False):
+    def __init__(self, name:str, import_source:Optional[str]=None, protected:bool=False, node=None, predef=False,
+                 original_name:Optional[str]=None):
+        if original_name is None:
+            original_name = name
         self.name = name
         self.import_source = import_source
         self.protected = protected
-        self.original_name = name
+        self.original_name = original_name
         self.symbol = None
         self.node = node
         self.predef = predef
@@ -1368,9 +1377,17 @@ def makeBody(*items):
     items = b_items
 
     i = 0
-    while i < len(items) - 1:
+    while i < len(items):
         node = items[i]
-        if isinstance(node, AstBreak) or isinstance(node, AstReturn):
+        if isinstance(node, AstBody):
+            del items[i]
+            for itm in reversed(node.items):
+                items.insert(i, itm)
+
+        elif i+1 == len(items):
+            i += 1
+
+        elif isinstance(node, AstBreak) or isinstance(node, AstReturn):
             items = items[:i]
             break
 
@@ -1380,11 +1397,6 @@ def makeBody(*items):
         elif isinstance(node, AstBinary):
             items[i] = node.right
             items.insert(i, node.left)
-
-        elif isinstance(node, AstBody):
-            del items[i]
-            for itm in reversed(node.items):
-                items.insert(i, itm)
 
         elif isinstance(node, AstCompare):
             items[i] = node.right
@@ -1518,7 +1530,7 @@ def makeListFor(target, source, expr, test=None):
         tmp = generate_temp_var()
         i = len(target)
         while i > 0:
-            i -= 0
+            i -= 1
             expr = AstLet(target[i], makeSubscript(tmp, i), expr)
         target = tmp
     return AstListFor(target, source, expr, test)

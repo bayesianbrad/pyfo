@@ -9,11 +9,11 @@
 import math
 from ast import copy_location as _cl
 
-from pyfo.pyfoppl.pyppl import ppl_namespaces
-from pyfo.pyfoppl.pyppl.ppl_ast_annotators import *
-from pyfo.pyfoppl.pyppl.ppl_branch_scopes import BranchScopeVisitor
-from pyfo.pyfoppl.pyppl.transforms import ppl_var_substitutor
-from pyfo.pyfoppl.pyppl.types import ppl_types, ppl_type_inference
+from .. import ppl_namespaces
+from ..ppl_ast_annotators import *
+from ..ppl_branch_scopes import BranchScopeVisitor
+from ..transforms import ppl_var_substitutor
+from ..types import ppl_types, ppl_type_inference
 
 
 # Note: Why do we need to protect all mutable variables?
@@ -24,6 +24,9 @@ from pyfo.pyfoppl.pyppl.types import ppl_types, ppl_type_inference
 #   more than zero times), leading to wrong results.
 #   Hence, whenever we enter a new scope, we scan for all variables that are "defined" more than once, and then
 #   protect them, making them kind of "read-only".
+
+
+print("!!!DEPRECATED!!!")
 
 
 def _all_(coll, p):
@@ -53,13 +56,12 @@ class Simplifier(BranchScopeVisitor):
         return result
 
     def parse_args(self, args:list):
-        can_factor_out = True
         prefix = []
         result = []
         for arg in args:
             arg = self.visit(arg)
             info = get_info(arg)
-            if can_factor_out and isinstance(arg, AstBody) and not info.has_changed_vars:
+            if isinstance(arg, AstBody) and not info.has_changed_vars:
                 if len(arg) == 0:
                     result.append(AstValue(None))
                 elif len(arg) == 1:
@@ -68,7 +70,6 @@ class Simplifier(BranchScopeVisitor):
                     prefix += arg.items[:-1]
                     result.append(arg.items[-1])
             else:
-                can_factor_out = can_factor_out and info.is_expr
                 result.append(arg)
 
         return prefix, result
@@ -87,7 +88,7 @@ class Simplifier(BranchScopeVisitor):
         if base is node.base:
             return node
         else:
-            return _cl(AstAttribute(base, node.attr), node)
+            return node.clone(base=base)
 
     def visit_binary(self, node:AstBinary):
         if is_symbol(node.left) and is_symbol(node.right) and \
@@ -221,9 +222,7 @@ class Simplifier(BranchScopeVisitor):
     def visit_call(self, node:AstCall):
         function = self.visit(node.function)
         prefix, args = self.parse_args(node.args)
-        if isinstance(function, AstFunction) and not node.has_keyword_args and \
-                all([not get_info(arg).has_changed_vars for arg in args]):
-
+        if isinstance(function, AstFunction) and all([not get_info(arg).has_changed_vars for arg in args]):
             self.define_all(function.parameters, args, vararg=function.vararg)
             result = self.visit(function.body)
             if function.f_locals is not None:
@@ -248,7 +247,7 @@ class Simplifier(BranchScopeVisitor):
                 raise TypeError("dict access requires exactly one argument ({} given)".format(node.arg_count))
             return _cl(makeSubscript(function, args[0]), node)
 
-        result = _cl(AstCall(function, args, node.keywords), node)
+        result = node.clone(function=function, args=args)
         return makeBody(prefix, result)
 
     def visit_call_abs(self, node: AstCall):
@@ -296,7 +295,7 @@ class Simplifier(BranchScopeVisitor):
         return self.visit_call(node)
 
     def visit_call_len(self, node: AstCall):
-        if node.arg_count == 1 and not node.has_keyword_args:
+        if node.arg_count == 1:
             arg = self.visit_expr(node.args[0])
             if is_vector(arg):
                 return AstValue(len(arg))
@@ -307,7 +306,7 @@ class Simplifier(BranchScopeVisitor):
         return self.visit_call(node)
 
     def visit_call_math_sqrt(self, node: AstCall):
-        if node.arg_count == 1 and not node.has_keyword_args:
+        if node.arg_count == 1:
             value = self.visit_expr(node.args[0])
             if isinstance(value, AstValue):
                 return _cl(AstValue(math.sqrt(value.value)), node)
@@ -371,7 +370,7 @@ class Simplifier(BranchScopeVisitor):
             value = self.visit(node.value)
 
             if is_non_empty_body(value):
-                items = value.items
+                items = value.items[:]
                 prefix = []
                 while len(items) > 0 and isinstance(items[0], AstDef):
                     prefix.append(items[0])
@@ -383,16 +382,17 @@ class Simplifier(BranchScopeVisitor):
             else:
                 prefix = []
 
-            self.define(node.name, value)
+            usage = self.get_usage_count(node.name)
+            if usage == 0 or usage == 1 or get_info(value).can_embed:
+                self.define(node.name, value)
             if value is not node.value:
-                return _cl(makeBody(prefix, AstDef(node.name, value, global_context=node.global_context,
-                                    original_name=node.original_name)), node)
+                return makeBody(prefix, node.clone(value=value))
             else:
                 return node
 
     def visit_dict(self, node:AstDict):
         items = { key: self.visit(node.items[key]) for key in node.items }
-        return _cl(AstDict(items), node)
+        return node.clone(items=items)
 
     def visit_for(self, node:AstFor):
         source = self.visit(node.source)
@@ -410,9 +410,8 @@ class Simplifier(BranchScopeVisitor):
 
         for name in get_info(node.body).changed_vars:
             self.lock_name(name)
-
         body = self.visit(node.body)
-        return _cl(makeFor(node.target, source, body), node)
+        return node.clone(source=source, body=body)
 
     def visit_function(self, node:AstFunction):
         with self.create_lock():
@@ -530,53 +529,24 @@ class Simplifier(BranchScopeVisitor):
         return _cl(AstImport(module_name), node)
 
     def visit_let(self, node:AstLet):
+        if count_variable_usage(node.target, node.body) == 0:
+            return self.visit(_cl(makeBody(node.source, node.body), node))
+
         source = self.visit_expr(node.source)
         src_info = get_info(source)
         if isinstance(source, AstBody) and len(source) > 1:
-            result = _cl(AstLet(node.target, source.items[-1], node.body,
-                                original_target=node.original_target), node)
+            result = node.clone(source=source.items[-1])
             result = _cl(makeBody(source.items[:-1], result), node.source)
             return self.visit(result)
 
-        elif src_info.is_independent(get_info(node.body)) and count_variable_usage(node.target, node.body) <= 1:
+        elif src_info.is_independent(get_info(node.body)) and \
+                (count_variable_usage(node.target, node.body) == 1 or src_info.can_embed):
+            print("CAN EMBED", source, src_info.can_embed, count_variable_usage(node.target, node.body), node.target)
+            print(" " * 20, "-->", node.body)
             self.define(node.target, self.visit(node.source))
             return _cl(self.visit(node.body), node)
 
-        # Factor out from `let` whatever we can
-
-        if isinstance(node.body, AstBody):
-            if len(node.body) == 0:
-                return self.visit(node.source)
-            elif len(node.body) == 1:
-                return self.visit(_cl(AstLet(node.target, node.source, node.body.items[0],
-                                             original_target=node.original_target), node))
-
-            items = [(get_info(item), item) for item in node.body.items]
-            name = node.target
-            start = 0
-            while start < len(items) and name not in items[start][0].free_vars and src_info.is_independent(items[start][0]):
-                start += 1
-            stop = len(items)
-            while stop > 0 and name not in items[stop-1][0].free_vars:
-                stop -= 1
-
-            if start >= stop:
-                return self.visit(_cl(makeBody(node.source, node.body.items), node))
-
-            elif start > 0 or stop < len(items):
-                prefix = [item[1] for item in items[:start]]
-                suffix = [item[1] for item in items[stop:]]
-                new_body = makeBody([item[1] for item in items[start:stop]])
-                result = makeBody(prefix, _cl(AstLet(node.target, node.source, new_body,
-                                                     original_target=node.original_target), node), suffix)
-                return self.visit(result)
-
-        # Try and simplify without expanding the let-variable
-
-        with self.create_lock(node.target):
-            source = self.visit(node.source)
-            result = self.visit(node.body)
-            return _cl(AstLet(node.target, source, result, original_target=node.original_target), node)
+        return self.visit(makeBody(AstDef(node.target, node.source), node.body))
 
     def visit_list_for(self, node:AstListFor):
         source = self.visit(node.source)

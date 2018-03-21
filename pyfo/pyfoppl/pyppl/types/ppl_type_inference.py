@@ -4,9 +4,9 @@
 # License: MIT (see LICENSE.txt)
 #
 # 19. Feb 2018, Tobias Kohn
-# 16. Mar 2018, Tobias Kohn
+# 20. Mar 2018, Tobias Kohn
 #
-from pyfo.pyfoppl.pyppl.ppl_ast import *
+from ..ppl_ast import *
 from .ppl_types import *
 
 class TypeInferencer(Visitor):

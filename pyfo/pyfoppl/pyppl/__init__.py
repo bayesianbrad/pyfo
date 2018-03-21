@@ -21,3 +21,12 @@ def compile_model(source, *,
     gg = ppl_graph_generator.GraphGenerator()
     gg.visit(ast)
     return gg.generate_model(base_class=base_class, imports=imports)
+
+
+def compile_model_from_file(filename:str, *,
+                            language: Optional[str]=None,
+                            imports=None,
+                            base_class: Optional[str]=None):
+    with open(filename) as f:
+        lines = ''.join(f.readlines())
+        return compile_model(lines, language=language, imports=imports, base_class=base_class)

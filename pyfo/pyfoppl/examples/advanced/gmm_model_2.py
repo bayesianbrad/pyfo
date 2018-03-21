@@ -6,7 +6,7 @@ Time created:  14:26
 Date created:  13/03/2018
 License: MIT
 '''
-from pyfoppl.foppl import *
+# from pyfoppl.foppl import *
 import torch
 
 # def sample_components(pi):

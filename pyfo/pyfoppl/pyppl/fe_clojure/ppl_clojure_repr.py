@@ -4,9 +4,9 @@
 # License: MIT (see LICENSE.txt)
 #
 # 27. Feb 2018, Tobias Kohn
-# 15. Mar 2018, Tobias Kohn
+# 20. Mar 2018, Tobias Kohn
 #
-from pyfo.pyfoppl.pyppl.ppl_ast import *
+from ..ppl_ast import *
 
 class ClojureRepr(Visitor):
 

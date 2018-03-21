@@ -4,10 +4,10 @@
 # License: MIT (see LICENSE.txt)
 #
 # 19. Feb 2018, Tobias Kohn
-# 16. Mar 2018, Tobias Kohn
+# 20. Mar 2018, Tobias Kohn
 #
-from pyfo.pyfoppl.pyppl.ppl_ast import *
-from pyfo.pyfoppl.pyppl.ppl_namespaces import namespace_from_module
+from ..ppl_ast import *
+from ..ppl_namespaces import namespace_from_module
 import ast
 
 

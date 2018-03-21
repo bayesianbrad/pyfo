@@ -4,13 +4,21 @@
 # License: MIT (see LICENSE.txt)
 #
 # 09. Mar 2018, Tobias Kohn
-# 16. Mar 2018, Tobias Kohn
+# 21. Mar 2018, Tobias Kohn
 #
 from ast import copy_location as _cl
-from pyfo.pyfoppl.pyppl.ppl_ast import *
-from pyfo.pyfoppl.pyppl.ppl_ast_annotators import get_info
+from ..ppl_ast import *
+from ..ppl_ast_annotators import get_info
+from ..ppl_namespaces import namespace_from_module
 
-class RawSimplifier(Visitor):
+
+class RawSimplifier(ScopedVisitor):
+
+    def __init__(self, symbols:dict):
+        super().__init__()
+        self.imports = set()
+        for key in symbols:
+            self.define(key, AstSymbol(symbols[key], predef=True))
 
     def split_expr(self, node:AstNode):
         if node is None:
@@ -31,6 +39,20 @@ class RawSimplifier(Visitor):
     def _visit_expr(self, node:AstNode):
         return self.split_expr(self.visit(node))
 
+
+    def visit_attribute(self, node:AstAttribute):
+        base = self.visit(node.base)
+        if isinstance(base, AstSymbol):
+            return self.visit(AstSymbol("{}.{}".format(base.name, node.attr)))
+        elif isinstance(base, AstNamespace):
+            if node.attr in base.bindings:
+                return base.bindings[node.attr]
+            else:
+                return AstSymbol("{}.{}".format(base.name, node.attr))
+        elif base is node.base:
+            return node
+        else:
+            return node.clone(base=base)
 
     def visit_binary(self, node:AstBinary):
         l_prefix, left = self._visit_expr(node.left)
@@ -94,8 +116,7 @@ class RawSimplifier(Visitor):
         if value is node.value:
             return node
         else:
-            return _cl(AstDef(node.name, value, original_name=node.original_name,
-                              global_context=node.global_context), node)
+            return node.clone(value=value)
 
     def visit_dict(self, node: AstDict):
         if len(node) > 0:
@@ -119,13 +140,12 @@ class RawSimplifier(Visitor):
             return _cl(makeBody(prefix, AstFor(target, source, body, original_target=node.original_target)), node)
 
     def visit_function(self, node: AstFunction):
-        body = self.visit(node.body)
-        if body is not node.body:
-            return _cl(AstFunction(node.name, node.parameters, body,
-                                   vararg=node.vararg, doc_string=node.doc_string,
-                                   f_locals=node.f_locals), node)
-        else:
+        with self.create_scope():
+            body = self.visit(node.body)
+        if body is node.body:
             return node
+        else:
+            return node.clone(body=body)
 
     def visit_if(self, node: AstIf):
         prefix, test = self._visit_expr(node.test)
@@ -158,6 +178,26 @@ class RawSimplifier(Visitor):
         else:
             return _cl(makeBody(prefix, AstIf(test, if_node, else_node)), node)
 
+    def visit_import(self, node: AstImport):
+        module_name, names = namespace_from_module(node.module_name)
+        if node.imported_names is not None:
+            if node.alias is None:
+                for name in node.imported_names:
+                    self.define(name, AstSymbol("{}.{}".format(module_name, name), predef=True))
+            else:
+                self.define(node.alias, AstSymbol("{}.{}".format(module_name, node.imported_names[0]), predef=True))
+
+        else:
+            bindings = { key: AstSymbol("{}.{}".format(module_name, key), predef=True) for key in names }
+            ns = AstNamespace(module_name, bindings)
+            self.define(node.module_name, ns)
+
+        if module_name is not None:
+            self.imports.add(module_name)
+        else:
+            self.imports.add(node.module_name)
+        return AstBody([]) # _cl(AstImport(module_name), node)
+
     def visit_let(self, node: AstLet):
         prefix, source = self._visit_expr(node.source)
         body = self.visit(node.body)
@@ -173,8 +213,7 @@ class RawSimplifier(Visitor):
         if target is node.target and source is node.source and expr is node.expr:
             return node
         else:
-            return _cl(makeBody(prefix,
-                                AstListFor(target, source, expr, original_target=node.original_target)), node)
+            return makeBody(prefix, node.clone(target=target, source=source, expr=expr))
 
     def visit_observe(self, node: AstObserve):
         d_prefix, dist = self._visit_expr(node.dist)
@@ -233,6 +272,9 @@ class RawSimplifier(Visitor):
             return _cl(makeBody(prefix, makeSubscript(base, index)), node)
 
     def visit_symbol(self, node: AstSymbol):
+        symbol = self.resolve(node.name)
+        if symbol is not None:
+            return symbol
         return node
 
     def visit_unary(self, node: AstUnary):

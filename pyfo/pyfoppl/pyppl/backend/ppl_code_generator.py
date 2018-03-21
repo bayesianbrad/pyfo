@@ -6,8 +6,8 @@
 # 02. Mar 2018, Tobias Kohn
 # 20. Mar 2018, Tobias Kohn
 #
-from pyfo.pyfoppl.pyppl.ppl_ast import *
-from pyfo.pyfoppl.pyppl.ppl_ast_annotators import get_info
+from ..ppl_ast import *
+from ..ppl_ast_annotators import get_info
 
 
 def _is_block(node):

@@ -4,11 +4,11 @@
 # License: MIT (see LICENSE.txt)
 #
 # 12. Mar 2018, Tobias Kohn
-# 19. Mar 2018, Tobias Kohn
+# 20. Mar 2018, Tobias Kohn
 #
 import datetime
-from pyfo.pyfoppl.pyppl.graphs import *
-from pyfo.pyfoppl.pyppl.ppl_ast import *
+from ..graphs import *
+from ..ppl_ast import *
 
 
 class GraphCodeGenerator(object):

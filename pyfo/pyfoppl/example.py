@@ -20,8 +20,10 @@ print("-" * 30)
 print("=" * 30)
 state = foppl_model.model.gen_prior_samples()
 print("-" * 30)
-pdf = foppl_model.model.gen_pdf(state)
-print("Result: {}\nPDF: {}".format(foppl_model.model.get_result(state), pdf))
+for i in range(10):
+    state['log_pdf'] = 0.0
+    pdf = foppl_model.model.gen_pdf(state)
+print("Result: {}\nLog-PDF: {}".format(foppl_model.model.get_result(state), pdf))
 
 print("=" * 30)
 state = foppl_model.model.transform_state(state, samples_only=True)

@@ -14,4 +14,3 @@ def namespace_from_module(module_name: str):
         return module.__name__, [name for name in dir(module) if not name.startswith('_')]
     else:
         return None, []
-

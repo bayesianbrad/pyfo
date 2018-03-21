@@ -4,10 +4,10 @@
 # License: MIT (see LICENSE.txt)
 #
 # 15. Mar 2018, Tobias Kohn
-# 15. Mar 2018, Tobias Kohn
+# 20. Mar 2018, Tobias Kohn
 #
 from ast import copy_location as _cl
-from pyfo.pyfoppl.pyppl.ppl_ast import *
+from ..ppl_ast import *
 
 class VarSubstitutor(Visitor):
 

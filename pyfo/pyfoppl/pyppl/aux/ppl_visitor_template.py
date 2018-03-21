@@ -6,7 +6,7 @@
 # 01. Mar 2018, Tobias Kohn
 # 15. Mar 2018, Tobias Kohn
 #
-from pyfo.pyfoppl.pyppl.ppl_ast import *
+from pyppl.ppl_ast import *
 
 class MyVisitor(Visitor):
     """

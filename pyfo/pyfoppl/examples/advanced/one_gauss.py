@@ -9,14 +9,9 @@ License: MIT
 
 import torch
 from pyfoppl.foppl import *  # ignored by the compiler, but keeps the IDE happy
-from pyfo.pyfoppl.pyppl import compile_model
-model = """n = 2
-x = sample(Normal(3*torch.ones(n), 5*torch.ones(n)))
+n = 2
+x = sample(normal(3*torch.ones(n), 5*torch.ones(n)))
 y = x + 1
 observations = 7*torch.ones(n)
-observe(Normal(y, 2*torch.ones(n)), observations)
+observe(normal(y, 2*torch.ones(n)), observations)
 y
-"""
-
-model_class = compile_model(model)
-print(model_class.code)

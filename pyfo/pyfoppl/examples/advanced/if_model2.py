@@ -7,7 +7,7 @@ Date created:  13/03/2018
 License: MIT
 '''
 
-from pyfoppl.foppl import *  # ignored by the compiler, but keeps the IDE happy
+# from pyfoppl.foppl import *  # ignored by the compiler, but keeps the IDE happy
 import torch
 
 x1  = sample(normal(torch.tensor([0,2]), torch.tensor([1,4])))
@@ -29,10 +29,8 @@ truth_index = boolean.nonzero() # indices for which the statement is true
 false_index = (boolean==0).nonzero() # indices for which the statements are false.
 
 # These may be able to vectorized further
-for index in truth_index:
-    observe(normal(x2[index], 1*torch.tensor(len(x2[index]))),observations[index])
-for index in false_index:
-    observe(normal(-1*torch.tensor(len(x2[index])), torch.tensor(len(x2[index]))), observations[index])
+observe(normal(x2[boolean.nonzero()], 1*torch.tensor(len(x2[boolean.nonzero()]))),observations[boolean.nonzero()])
+observe(normal(-1*torch.tensor(len(x2[(boolean==0).nonzero()])), torch.tensor(len(x2[(boolean==0).nonzero()]))), observations[(boolean==0).nonzero()])
 
 # Of course if groups of indices have different bounds, this would get
 # potentially very tricky. However,  we can ignore the 2nd case for now.

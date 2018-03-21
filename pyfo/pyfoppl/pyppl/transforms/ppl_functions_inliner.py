@@ -4,10 +4,10 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Mar 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 21. Mar 2018, Tobias Kohn
 #
-from pyfo.pyfoppl.pyppl.ppl_ast import *
-from pyfo.pyfoppl.pyppl.aux.ppl_transform_visitor import TransformVisitor
+from ..ppl_ast import *
+from ..aux.ppl_transform_visitor import TransformVisitor
 
 
 class FunctionInliner(TransformVisitor):
@@ -29,21 +29,37 @@ class FunctionInliner(TransformVisitor):
             params = function.parameters[:]
             if function.vararg is not None:
                 params.append(function.vararg)
-            for p, a in zip(params, args):
-                if p != '_':
-                    if isinstance(a, AstSymbol):
-                        self.define(p, a)
-                    else:
-                        self.define(p, AstSymbol(p + tmp))
             args = function.order_arguments(args, node.keywords)
+            arguments = []
+            for p, a in zip(params, args):
+                if p != '_' and not isinstance(a, AstSymbol):
+                    arguments.append(AstDef(p + tmp, a))
+                elif not isinstance(a, AstSymbol):
+                    arguments.append(a)
             with self.create_scope(tmp):
+                for p, a in zip(params, args):
+                    if p != '_':
+                        if isinstance(a, AstSymbol):
+                            self.define(p, a)
+                        else:
+                            self.define(p, AstSymbol(p + tmp))
                 result = self.visit(function.body)
+
             if isinstance(result, AstReturn):
-                result = result.value
-                for p, a in zip(reversed(params), reversed(args)):
-                    if p != '_' and not isinstance(a, AstSymbol):
-                        result = AstLet(p + tmp, a, result)
-                return result
+                return makeBody(arguments, result.value)
+                # result = result.value
+                # for p, a in zip(reversed(params), reversed(args)):
+                #     if p != '_' and not isinstance(a, AstSymbol):
+                #         result = AstLet(p + tmp, a, result)
+                #     elif not isinstance(a, AstSymbol):
+                #         result = makeBody(a, result)
+                # return result
+
+            elif isinstance(result, AstBody) and result.last_is_return:
+                if len(result) > 1:
+                    return makeBody(arguments, result.items[:-1], result.items[-1].value)
+                else:
+                    return makeBody(arguments, result.items[-1].value)
 
         return super().visit_call(node)
 
@@ -55,9 +71,10 @@ class FunctionInliner(TransformVisitor):
         elif not node.global_context:
             tmp = self.scope.name
             if tmp is not None and tmp != '':
+                value = self.visit(node.value)
                 name = node.name + tmp
                 self.define(node.name, AstSymbol(name))
-                return node.clone(name=name, value=self.visit(node.value))
+                return node.clone(name=name, value=value)
 
         return super().visit_def(node)
 
