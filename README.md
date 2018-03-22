@@ -4,6 +4,9 @@
   <a href="https://github.com/bradleygramhansen/pyfo"> <img width="150px" height="150px" src="docs/pyfologo.png"></a>
 </div>
 
+## WARNING:
+Code undergoing large refactorisation to enable both Python (with Pytorch and numpy) and Clojure front end. You will currently require pytorch master branch 
+as that contains the distribution classes. The compiler is currently unstable during this stage.
 
 `Pyfo` enables one to write a model in the flexible first order probabilistic programming framework
 that is FOPPL <sup>[1](#fn1)</sup>. FOPPL's base language is Clojure, which enables the syntax to be neat, yet completely expressive.
