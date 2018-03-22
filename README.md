@@ -5,7 +5,7 @@
 </div>
 
 ## WARNING:
-Code undergoing large refactorisation to enable both Python (with Pytorch and numpy) and Clojure front end. You will currently require pytorch master branch 
+Code undergoing large refactorisation to enable both Python (with Pytorch and numpy) and Clojure front end support. You will currently require pytorch master branch 
 as that contains the distribution classes. The compiler is currently unstable during this stage.
 
 ## Pyfo  - Python for First Order Probabilistic Programs. 
