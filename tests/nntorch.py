@@ -7,7 +7,7 @@ Date created:  13/03/2018
 License: MIT
 '''
 
-from pyfoppl.foppl import *
+#from pyfoppl.foppl import *
 import torch
 
 #
@@ -84,4 +84,5 @@ V = torch.stack([make_hidden_vector() for _ in range(output_dim)], dim=1) # 10 x
 c = make_output_vector() # 5
 
 result = []
-result.append( flip(total_coint=i, probs=sigmoid(torch.mm(V.t(), h) + c))) # 5 x 10 * 10 x 1 + 5
+# unclear from original model.
+result.append( flip(1, probs=sigmoid(torch.mm(V.t(), h) + c))) # 5 x 10 * 10 x 1 + 5

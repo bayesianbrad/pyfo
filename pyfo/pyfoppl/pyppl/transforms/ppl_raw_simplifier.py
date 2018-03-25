@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 09. Mar 2018, Tobias Kohn
-# 21. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from ast import copy_location as _cl
 from ..ppl_ast import *
@@ -42,9 +42,7 @@ class RawSimplifier(ScopedVisitor):
 
     def visit_attribute(self, node:AstAttribute):
         base = self.visit(node.base)
-        if isinstance(base, AstSymbol):
-            return self.visit(AstSymbol("{}.{}".format(base.name, node.attr)))
-        elif isinstance(base, AstNamespace):
+        if isinstance(base, AstNamespace):
             if node.attr in base.bindings:
                 return base.bindings[node.attr]
             else:
@@ -91,9 +89,13 @@ class RawSimplifier(ScopedVisitor):
                 p, a = self._visit_expr(arg)
                 prefix += p
                 args.append(a)
-            return _cl(makeBody(prefix, AstCall(function, args, node.keywords, is_builtin=node.is_builtin)), node)
+            return makeBody(prefix, node.clone(function=function, args=args))
         else:
-            return node
+            function = self.visit(node.function)
+            if function is node.function:
+                return node
+            else:
+                return node.clone(function=function)
 
     def visit_compare(self, node: AstCompare):
         l_prefix, left = self._visit_expr(node.left)
@@ -190,13 +192,16 @@ class RawSimplifier(ScopedVisitor):
         else:
             bindings = { key: AstSymbol("{}.{}".format(module_name, key), predef=True) for key in names }
             ns = AstNamespace(module_name, bindings)
-            self.define(node.module_name, ns)
+            if node.alias is not None:
+                self.define(node.alias, ns)
+            else:
+                self.define(node.module_name, ns)
 
         if module_name is not None:
             self.imports.add(module_name)
         else:
             self.imports.add(node.module_name)
-        return AstBody([]) # _cl(AstImport(module_name), node)
+        return node # AstBody([]) # _cl(AstImport(module_name), node)
 
     def visit_let(self, node: AstLet):
         prefix, source = self._visit_expr(node.source)

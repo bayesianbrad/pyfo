@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 22. Feb 2018, Tobias Kohn
-# 21. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 
@@ -56,8 +56,6 @@ def parse(source:str, *, simplify:bool=True, language:Optional[str]=None, namesp
         if simplify:
             result = ppl_functions_inliner.FunctionInliner().visit(result)
             result = raw_sim.visit(result)
-        if len(raw_sim.imports) > 0:
-            result = ppl_ast.makeBody([ppl_ast.AstImport(module_name=module) for module in raw_sim.imports], result)
 
     if simplify and result is not None:
         result = ppl_static_assignments.StaticAssignments().visit(result)
@@ -65,3 +63,9 @@ def parse(source:str, *, simplify:bool=True, language:Optional[str]=None, namesp
 
     result = ppl_symbol_simplifier.SymbolSimplifier().visit(result)
     return result
+
+
+def parse_from_file(filename: str, *, simplify:bool=True, language:Optional[str]=None, namespace:Optional[dict]=None):
+    with open(filename) as f:
+        source = ''.join(f.readlines())
+    return parse(source, simplify=simplify, language=language, namespace=namespace)

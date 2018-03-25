@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 19. Feb 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from ..ppl_ast import *
 from .ppl_types import *
@@ -170,6 +170,15 @@ class TypeInferencer(Visitor):
             self.define(node.target, source.item)
             result = self.visit(node.expr)
             return List[result][source.size]
+        else:
+            return AnyType
+
+    def visit_multi_slice(self, node: AstMultiSlice):
+        base = self.visit(node.base)
+        if base in Tensor:
+            return Tensor
+        elif base is Array:
+            return Array
         else:
             return AnyType
 

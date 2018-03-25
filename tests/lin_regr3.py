@@ -8,7 +8,6 @@ License: MIT
 '''
 
 
-from pyfoppl.foppl import *  # ignored by the compiler, but keeps the IDE happy
 import torch
 
 # def observe_data(data, slope, bias):
@@ -19,7 +18,6 @@ import torch
 
 # instead of a function we can write this in torch as follows:
 
-slope = sample(normal(torch.tensor(0), torch.tensor(10.0)))
 slope = sample(normal(torch.tensor(0.0), torch.tensor(10.0)))
 bias  = sample(normal(torch.tensor(0.0), torch.tensor(10.0)))
 data  = torch.tensor([[1.0, 2.1], [2.0, 3.9], [3.0, 5.3]])

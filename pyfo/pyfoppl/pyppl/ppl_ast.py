@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 07. Feb 2018, Tobias Kohn
-# 21. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 import enum
@@ -1024,6 +1024,24 @@ class AstListFor(AstNode):
             return "[{} for {} in {} if {}]".format(repr(self.expr), self.target, repr(self.source), repr(self.test))
         else:
             return "[{} for {} in {}]".format(repr(self.expr), self.target, repr(self.source))
+
+
+class AstMultiSlice(AstNode):
+
+    def __init__(self, base:AstNode, indices:list):
+        self.base = base
+        self.indices = indices
+        assert isinstance(base, AstNode)
+        assert all([index is None or isinstance(index, AstNode) for index in indices])
+
+    def __repr__(self):
+        slices = []
+        for index in self.indices:
+            if index is None:
+                slices.append(':')
+            else:
+                slices.append(repr(index))
+        return "{}[{}]".format(repr(self.base), ','.join(slices))
 
 
 class AstNamespace(AstNode):

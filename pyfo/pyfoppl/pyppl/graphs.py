@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 from . import distributions
@@ -51,10 +51,23 @@ class GraphNode(object):
         return self.name[-3:]
 
     def create_repr(self, caption: str, **fields):
+
+        def fmt_field(key):
+            value = fields[key]
+            if value is None:
+                return '-'
+            elif type(value) in (list, set, tuple) and all([isinstance(item, GraphNode) for item in value]):
+                return ', '.join([item.name for item in value])
+            elif type(value) in (list, set, tuple) and \
+                all([type(item) is tuple and isinstance(item[0], GraphNode) for item in value]):
+                return ', '.join(['{}={}'.format(item[0].name, item[1]) for item in value])
+            else:
+                return value
+
         if len(fields) > 0:
             key_len = max(max([len(key) for key in fields]), 9)
             fmt = "  {:" + str(key_len+2) + "}{}"
-            result = [fmt.format(key+':', fields[key]) for key in fields if fields[key] is not None]
+            result = [fmt.format(key+':', fmt_field(key)) for key in fields if fields[key] is not None]
         else:
             fmt = "  {:11}{}"
             result = []
@@ -74,6 +87,7 @@ class GraphNode(object):
 
 ####################################################################################################
 
+__condition_node_counter = 1
 
 class ConditionNode(GraphNode):
     """
@@ -90,10 +104,13 @@ class ConditionNode(GraphNode):
                  condition: str,
                  function: Optional[str]=None,
                  op: Optional[str]=None):
+        global __condition_node_counter
         super().__init__(name, ancestors)
         self.condition = condition
         self.function = function
         self.op = op
+        self.bit_index = __condition_node_counter
+        __condition_node_counter *= 2
         for a in ancestors:
             if isinstance(a, Vertex):
                 a.add_dependent_condition(self)
@@ -103,6 +120,17 @@ class ConditionNode(GraphNode):
 
     def get_code(self):
         return self.condition
+
+    def is_false_from_bit_vector(self, bit_vector):
+        return (bit_vector & self.bit_index) == 0
+
+    def is_true_from_bit_vector(self, bit_vector):
+        return (bit_vector & self.bit_index) > 0
+
+    def update_bit_vector(self, state, bit_vector):
+        if state[self.name] is True:
+            bit_vector |= self.bit_index
+        return bit_vector
 
 
 class DataNode(GraphNode):
@@ -179,7 +207,7 @@ class Vertex(GraphNode):
         self.distribution_code = distribution_code
         self.distribution_func = distribution_func
         self.distribution_name = distribution_name
-        self.distribution_type = distributions.get_distribution_for_name(distribution_name)
+        self.distribution_type = distributions.get_distribution_for_name(distribution_name).distribution_type
         self.observation = observation
         self.observation_value = observation_value
         self.line_number = line_number
@@ -188,13 +216,16 @@ class Vertex(GraphNode):
 
     def __repr__(self):
         args = {
-            "Dist-Code": self.distribution_code,
-            "Dist-Name": self.distribution_name,
+            "Conditions":  self.conditions,
+            "Dist-Code":   self.distribution_code,
+            "Dist-Name":   self.distribution_name,
+            "Dist-Type":   self.distribution_type,
             "Sample-Size": self.sample_size,
         }
         if self.observation is not None:
             args["Observation"] = self.observation
-        return self.create_repr("Vertex", **args)
+        title = "Observe" if self.observation is not None else "Sample"
+        return self.create_repr("Vertex {} [{}]".format(self.name, title), **args)
 
     def get_code(self, **flags):
         if self.distribution_func is not None and self.distribution_args is not None:
@@ -203,6 +234,18 @@ class Vertex(GraphNode):
                 args.append("{}={}".format(key, flags[key]))
             return "{}({})".format(self.distribution_func, ', '.join(args))
         return self.distribution_code
+
+    def get_cond_code(self):
+        if self.conditions is not None and len(self.conditions) > 0:
+            result = []
+            for cond, truth_value in self.conditions:
+                if truth_value:
+                    result.append(cond.get_code())
+                else:
+                    result.append('not ' + cond.get_code())
+            return "if {}:\n\t".format(' and '.join(result))
+        else:
+            return None
 
     def add_dependent_condition(self, cond: ConditionNode):
         self.dependent_conditions.add(cond)
@@ -228,11 +271,11 @@ class Vertex(GraphNode):
 
     @property
     def is_continuous(self):
-        return self.distribution_type == str(distributions.DistributionType.CONTINUOUS)
+        return self.distribution_type == distributions.DistributionType.CONTINUOUS
 
     @property
     def is_discrete(self):
-        return self.distribution_type == str(distributions.DistributionType.DISCRETE)
+        return self.distribution_type == distributions.DistributionType.DISCRETE
 
     @property
     def is_observed(self):
@@ -241,3 +284,7 @@ class Vertex(GraphNode):
     @property
     def is_sampled(self):
         return self.observation is None
+
+    @property
+    def has_conditions(self):
+        return self.conditions is not None and len(self.conditions) > 0

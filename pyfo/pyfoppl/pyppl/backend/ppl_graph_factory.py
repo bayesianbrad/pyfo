@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 12. Mar 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from ..ppl_ast import *
 from ..graphs import *
@@ -53,7 +53,7 @@ class GraphFactory(object):
         self.nodes.append(result)
         return result
 
-    def create_observe_node(self, dist: AstNode, value: AstNode, parents: set):
+    def create_observe_node(self, dist: AstNode, value: AstNode, parents: set, conditions: set):
         if isinstance(dist, AstCall):
             func = dist.function_name
             args = [self._generate_code_for_node(arg) for arg in dist.args]
@@ -67,7 +67,7 @@ class GraphFactory(object):
         obs_value = value.value if is_value(value) else None
         result = Vertex(name, ancestors=parents, distribution_code=d_code, distribution_name=_get_dist_name(dist),
                         distribution_args=args, distribution_func=func, observation=v_code,
-                        observation_value=obs_value)
+                        observation_value=obs_value, conditions=conditions)
         self.nodes.append(result)
         return result
 

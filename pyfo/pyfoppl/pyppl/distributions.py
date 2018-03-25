@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 17. Jan 2018, Tobias Kohn
-# 19. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from enum import *
 
@@ -79,7 +79,7 @@ namespace = {
     d.foppl_name: 'dist.' + d.python_name for d in distributions
 }
 
-def get_distribution_for_name(name: str):
+def get_distribution_for_name(name: str) -> Distribution:
     for dist in distributions:
         if dist.name == name or dist.python_name == name or dist.foppl_name == name:
             return dist

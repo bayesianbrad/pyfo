@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 02. Mar 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from ..ppl_ast import *
 from ..ppl_ast_annotators import get_info
@@ -243,6 +243,11 @@ class CodeGenerator(ScopedVisitor):
         source = self.visit(node.source)
         test = (' if ' + self.visit(node.test)) if node.test is not None else ''
         return "[{} for {} in {}{}]".format(expr, name, source, test)
+
+    def visit_multi_slice(self, node: AstMultiSlice):
+        base = self.visit(node.base)
+        slices = [self.visit(index) if index is not None else ':' for index in node.indices]
+        return "{}[{}]".format(base, ','.join(slices))
 
     def visit_observe(self, node: AstObserve):
         dist = self.visit(node.dist)

@@ -1,5 +1,3 @@
-from foppl import *  # ignored by the compiler, but keeps the IDE happy
-
 x1 = sample(normal(0, 2))
 x2 = sample(normal(0, 4))
 if x1 > 0:

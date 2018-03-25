@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 19. Feb 2018, Tobias Kohn
-# 20. Mar 2018, Tobias Kohn
+# 22. Mar 2018, Tobias Kohn
 #
 from ..ppl_ast import *
 from ..ppl_namespaces import namespace_from_module
@@ -406,6 +406,18 @@ class PythonParser(ast.NodeVisitor):
             start = self.visit(node.slice.lower)
             stop = self.visit(node.slice.upper)
             return _cl(AstSlice(base, start, stop), node)
+        elif isinstance(node.slice, ast.ExtSlice):
+            indices = []
+            for slice in node.slice.dims:
+                if isinstance(slice, ast.Slice) and slice.lower is slice.upper is slice.step is None:
+                    indices.append(None)
+                elif isinstance(slice, ast.Index):
+                    indices.append(self.visit(slice.value))
+                else:
+                    indices = None
+                    break
+            if indices is not None:
+                return _cl(AstMultiSlice(base, indices), node)
         raise NotImplementedError("cannot compile subscript '{}'".format(ast.dump(node)))
 
     def visit_Tuple(self, node:ast.Tuple):
