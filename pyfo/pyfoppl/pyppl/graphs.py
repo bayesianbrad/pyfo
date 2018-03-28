@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 23. Mar 2018, Tobias Kohn
+# 28. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 from . import distributions
@@ -103,11 +103,13 @@ class ConditionNode(GraphNode):
     def __init__(self, name: str, *, ancestors: Optional[set]=None,
                  condition: str,
                  function: Optional[str]=None,
-                 op: Optional[str]=None):
+                 op: Optional[str]=None,
+                 compare_value: Optional[float]=None):
         super().__init__(name, ancestors)
         self.condition = condition
         self.function = function
         self.op = op
+        self.compare_value = compare_value
         self.bit_index = self.__class__.__condition_node_counter
         self.__class__.__condition_node_counter *= 2
         for a in ancestors:
@@ -115,7 +117,8 @@ class ConditionNode(GraphNode):
                 a.add_dependent_condition(self)
 
     def __repr__(self):
-        return self.create_repr("Condition", Condition=self.condition, Function=self.function, Op=self.op)
+        return self.create_repr("Condition", Condition=self.condition, Function=self.function, Op=self.op,
+                                CompareValue=self.compare_value)
 
     def get_code(self):
         return self.condition
@@ -193,23 +196,28 @@ class Vertex(GraphNode):
                  ancestors: Optional[set]=None,
                  condition_ancestors: Optional[set]=None,
                  conditions: Optional[set]=None,
-                 distribution_code: str,
                  distribution_args: Optional[list]=None,
+                 distribution_arg_names: Optional[list]=None,
+                 distribution_code: str,
                  distribution_func: Optional[str]=None,
                  distribution_name: str,
+                 distribution_transform=None,
                  observation: Optional[str]=None,
                  observation_value: Optional=None,
                  original_name: Optional[str]=None,
                  sample_size: int = 1,
                  line_number: int = -1):
         super().__init__(name, ancestors)
-        self.distribution_args = distribution_args
         self.condition_ancestors = condition_ancestors
         self.conditions = conditions
+        self.distribution_args = distribution_args
+        self.distribution_arg_names = distribution_arg_names
         self.distribution_code = distribution_code
         self.distribution_func = distribution_func
         self.distribution_name = distribution_name
-        self.distribution_type = distributions.get_distribution_for_name(distribution_name).distribution_type
+        distr = distributions.get_distribution_for_name(distribution_name)
+        self.distribution_type = distr.distribution_type if distr is not None else None
+        self.distribution_transform = distribution_transform
         self.observation = observation
         self.observation_value = observation_value
         self.original_name = original_name
@@ -219,14 +227,21 @@ class Vertex(GraphNode):
         if conditions is not None:
             for cond, truth_value in conditions:
                 self.condition_ancestors.add(cond)
+        if self.distribution_args is not None and self.distribution_arg_names is not None and \
+            len(self.distribution_args) == len(self.distribution_arg_names):
+            self.distribution_arguments = { n: v for n, v in zip(self.distribution_arg_names, self.distribution_args) }
+        else:
+            self.distribution_arguments = None
 
     def __repr__(self):
         args = {
             "Conditions":  self.conditions,
             "Cond-Ancs.":  self.condition_ancestors,
+            "Dist-Args":   self.distribution_arguments,
             "Dist-Code":   self.distribution_code,
             "Dist-Name":   self.distribution_name,
             "Dist-Type":   self.distribution_type,
+            "Dist-Transform": self.distribution_transform,
             "Sample-Size": self.sample_size,
             "Orig. Name":  self.original_name,
         }
@@ -238,6 +253,14 @@ class Vertex(GraphNode):
     def get_code(self, **flags):
         if self.distribution_func is not None and self.distribution_args is not None:
             args = self.distribution_args[:]
+            if self.distribution_arg_names is not None:
+                arg_names = self.distribution_arg_names
+                if len(arg_names) < len(args):
+                    arg_names = ['{}='.format(n) for n in arg_names]
+                    arg_names = [''] * (len(args)-len(arg_names)) + arg_names
+                    args = ["{}{}".format(a, b) for a, b in zip(arg_names, args) if a not in flags.keys()]
+                else:
+                    args = ["{}={}".format(a, b) for a, b in zip(arg_names, args) if a not in flags.keys()]
             for key in flags:
                 args.append("{}={}".format(key, flags[key]))
             return "{}({})".format(self.distribution_func, ', '.join(args))

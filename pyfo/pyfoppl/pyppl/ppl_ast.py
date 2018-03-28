@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 07. Feb 2018, Tobias Kohn
-# 23. Mar 2018, Tobias Kohn
+# 28. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 import enum
@@ -614,6 +614,14 @@ class AstCall(AstNode):
     def get_position_of_arg(self, keyword:str, default:int=-1):
         if keyword in self.keywords:
             return self.pos_arg_count + self.keywords.index(keyword)
+        else:
+            return default
+
+    def get_keyword_arg_value(self, keyword:str, default=None):
+        if keyword in self.keywords:
+            i = self.keywords.index(keyword)
+            i += len(self.args) - len(self.keywords)
+            return self.args[i]
         else:
             return default
 

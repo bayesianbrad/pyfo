@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 17. Jan 2018, Tobias Kohn
-# 22. Mar 2018, Tobias Kohn
+# 28. Mar 2018, Tobias Kohn
 #
 from enum import *
 
@@ -80,6 +80,8 @@ namespace = {
 }
 
 def get_distribution_for_name(name: str) -> Distribution:
+    if name.startswith("dist."):
+        return get_distribution_for_name(name[5:])
     for dist in distributions:
         if dist.name == name or dist.python_name == name or dist.foppl_name == name:
             return dist
