@@ -7,8 +7,9 @@ Date created:  13/03/2018
 License: MIT
 '''
 
+from pyfo.pyfoppl.pyppl import compile_model
 
-import torch
+model="""import torch
 
 # def observe_data(data, slope, bias):
 #     xn = data[0]
@@ -23,6 +24,8 @@ bias  = sample(normal(torch.tensor(0.0), torch.tensor(10.0)))
 data  = torch.tensor([[1.0, 2.1], [2.0, 3.9], [3.0, 5.3]])
 zn = slope*data[:,0] + bias # y  = mx + c
 observe(normal(zn, torch.ones(len(zn))),data[:,1])
-# for i in data:
-#     observe_data(i, slope, bias)
+
 [slope, bias]
+"""
+model_code = compile_model(model)
+print(model_code.code)
