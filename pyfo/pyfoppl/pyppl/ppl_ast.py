@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 07. Feb 2018, Tobias Kohn
-# 22. Mar 2018, Tobias Kohn
+# 23. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 import enum
@@ -18,6 +18,7 @@ class AstNode(object):
     """
 
     _attributes = { 'col_offset', 'lineno' }
+    original_name = None
     tag = None
 
     def get_fields(self):
@@ -671,6 +672,20 @@ class AstCall(AstNode):
             kw = [''] * (len(args) - len(self.keywords)) + [item+'=' for item in self.keywords]
             return [a + b for a, b in zip(kw, args)]
         return args
+
+    @property
+    def left(self):
+        if self.arg_count == 2:
+            return self.args[0]
+        else:
+            return None
+
+    @property
+    def right(self):
+        if self.arg_count == 2:
+            return self.args[1]
+        else:
+            return None
 
 
 class AstCompare(AstOperator):

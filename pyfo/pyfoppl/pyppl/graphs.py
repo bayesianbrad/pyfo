@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 22. Mar 2018, Tobias Kohn
+# 23. Mar 2018, Tobias Kohn
 #
 from typing import Optional
 from . import distributions
@@ -87,8 +87,6 @@ class GraphNode(object):
 
 ####################################################################################################
 
-__condition_node_counter = 1
-
 class ConditionNode(GraphNode):
     """
     A `ConditionNode` represents a condition that depends on stochastic variables (vertices). It is not directly
@@ -100,17 +98,18 @@ class ConditionNode(GraphNode):
     can also gain information about the 'distance' to the 'border'.
     """
 
+    __condition_node_counter = 1
+
     def __init__(self, name: str, *, ancestors: Optional[set]=None,
                  condition: str,
                  function: Optional[str]=None,
                  op: Optional[str]=None):
-        global __condition_node_counter
         super().__init__(name, ancestors)
         self.condition = condition
         self.function = function
         self.op = op
-        self.bit_index = __condition_node_counter
-        __condition_node_counter *= 2
+        self.bit_index = self.__class__.__condition_node_counter
+        self.__class__.__condition_node_counter *= 2
         for a in ancestors:
             if isinstance(a, Vertex):
                 a.add_dependent_condition(self)
@@ -192,6 +191,7 @@ class Vertex(GraphNode):
 
     def __init__(self, name: str, *,
                  ancestors: Optional[set]=None,
+                 condition_ancestors: Optional[set]=None,
                  conditions: Optional[set]=None,
                  distribution_code: str,
                  distribution_args: Optional[list]=None,
@@ -199,10 +199,12 @@ class Vertex(GraphNode):
                  distribution_name: str,
                  observation: Optional[str]=None,
                  observation_value: Optional=None,
+                 original_name: Optional[str]=None,
                  sample_size: int = 1,
                  line_number: int = -1):
         super().__init__(name, ancestors)
         self.distribution_args = distribution_args
+        self.condition_ancestors = condition_ancestors
         self.conditions = conditions
         self.distribution_code = distribution_code
         self.distribution_func = distribution_func
@@ -210,17 +212,23 @@ class Vertex(GraphNode):
         self.distribution_type = distributions.get_distribution_for_name(distribution_name).distribution_type
         self.observation = observation
         self.observation_value = observation_value
+        self.original_name = original_name
         self.line_number = line_number
         self.sample_size = sample_size
         self.dependent_conditions = set()
+        if conditions is not None:
+            for cond, truth_value in conditions:
+                self.condition_ancestors.add(cond)
 
     def __repr__(self):
         args = {
             "Conditions":  self.conditions,
+            "Cond-Ancs.":  self.condition_ancestors,
             "Dist-Code":   self.distribution_code,
             "Dist-Name":   self.distribution_name,
             "Dist-Type":   self.distribution_type,
             "Sample-Size": self.sample_size,
+            "Orig. Name":  self.original_name,
         }
         if self.observation is not None:
             args["Observation"] = self.observation
@@ -235,14 +243,17 @@ class Vertex(GraphNode):
             return "{}({})".format(self.distribution_func, ', '.join(args))
         return self.distribution_code
 
-    def get_cond_code(self):
+    def get_cond_code(self, state_object: Optional[str]=None):
         if self.conditions is not None and len(self.conditions) > 0:
             result = []
             for cond, truth_value in self.conditions:
+                name = cond.name
+                if state_object is not None:
+                    name = "{}['{}']".format(state_object, name)
                 if truth_value:
-                    result.append(cond.get_code())
+                    result.append(name)
                 else:
-                    result.append('not ' + cond.get_code())
+                    result.append('not ' + name)
             return "if {}:\n\t".format(' and '.join(result))
         else:
             return None

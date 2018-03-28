@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 09. Mar 2018, Tobias Kohn
-# 22. Mar 2018, Tobias Kohn
+# 23. Mar 2018, Tobias Kohn
 #
 from ast import copy_location as _cl
 from ..ppl_ast import *
@@ -114,6 +114,8 @@ class RawSimplifier(ScopedVisitor):
             return _cl(makeBody(prefix), node)
 
     def visit_def(self, node: AstDef):
+        if getattr(node.value, 'original_name', None) is None:
+            node.value.original_name = node.name
         value = self.visit(node.value)
         if value is node.value:
             return node
@@ -223,7 +225,7 @@ class RawSimplifier(ScopedVisitor):
     def visit_observe(self, node: AstObserve):
         d_prefix, dist = self._visit_expr(node.dist)
         v_prefix, value = self._visit_expr(node.value)
-        # keep it from being over zealous
+        # keep it from being over-zealous
         if len(d_prefix) == 1 and isinstance(d_prefix[0], AstDef) and isinstance(dist, AstSymbol) and \
                         d_prefix[0].name == dist.name and isinstance(d_prefix[0].value, AstCall):
             d_prefix, dist = [], d_prefix[0].value
@@ -231,7 +233,7 @@ class RawSimplifier(ScopedVisitor):
             return node
         else:
             prefix = d_prefix + v_prefix
-            return _cl(makeBody(prefix, AstObserve(dist, value)), node)
+            return makeBody(prefix, node.clone(dist=dist, value=value))
 
     def visit_return(self, node: AstReturn):
         prefix, value = self._visit_expr(node.value)
@@ -251,10 +253,10 @@ class RawSimplifier(ScopedVisitor):
             prefix += s_prefix
         else:
             size = None
-        if dist is node.dist:
+        if dist is node.dist and size is node.size:
             return node
         else:
-            return _cl(makeBody(prefix, AstSample(dist, size=size)), node)
+            return makeBody(prefix, node.clone(dist=dist, size=size))
 
     def visit_slice(self, node: AstSlice):
         prefix, base = self._visit_expr(node.base)
@@ -295,6 +297,13 @@ class RawSimplifier(ScopedVisitor):
             return _cl(makeBody(prefix), node)
 
     def visit_vector(self, node: AstVector):
+        original_name = getattr(node, 'original_name', None)
+        if original_name is not None:
+            i = 0
+            for item in node.items:
+                if getattr(item, 'original_name', None) is None:
+                    item.original_name = "{}[{}]".format(original_name, i)
+                i += 1
         prefix = []
         items = []
         for item in node.items:

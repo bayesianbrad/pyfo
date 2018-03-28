@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 12. Mar 2018, Tobias Kohn
-# 22. Mar 2018, Tobias Kohn
+# 23. Mar 2018, Tobias Kohn
 #
 from ..ppl_ast import *
 from ..graphs import *
@@ -126,6 +126,16 @@ class GraphGenerator(ScopedVisitor):
                     self.nodes.append(node)
                     return AstSymbol(node.name, node=node), set()
 
+        elif name.startswith('torch.') and name[6:] in ('eq', 'ge', 'gt', 'le', 'lt', 'ne') and node.arg_count == 2:
+            left, l_parents = self.visit(node.left)
+            right, r_parents = self.visit(node.right)
+            parents = set.union(l_parents, r_parents)
+            cond_node = self.factory.create_condition_node(node.clone(args=[left, right]), parents)
+            if cond_node is not None:
+                self.nodes.append(cond_node)
+                name = cond_node.name
+                return AstSymbol(name, node=cond_node), parents
+
         return self.visit_call(node)
 
     def visit_compare(self, node: AstCompare):
@@ -158,7 +168,7 @@ class GraphGenerator(ScopedVisitor):
         cond_node = self.factory.create_condition_node(test, parents)
         if cond_node is not None:
             self.nodes.append(cond_node)
-            name = getattr(cond_node, 'name', 'cond_???')
+            name = cond_node.name
             test = AstSymbol(name, node=cond_node)
 
         with self.create_condition(cond_node):
@@ -214,7 +224,7 @@ class GraphGenerator(ScopedVisitor):
         else:
             size = 1
             parents = d_parents
-        node = self.factory.create_sample_node(dist, size, parents)
+        node = self.factory.create_sample_node(dist, size, parents, original_name=getattr(node, 'original_name', None))
         self.nodes.append(node)
         return AstSymbol(node.name, node=node), { node }
 

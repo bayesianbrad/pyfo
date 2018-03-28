@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 12. Mar 2018, Tobias Kohn
-# 22. Mar 2018, Tobias Kohn
+# 23. Mar 2018, Tobias Kohn
 #
 import datetime
 from ..graphs import *
@@ -62,6 +62,34 @@ class GraphCodeGenerator(object):
         self.nodes = nodes
         self.state_object = state_object
         self.imports = imports
+        self.bit_vector_name = None
+        self.logpdf_suffix = None
+
+    def _complete_imports(self, imports: str):
+        if imports != '':
+            has_dist = False
+            uses_numpy = False
+            uses_torch = False
+            for s in imports.split('\n'):
+                s = s.strip()
+                if s.endswith(' dist') or s.endswith('.dist'):
+                    has_dist = True
+                if s.startswith('from'):
+                    s = s[5:]
+                elif s.startswith('import'):
+                    s = s[7:]
+                i = 0
+                while i < len(s) and 'A' <= s[i].upper() <= 'Z':
+                    i += 1
+                m = s[:i]
+                uses_numpy = uses_numpy or m == 'numpy'
+                uses_torch = uses_torch or m == 'torch'
+            if uses_torch or uses_numpy:
+                self.logpdf_suffix = '.sum()'
+            if not has_dist:
+                if uses_torch:
+                    return 'import torch.distributions as dist\n'
+        return ''
 
     def generate_model_code(self, *,
                             class_name: str='Model',
@@ -72,6 +100,9 @@ class GraphCodeGenerator(object):
             imports = self.imports + "\n" + imports
         if base_class is None:
             base_class = ''
+
+        imports = self._complete_imports(imports) + imports
+
         result = ["# {}".format(datetime.datetime.now()),
                   imports,
                   "class {}({}):".format(class_name, base_class)]
@@ -156,87 +187,90 @@ class GraphCodeGenerator(object):
     def get_vars(self):
         return "return [v.name for v in self.vertices if v.is_sampled]"
 
-    def gen_log_pdf(self):
+    def _gen_code(self, buffer: list, code_for_vertex, *, want_data_node: bool=True, flags=None):
         distribution = None
-        logpdf_code = ["log_pdf = 0"]
         state = self.state_object
+        if self.bit_vector_name is not None:
+            if state is not None:
+                buffer.append("{}['{}'] = 0".format(state, self.bit_vector_name))
+            else:
+                buffer.append("{} = 0".format(self.bit_vector_name))
         for node in self.nodes:
             name = node.name
             if state is not None:
                 name = "{}['{}']".format(state, name)
-
             if isinstance(node, Vertex):
-                code = "dst_ = {}".format(node.get_code())
-                if code != distribution:
-                    logpdf_code.append(code)
-                    distribution = code
-                cond_code = node.get_cond_code()
-                if cond_code is not None:
-                    logpdf_code.append(cond_code + "log_pdf += dst_.log_pdf({})".format(name))
+                if flags is not None:
+                    code = "dst_ = {}".format(node.get_code(**flags))
                 else:
-                    logpdf_code.append("log_pdf += dst_.log_pdf({})".format(name))
+                    code = "dst_ = {}".format(node.get_code())
+                if code != distribution:
+                    buffer.append(code)
+                    distribution = code
+                code = code_for_vertex(name, node)
+                if type(code) is str:
+                    buffer.append(code)
+                elif type(code) is list:
+                    buffer += code
 
-            elif not isinstance(node, DataNode):
+            elif isinstance(node, ConditionNode) and self.bit_vector_name is not None:
+                bit_vector = "{}['{}']".format(state, self.bit_vector_name) if state is not None else self.bit_vector_name
+                code = "_c = {}\n{} = _c".format(node.get_code(), name)
+                buffer.append(code)
+                buffer.append("{} |= {} if _c else 0".format(bit_vector, node.bit_index))
+
+            elif want_data_node or not isinstance(node, DataNode):
                 code = "{} = {}".format(name, node.get_code())
-                logpdf_code.append(code)
+                buffer.append(code)
 
+    def gen_log_pdf(self):
+        def code_for_vertex(name: str, node: Vertex):
+            cond_code = node.get_cond_code(state_object=self.state_object)
+            if cond_code is not None:
+                result = cond_code + "log_pdf += dst_.log_pdf({})".format(name)
+            else:
+                result = "log_pdf += dst_.log_pdf({})".format(name)
+            if self.logpdf_suffix is not None:
+                result += self.logpdf_suffix
+            return result
+
+        logpdf_code = ["log_pdf = 0"]
+        self._gen_code(logpdf_code, code_for_vertex=code_for_vertex, want_data_node=False)
         logpdf_code.append("return log_pdf")
         return 'state', '\n'.join(logpdf_code)
 
     def gen_log_pdf_transformed(self):
-        distribution = None
+        def code_for_vertex(name: str, node: Vertex):
+            cond_code = node.get_cond_code(state_object=self.state_object)
+            if cond_code is not None:
+                result = cond_code + "log_pdf += dst_.log_pdf({})".format(name)
+            else:
+                result = "log_pdf += dst_.log_pdf({})".format(name)
+            if self.logpdf_suffix is not None:
+                result += self.logpdf_suffix
+            return result
+
         logpdf_code = ["log_pdf = 0"]
-        state = self.state_object
-        for node in self.nodes:
-            name = node.name
-            if state is not None:
-                name = "{}['{}']".format(state, name)
-
-            if isinstance(node, Vertex):
-                code = "dst_ = {}".format(node.get_code(transformed=True))
-                if code != distribution:
-                    logpdf_code.append(code)
-                    distribution = code
-                cond_code = node.get_cond_code()
-                if cond_code is not None:
-                    logpdf_code.append(cond_code + "log_pdf += dst_.log_pdf({})".format(name))
-                else:
-                    logpdf_code.append("log_pdf += dst_.log_pdf({})".format(name))
-
-            elif not isinstance(node, DataNode):
-                code = "{} = {}".format(name, node.get_code())
-                logpdf_code.append(code)
-
+        self._gen_code(logpdf_code, code_for_vertex=code_for_vertex, want_data_node=False, flags={'transformed': True})
         logpdf_code.append("return log_pdf")
         return 'state', '\n'.join(logpdf_code)
 
     def gen_prior_samples(self):
-        distribution = None
-        state = self.state_object
-        if state is not None:
-            sample_code = [state + " = {}"]
-        for node in self.nodes:
-            name = node.name
-            if state is not None:
-                name = "{}['{}']".format(state, name)
 
-            if isinstance(node, Vertex):
-                if node.has_observation:
-                    sample_code.append("{} = {}".format(name, node.observation))
-                else:
-                    code = "dst_ = {}".format(node.get_code())
-                    if code != distribution:
-                        sample_code.append(code)
-                        distribution = code
-                    if node.sample_size > 1:
-                        sample_code.append("{} = dst_.sample(sample_size={})".format(name, node.sample_size))
-                    else:
-                        sample_code.append("{} = dst_.sample()".format(name))
-
+        def code_for_vertex(name: str, node: Vertex):
+            if node.has_observation:
+                return "{} = {}".format(name, node.observation)
+            sample_size = node.sample_size
+            if sample_size is not None and sample_size > 1:
+                return "{} = dst_.sample(sample_size={})".format(name, sample_size)
             else:
-                code = "{} = {}".format(name, node.get_code())
-                sample_code.append(code)
+                return "{} = dst_.sample()".format(name)
 
+        state = self.state_object
+        sample_code = []
+        if state is not None:
+            sample_code.append(state + " = {}")
+        self._gen_code(sample_code, code_for_vertex=code_for_vertex, want_data_node=True)
         if state is not None:
             sample_code.append("return " + state)
         return '\n'.join(sample_code)

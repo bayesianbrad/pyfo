@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 22. Feb 2018, Tobias Kohn
-# 21. Mar 2018, Tobias Kohn
+# 23. Mar 2018, Tobias Kohn
 #
 from ast import copy_location as _cl
 from ..ppl_ast_annotators import *
@@ -343,4 +343,15 @@ class Simplifier(TransformVisitor):
         if item is node.item:
             return node
         else:
-            return _cl(AstUnary(node.op, item), node)
+            return node.clone(item=item)
+
+    def visit_vector(self, node:AstVector):
+        items = [self.visit(item) for item in node.items]
+        if len(items) > 0 and all([isinstance(item, AstSample) and item.size is None for item in items]) and \
+                all([item.dist == items[0].dist for item in items]):
+            result = _cl(AstSample(items[0].dist, size=AstValue(len(items))), node)
+            original_name = getattr(node, 'original_name', None)
+            if original_name is not None:
+                result.original_name = original_name
+            return result
+        return makeVector(items)
