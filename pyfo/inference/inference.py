@@ -91,7 +91,7 @@ class Inference(ABCMeta):
              entire state of the model. [See gen_prior_samples function within pyfo.pyppl.ppl_graoh_codegen.py
              for more details.
         :param auto_transform
-            type:
+            type: transforms the latent variables automatically to the same support
         :param debug:
             type: bool
             If true, prints out graphical model.
@@ -106,7 +106,9 @@ class Inference(ABCMeta):
         of the model has to be unconstrained.
 
         :param args:
-        :param kwargs:
+
+        :param transform:
+            type: bool
         :return:
         '''
 
