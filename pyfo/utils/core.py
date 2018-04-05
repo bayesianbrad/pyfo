@@ -117,9 +117,9 @@ def transform_latent_support(latent_vars, dist_to_latent):
     transform list.
 
     :param latent_vars: dictionary of {latent_var: distribution_name}
-    :param dist_to_latent: dictionary that maps tlatent_variable names to distribution name
+    :param dist_to_latent: dictionary that maps latent_variable names to distribution name
 
-    :return: transform: dictionary of {latent_var: name}
+    :return: transform: dictionary of {latent_var: bijector_for_latent}
     """
     transforms = {}
     for latent in latent_vars:
@@ -128,3 +128,15 @@ def transform_latent_support(latent_vars, dist_to_latent):
             transforms[latent_vars] = biject_to(temp_support).inv
     return transforms
 
+def _to_leaf(self, state):
+    """
+    Ensures that all latent parameters are reset to leaf nodes, before
+    calling
+    :param state:
+    :return:
+    """
+    for key in state:
+        tmp = VariableCast(state[key])
+        state[key] = VariableCast(tmp.data, grad=True)
+        # state[key] = VariableCast(state[key].data, grad=True)
+    return state
