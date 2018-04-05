@@ -7,20 +7,40 @@ Date created:  20/03/2018
 
 License: MIT
 '''
-
+import torch
+import math
+import inspect
+import warnings
 from pyfo.inference.inference import Inference
 from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
+from pyfo.utils.core import _to_leaf
 
 class MCMC(Inference):
     """
 
     """
-    def __int__(self, debug_on):
+    def __int__(self, kernel, model_code, samples=1000, burnin=100, chains=1, debug_on=False):
         if debug_on:
             self.debug()
+        self.kernel = kernel
+        self.samples = samples
+        self.burnin = burnin
+        self.chains = chains
+        if inspect.isclass(model_code):
+            # check to see if user has overrideded base class
+            self.model = model_code
+            warnings.warn('You have overridden the base class, please ensure \n '
+                          'that your model complies with the standard compiler output.\n '
+                          'In regard to the unique parameter names. If you need to determine\n '
+                          'what these are. compile_model(model_code).<methods> and choose the appropriate \n'
+                          'method. See pyfo.pyfoppl.pyppl.ppl_base_model for more info on method names')
+        else:
+            self.model_code = model_code
+            self.generate_model()
 
-    def generate_model(self, model_code):
+
+    def generate_model(self):
         '''
         Creates an inference algorithm.
 
@@ -33,16 +53,22 @@ class MCMC(Inference):
 
         '''
 
-        self.model = compile_model(model_code, base_class='base_model',
+        self.model = compile_model(self.model_code, base_class='base_model',
                                    imports='from pyfo.pyfoppl.pyppl.ppl_base_model import base_model')
 
 
     def generate_latent_vars(self):
         """
+        You receive all the information regarding the whole model,
+        including model elements that are not common among all inference
+        algorithms. This ensures flexibility, as all inference procedures
+        inherit from this class. It then allows them to manipulate
+        quantities as required. Doing this additional set-up has very
+        minimal computational cost.
 
-        :param args:
-        :param kwargs:
-        :return:
+
+        :return: Attributes to the MCMC class all model parameters and
+                 types
         """
 
         self._cont_latents = None if len(self.model.gen_cont_vars()) == 0 else self.model.gen_cont_vars
@@ -72,8 +98,7 @@ class MCMC(Inference):
         self._names = dict(
             [(vertex.name, vertex.original_name) for vertex in self._vertices if vertex.name in self._all_vars])
 
-    def initialize(self, n_iters=1000, n_chains=1,
-                   auto_transform=True):
+    def initialize(self, auto_transform=True):
         '''
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
@@ -93,18 +118,16 @@ class MCMC(Inference):
             TODO : Link with a tensorboard style framework
         '''
 
-        self.n_iters = n_iters
-        self.n_chains = n_chains
         self.auto_transform = auto_transform
         if self._cont_dists is not None:
             self.transforms = self.transform_check(self._cont_dists)
-            # Returns {} of the support does not need to be changed.
+            # Returns {} ff the support does not need to be changed.
         if self.transforms:
             self.state = self.model.gen_prior_samples()
-            self._log_pdf = self.model.gen_pdf
+            self._gen_log_pdf = self.model.gen_pdf
         else:
             self.state  = self.model.gen_prior_samples_transformed()
-            self._log_pdf = self.model.gen_pdf_transformed
+            self._gen_log_pdf = self.model.gen_pdf_transformed
 
 
 
@@ -138,3 +161,46 @@ class MCMC(Inference):
 
         :return:
         '''
+
+    def __grad_logp(self, logp, param):
+        """
+        Returns the gradient of the log pdf, with respect for
+        each parameter
+        :param state:
+        :return: torch.autograd.Variable
+        """
+        gradient_of_param = torch.autograd.grad(outputs=logp, inputs=param, retain_graph=True)[0]
+        return gradient_of_param
+
+
+    def __generate_log_pdf(self, state, set_leafs=False):
+        """
+        The compiled pytorch function, log_pdf, should automatically
+        return the pdf.
+        :param keys type: list of discrete embedded discrete parameters
+        :return: log_pdf
+
+        Maybe overidden in other methods, that require dynamic pdfs.
+        For example
+        if you have a model called my mymodel, you could write the following:
+        Model = compile_model(mymodel) # returns class
+        class MyNewModel(Model):
+
+            def gen_log_pdf(self, state):
+                for vertex in self.vertices:
+                    pass
+        return "Whatever you fancy"
+
+        # This overrides the base method.
+        # Then all you have to do is pass
+        # My model into kernel of choice, i.e
+        hmc_kern = hmc(MyNewModel, ....)
+        hmc_kern.sample()
+
+
+        """
+        if set_leafs:
+            state = _to_leaf(state)
+
+        return self._gen_logpdf(state)
+
