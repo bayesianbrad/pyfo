@@ -62,7 +62,6 @@ class HMC(MCMC):
 
        self.transforms = {} if transforms is not None else False
        self.automatic_transformed_enbaled = True if transforms is None else False
-       self._reset()
        super(HMC,self).__init__()
 
 
@@ -74,21 +73,8 @@ class HMC(MCMC):
         :param cont keys: list of continous keys within state
         :return: Tensor
         """
-        if self._disc_keys is not None:
-            kinetic_disc = torch.sum(
-                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys]))
-        else:
-            kinetic_disc = VariableCast(0)
-        if self._cont_keys is not None:
-            kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys]))
-        else:
-            kinetic_cont = VariableCast(0)
-        if self._if_keys is not None:
-            kinetic_if = torch.sum(
-                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._if_keys]))
-        else:
-            kinetic_if = VariableCast(0)
-        kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if
+        kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in p]))
+        kinetic_energy = kinetic_cont
         potential_energy = -self.log_posterior(x)
 
         return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
@@ -98,4 +84,39 @@ class HMC(MCMC):
 
         :return:
         '''
+        return 0
+
+    def gauss_laplace_leapfrog(self, x0, p0, stepsize):
+        """
+        Performs the full DHMC update step. It updates the continous parameters using
+        the standard integrator and the discrete parameters via the coordinate wie integrator.
+
+        :param x: Type dictionary
+        :param p: Type dictionary
+        :param stepsize:
+        :param log_grad:
+        :param n_disc:
+        :return: x, p the proposed values as dict.
+        """
+
+        # number of function evaluations and fupdates for discrete parameters
+        n_feval = 0
+        n_fupdate = 0
+
+        #performs shallow copy
+        x = copy.copy(x0)
+        p = copy.copy(p0)
+        # perform first step of leapfrog integrators
+        logp = self.log_posterior(x, set_leafs=True)
+        for key in self._cont_keys:
+            p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
+
+
+        for key in self._cont_keys:
+            x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
+        logp = self.log_posterior(x, set_leafs=True)
+        for key in self._cont_keys:
+            p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
+        return x, p, n_feval, n_fupdate, 0
+
 
