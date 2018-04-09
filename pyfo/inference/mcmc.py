@@ -20,13 +20,10 @@ class MCMC(Inference):
     """
 
     """
-    def __int__(self, kernel, model_code, samples=1000, burnin=100, chains=1, debug_on=False):
+    def __int__(self, kernel, model_code, debug_on=False):
         if debug_on:
             self.debug()
         self.kernel = kernel
-        self.samples = samples
-        self.burnin = burnin
-        self.chains = chains
         if inspect.isclass(model_code):
             # check to see if user has overrideded base class
             self.model = model_code
@@ -39,7 +36,9 @@ class MCMC(Inference):
             self.model_code = model_code
             self.generate_model()
 
-
+        self.generate_latent_vars()
+        self.initialize()
+        self.run_inference(kernel=kernel,nsamples=nsamples,burnin=burnin,chains=chains)
     def generate_model(self):
         '''
         Creates an inference algorithm.
@@ -98,6 +97,13 @@ class MCMC(Inference):
         self._names = dict(
             [(vertex.name, vertex.original_name) for vertex in self._vertices if vertex.name in self._all_vars])
 
+        # distribution arguments and names
+        self._dist_params = {}
+        for vertex in self._vertices:
+            if vertex.is_sampled:
+                self._dist_params[vertex.name] = {vertex.distribution_name: vertex.distribution_arguments}
+
+
     def initialize(self, auto_transform=True):
         '''
         Initialize inference algorithm. It initializes hyperparameters
@@ -122,6 +128,8 @@ class MCMC(Inference):
         if self._cont_dists is not None:
             self.transforms = self.transform_check(self._cont_dists)
             # Returns {} ff the support does not need to be changed.
+        if self._disc_dists is not None:
+            self._disc_support
         if self.transforms:
             self.state = self.model.gen_prior_samples()
             self._gen_log_pdf = self.model.gen_pdf
@@ -156,7 +164,7 @@ class MCMC(Inference):
         self.transforms = tls(self._cont_latents,self._cont_dists)
 
 
-    def run_inference(self):
+    def run_inference(self, nsamples=1000,burnin=100,chains=1):
         '''
 
         :return:
@@ -165,7 +173,8 @@ class MCMC(Inference):
     def __grad_logp(self, logp, param):
         """
         Returns the gradient of the log pdf, with respect for
-        each parameter
+        each parameter. Note the double underscore, this is to ensure that if
+        this method is overwritten, then no problems occur when overidded.
         :param state:
         :return: torch.autograd.Variable
         """
