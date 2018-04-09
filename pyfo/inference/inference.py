@@ -100,7 +100,7 @@ class Inference(ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_log_pdf(self, *args, **kwargs):
+    def __generate_log_pdf(self, *args, **kwargs):
         '''
         A function to generate the correct log posterior. You may have to implement a transformed version if the support
         of the model has to be unconstrained.
