@@ -62,28 +62,86 @@ class HMC(MCMC):
 
        self.transforms = {} if transforms is not None else False
        self.automatic_transformed_enbaled = True if transforms is None else False
+       self.initialize()
+       self.generate_latent_vars()
+
        super(HMC,self).__init__()
 
+    def _kinetic(self, p):
+        """
 
-    def _energy(self, x, p, cont_keys):
+        :param p:
+        :return:
+
+        """
+
+        return 0.5 * torch.sum(torch.stack([torch.dot(p[key], p[key]) for key in self._cont_latents]))
+
+    def _potential_energy(self, state, set_leafs=False):
+        state_constrained = state.copy()
+
+        for key, transform in self.transforms.items():
+            state_constrained[key] = transform.inv(state_constrained[key])
+        potential_energy = self.__generate_log_pdf(state_constrained, set_leafs=set_leafs)
+        # adjust by the jacobian for this transformation.
+        for key, transform in self.transforms.items():
+            potential_energy = potential_energy + transform.log_abs_det_jacobian(state_constrained[key],
+                                                                                     state[key]).sum()
+        return potential_energy
+
+    def _energy(self, state, p, cont_keys):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
-        :param x:  Dictionary of full program state
+        :param state:  Dictionary of full program state
         :param p:  Dictionary of momentum
         :param cont keys: list of continous keys within state
         :return: Tensor
         """
-        kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in p]))
-        kinetic_energy = kinetic_cont
-        potential_energy = -self.log_posterior(x)
 
-        return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
+        potential_energy = -self.__potential_energy(x)
 
+        return self._kinetic_energy + potential_energy
+
+    def momentum_sample(self):
+        """
+        Constructs a momentum dictionary where for the discrete keys we have laplacian momen tum
+        and for continous keys we have gaussian
+        :return:
+        """
+        p = {}
+        VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
+        for key in self._cont_keys:
+            p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
+        return p
+    
     def sample(self):
         '''
 
         :return:
         '''
+
+        # automatically transform `z` to unconstrained space, if needed.
+        for key, transform in self.transforms.items():
+            state[key] = transform(state[key])
+        p = self.momentum_sample()
+        state_new, p_new = velocity_verlet(z, r,
+                                       self._potential_energy,
+                                       self.step_size,
+                                       self.num_steps)
+        # apply Metropolis correction.
+        energy_proposal = self._energy(z_new, r_new)
+        energy_current = self._energy(z, r)
+        delta_energy = energy_proposal - energy_current
+        rand = pyro.sample('rand_t='.format(self._t), dist.Uniform(ng_zeros(1), ng_ones(1)))
+        if rand.log() < -delta_energy:
+            self._accept_cnt += 1
+            z = z_new
+        self._t += 1
+
+        # get trace with the constrained values for `z`.
+        for key, transform in self.transforms.items():
+            z[key] = transform.inv(z[key])
+        return self._get_trace(z)
         return 0
 
     def gauss_laplace_leapfrog(self, x0, p0, stepsize):
@@ -107,16 +165,16 @@ class HMC(MCMC):
         x = copy.copy(x0)
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
-        logp = self.log_posterior(x, set_leafs=True)
+        logp = self.__generate_pdf(x, set_leafs=True)
         for key in self._cont_keys:
-            p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
+            p[key] = p[key] + 0.5*stepsize*self.__grad_logp(logp,x[key])
 
 
         for key in self._cont_keys:
             x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
-        logp = self.log_posterior(x, set_leafs=True)
+        logp = self.__generate_pdf(x, set_leafs=True)
         for key in self._cont_keys:
-            p[key] = p[key] + 0.5*stepsize*self.grad_logp(logp,x[key])
+            p[key] = p[key] + 0.5*stepsize*self.____grad_logp(logp,x[key])
         return x, p, n_feval, n_fupdate, 0
 
 

@@ -45,10 +45,8 @@ class dhmc(HMC):
             else:
                 state[key] = _temp[key]
 
-        if set_leafs:
-            state = _to_leaf(state)
 
-        return self._gen_logpdf(state)
+        return self._gen_logpdf(state, set_leafs=set_leafs)
 
     def _embed(self, state, disc_key):
         """
