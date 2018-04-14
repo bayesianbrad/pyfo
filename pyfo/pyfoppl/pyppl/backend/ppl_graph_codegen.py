@@ -227,9 +227,9 @@ class GraphCodeGenerator(object):
         def code_for_vertex(name: str, node: Vertex):
             cond_code = node.get_cond_code(state_object=self.state_object)
             if cond_code is not None:
-                result = cond_code + "log_pdf += dst_.log_pdf({})".format(name)
+                result = cond_code + "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
             else:
-                result = "log_pdf += dst_.log_pdf({})".format(name)
+                result = "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
             if self.logpdf_suffix is not None:
                 result += self.logpdf_suffix
             return result
@@ -243,9 +243,9 @@ class GraphCodeGenerator(object):
         def code_for_vertex(name: str, node: Vertex):
             cond_code = node.get_cond_code(state_object=self.state_object)
             if cond_code is not None:
-                result = cond_code + "log_pdf += dst_.log_pdf({})".format(name)
+                result = cond_code + "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
             else:
-                result = "log_pdf += dst_.log_pdf({})".format(name)
+                result = "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
             if self.logpdf_suffix is not None:
                 result += self.logpdf_suffix
             return result
