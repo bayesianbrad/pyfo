@@ -20,8 +20,8 @@ class Uniform(TorchDistribution):
         low (float or Tensor or Variable): lower range (inclusive).
         high (float or Tensor or Variable): upper range (exclusive).
     """
-    def __init__(self, low, high):
-        self.low = vc(low)
-        self.high = vc(high)
+    def __init__(self, a, b):
+        self.low = vc(a)
+        self.high = vc(b)
         torch_dist = torch.distributions.Uniform(low=self.low, high=self.high)
         super(Uniform, self).__init__(torch_dist)
