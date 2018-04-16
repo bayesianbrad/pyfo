@@ -18,7 +18,7 @@ import pystan
 """A
 
 FOPPL Code:
-    (let [y 0.25
+    (let [y 7
           p 0.5
           x (let [z (sample (uniform 0 1))]
               (if (< z p) 0 1))]
@@ -39,7 +39,7 @@ data {
 
 parameters {
 
-# real<lower=0, upper=1> x;
+// real<lower=0, upper=1> x;
  real<lower=0, upper=1> z;
 }
 
@@ -49,23 +49,23 @@ model {
 
     if (z<p) {
         y ~ normal(0,1);
-      #  x ~ normal(0,0.00001);
+      //  x ~ normal(0,0.00001);
     } else { 
         y ~ normal(1,1);
-      #  x ~ normal(1,0.00001);
+      //  x ~ normal(1,0.00001);
     }
 }
 '''
 
 def initfun():
-    return dict(y=0.25, p=0.5)
-model = pystan.stan(model_code=model_bin_2, data=initfun(), iter=2000, chains=1)
+    return dict(y=7, p=0.5)
+model = pystan.stan(model_code=model_bin_2, data=initfun(), iter=6000, chains=4)
 print(model)
 trace = model.extract()
 
 plt.figure(figsize=(10, 4))
 plt.hist(trace['z'][:], bins='auto', normed=1)
-plt.savefig('model_2_z.png')
+plt.savefig('stan_7.png')
 print('Completed plots')
 # plt.figure(figsize=(10, 4))
 # plt.hist(trace['x'][:], bins='auto', normed=1)
