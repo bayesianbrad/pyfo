@@ -367,7 +367,7 @@ class Vertex(GraphNode):
             self.code = self.co_distribution.to_py_sample()
             self.code_pdf = self.co_distribution.to_py_log_pdf(value="state['{}']".format(self.name))
         self.full_code = "state['{}'] = {}".format(self.name, self.code)
-        self.full_code_pdf = self._get_cond_code("log_pdf += {}".format(self.code_pdf))
+        self.full_code_pdf = self._get_cond_code("log_pdf = log_pdf + {}".format(self.code_pdf))
         self.evaluate = make_lambda(self.code)
         self.evaluate_log_pdf = make_lambda(self.code_pdf)
 
@@ -455,7 +455,7 @@ class Vertex(GraphNode):
                 for cond, truth_value in self.conditions:
                     print("[{}/P]   if {} == {}".format(self.name, repr(state[cond.name]), truth_value))
                     if state[cond.name] != truth_value:
-                        print("[{}/P]     log_pdf += 0.0".format(self.name))
+                        print("[{}/P]     log_pdf = log_pdf + ".format(self.name))
                         return 0.0
             else:
                 for cond, truth_value in self.conditions:
@@ -473,6 +473,7 @@ class Vertex(GraphNode):
                 )
 
             state['log_pdf'] = state.get('log_pdf', 0.0) + log_pdf
+            # state['log_pdf'] = 0
             return log_pdf
         except:
             print("ERROR in {}:\n ".format(self.name), self.full_code_pdf)
