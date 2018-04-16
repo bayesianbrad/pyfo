@@ -35,4 +35,4 @@ zn = sample(categorical(pi), size=10)
 #                                                   x1.sample(sample_shape=torch.Size([samples,])
 for i in range(len(pi)):
     index = (zn == i).nonzero()
-    observe(normal(mus[i]*torch.ones(len(index)), 2*torch.ones(len(index))), ys[index])
+    observe(normal(mus[i] * torch.ones(len(index)), 2 * torch.ones(len(index))), ys[index])

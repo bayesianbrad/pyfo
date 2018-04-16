@@ -8,7 +8,6 @@ Date created:  05/02/2018
 License: MIT
 '''
 import tests.unittests.models.semantics_models.semantics as test
-
 from pyfo.inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)

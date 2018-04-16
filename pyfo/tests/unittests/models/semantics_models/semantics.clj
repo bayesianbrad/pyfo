@@ -3,7 +3,7 @@
       y (if (< z q )
           (sample (normal 0 1))
           (sample (normal 0 2))) ]
-  (observe (normal y 1 ) 7)
+  (observe (normal y 1 ) 0.5)
   z q y)
 
 ;Equivilent stan model
