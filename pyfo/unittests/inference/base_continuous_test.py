@@ -23,7 +23,7 @@ def base_continous_test():
 
     dhmc_ = dhmc(test)
 
-    stats = dhmc_.sample(n_samples, burn_in, stepsize_range, n_step_range, seed=123, print_stats=True)
+    stats = dhmc_.sample(n_samples=n_samples, burn_in=burn_in, stepsize_range=stepsize_range, n_step_range=n_step_range, seed=123, print_stats=True)
 
     print('accept ratio: ', stats['accept_rate'])
 
