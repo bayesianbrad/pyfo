@@ -40,11 +40,54 @@ class State(object):
 
         :param cls: this is the interface cls of the model.
         """
+        self._model = cls
         self._state_init = cls.gen_prior_samples()
+        self._debug_prior = cls.gen_prior_samples_code
+        self._gen_logpdf = cls.gen_pdf
+        self._debug_pdf = cls.gen_pdf_code
+        self._cont_vars = cls.gen_cont_vars() #includes the piecewise variables for now.
+        self._disc_vars = cls.gen_disc_vars()
+        self._if_vars = cls.gen_if_vars()
+        self._cond_vars=  cls.gen_cond_vars()
+        self._vertices = cls.get_vertices()
         self._arcs = cls.get_arcs()
+        self.all_vars = self.gen_vars()
+        self.get_continuous_dist_names()
+        self.get_discrete_dist_names()
         support_size = self.gen_support_size()
         self._unembed_state = Unembed(support_size)
 
+    def debug(self):
+        """
+        Prints both the prior in code and the pdf in code
+        """
+        print(50*'='+'\n'
+                     'Now generating prior python code \n'
+              '{}'.format(self._debug_prior))
+        print(50 * '=' + '\n'
+                         'Now generating posterior python code \n'
+                         '{}'.format(self._debug_pdf))
+        print(50*'=')
+        print( '\n Now generating graph code \n {}'.format(self._model))
+        print(50 * '=')
+        # print('Now generating distribution code \n')
+        # print(self._distribution_params)
+
+
+        # print(50 * '=' + '\n'
+        #                  'Debug inside the model\n'
+        #                  '{}'.format(Options.log))
+
+    def dist_name_and_params(self):
+        """
+        Returns a dictionary map of vertex names and the corresponding distribution parameters.
+        :return:
+
+        """
+        distribution_params = {}
+        for vertex in self._vertices:
+            if vertex.is_continuous and vertex.observation is None:
+                distribution_params[vertex] = vertex.get_parameter_values('key_of_state')
 
     def get_sample_sizes(self):
         """
@@ -57,21 +100,44 @@ class State(object):
         return sample_sizes
 
 
-    def gen_support_size(self):
+    def get_discrete_dist_names(self):
         """
-        Returns a vector of a support sizes for the discrete parameters
+        A map from a discrete latent variable to a discrete distribution
+        that depends on it.
+
         :return:
-
-        callled disc_support
-
         """
-        support_size = {}
+        all_vars = self.gen_vars()
+        disc_names = {}
         for vertex in self._vertices:
             if vertex.is_discrete:
-                support_size[vertex.name] = vertex.support_size
-        print('Debug statement: return support size: {}'.format(support_size))
-        return support_size
+                if vertex.name in all_vars:
+                    disc_names[vertex.name] = vertex.distribution_name
 
+        self._disc_dist = disc_names
+
+    def get_continuous_dist_names(self):
+        """
+        A map from a discrete latent variable to a discrete distribution
+        that depends on it.
+
+        :return:
+        """
+        cont_names = {}
+        for vertex in self._vertices:
+            if vertex.is_continuous:
+                if vertex.name in self.all_vars:
+                    cont_names[vertex.name] = vertex.distribution_name
+        self._cont_dist =  cont_names
+
+
+    def gen_vars(self):
+        """
+        Generates all the variables on which inference is performed
+
+        :return:
+        """
+        return  [vertex.name for vertex in self._vertices if vertex.is_sampled]
     def get_ancestors(self):
         """
         object.dist_ancestors only direct parents of variable , does not include the predicate.
@@ -85,6 +151,31 @@ class State(object):
             ancestors[self._vertices.name] = vertex.get_all_ancestors
         return ancestors
 
+    def get_original_names(self):
+        """
+
+        :param keys:
+        :return:
+        """
+        names = {}
+        for vertex in self._vertices:
+            if vertex.name in self.all_vars:
+                names[vertex.name] = vertex.original_name
+        return names
+
+    def gen_support_size(self):
+        """
+        Returns a vector of a support sizes for the discrete parameters
+        :return:
+
+        """
+        support_size = {}
+        for vertex in self._vertices:
+            if vertex.is_discrete:
+                support_size[vertex.name] = vertex.support_size
+        print('Debug statement: return support size: {}'.format(support_size))
+        return support_size
+
     def intiate_state(self):
         """
         A dictionary of the state.
@@ -93,6 +184,29 @@ class State(object):
         """
         return self._state_init
 
+    def _return_disc_list(self):  #change the return type from None to [], since easier to operate on lists than None with list
+        if len(self._disc_vars) == 0:
+            return None
+        else:
+            return self._disc_vars
+
+    def _return_cont_list(self):
+        if len(self._cont_vars) == 0:
+            return None
+        else:
+            return self._cont_vars
+
+    def _return_if_list(self):
+        if len(self._if_vars) == 0:
+            return None
+        else:
+            return self._if_vars
+
+    def _return_cond_list(self):
+        if len(self._cond_vars) == 0:
+            return None
+        else:
+            return self._cond_vars
 
     def _return_arcs(self):
         if len(self._arcs) == 0:
@@ -100,6 +214,23 @@ class State(object):
         else:
             return self._arcs
 
+    def _return_vertices(self):
+        if len(self._vertices) == 0:
+            return None
+        else:
+            return self._vertices
+
+    def _return_all_list(self):
+        if len(self._all_vars) == 0:
+            return None
+        else:
+            return self._all_vars
+
+    def _return_true_names(self):
+        if len(self._names) == 0:
+            return None
+        else:
+            return self._names
 
     @staticmethod
     def detach_nodes(x):
@@ -313,4 +444,3 @@ class State(object):
             state[i] =  state[i].data.numpy()
             # state[i] = state[i].data.numpy()
         return state
-
