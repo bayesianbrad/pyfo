@@ -79,6 +79,7 @@ all_samples = stats['samples_wo_burin'] # type, panda dataframe
 ## Papers
 
 [Discontinuous Hamiltonian Monte Carlo for Probabilistic Programs](https://arxiv.org/abs/1804.03523)
+Use the `icml_paper` [branch](https://github.com/bradleygramhansen/pyfo/tree/icml_paper), for the paper version.
 
 ## Contributors
 
