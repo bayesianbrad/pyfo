@@ -75,9 +75,14 @@ state = my_model.model.gen_prior_samples()
 This project is released unter the _MIT_-license. 
 See [LICENSE](LICENSE).
 
+## Papers
+[Discontinuous Hamiltonian Monte Carlo for Probabilistic Programs](https://arxiv.org/abs/1804.03523)
+
 ## Contributors
 
 - [Tobias Kohn](https://tobiaskohn.ch)
 - [Bradley Gram-Hansen](http://www.robots.ox.ac.uk/~bradley/)
 - [Yuan Zhou](https://www.cs.ox.ac.uk/people/yuan.zhou/)
 - [Frank Wood](http://www.robots.ox.ac.uk/~fwood/)
+- [Honseok Yang](https://sites.google.com/view/hongseokyang/home)
+
