@@ -88,7 +88,7 @@ class GraphCodeGenerator(object):
                 self.logpdf_suffix = '.sum()'
             if not has_dist:
                 if uses_torch:
-                    return 'import torch.distributions as dist\n'
+                    return 'import pyfo.distributions as dist\n'
         return ''
 
     def generate_model_code(self, *,

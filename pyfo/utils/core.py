@@ -9,7 +9,7 @@ License: MIT
 '''
 import torch
 import numpy as np
-import torch.tensor as tt
+
 import torch.distributions as dists
 from torch.distributions import constraints, biject_to
 
@@ -33,8 +33,8 @@ class DualAveraging(object):
     References
     [1] `Primal-dual subgradient methods for convex problems`,
     Yurii Nesterov
-    [2] `The No-U-turn sampler: adaptively setting path lengths in Hamiltonian Monte Carlo`,
-    Matthew D. Hoffman, Andrew Gelman
+    [2] `The No-U-turn sampler: adaptively setorch.tensoring path lengths in Hamiltonian Monte Carlo`,
+    Matorch.tensorhew D. Hoffman, Andrew Gelman
     :param float prox_center: A "prox-center" parameter introduced in :math:`[1]`
         which pulls the primal sequence towards it.
     :param float t0: A free parameter introduced in :math:`[2]`
@@ -92,37 +92,35 @@ def VariableCast(value, grad = False, dist=None):
     '''
     if value is None:
         return None
-    elif isinstance(value, tt):
-        return value
     elif torch.is_tensor(value):
-        return tt(value, requires_grad = grad)
+        return torch.tensor(value,requires_grad=grad)
     elif isinstance(value, np.ndarray):
         tensor = torch.from_numpy(value).float()
-        return tt(tensor, requires_grad = grad)
+        return torch.tensor(tensor, requires_grad = grad)
     elif isinstance(value,list):
-        return tt(torch.FloatTensor(value), requires_grad=grad)
+        return torch.tensor(torch.FloatTensor(value), requires_grad=grad)
     else:
-        return tt(torch.FloatTensor([value]), requires_grad = grad)
+        return torch.tensor(torch.FloatTensor([value]), requires_grad = grad)
 
 def tensor_to_list(self,values):
     ''' Converts a tensor to a list
     values = torch.FloatTensor or torch.tensor'''
     params = []
     for value in values:
-        if isinstance(value, tt):
-            temp = tt(value.data, requires_grad=True)
+        if isinstance(value, torch.tensor):
+            temp = torch.tensor(value.data, requires_grad=True)
             params.append(temp)
         else:
             temp = VariableCast(value)
-            temp = tt(value.data, requires_grad=True)
+            temp = torch.tensor(value.data, requires_grad=True)
             params.append(value)
     return params
 
 def TensorCast(value):
-    if isinstance(value, tt):
+    if isinstance(value, torch.tensor):
         return value
     else:
-        return tt([value])
+        return torch.tensor([value])
 
 def list_to_tensor(self, params):
     '''
@@ -134,7 +132,7 @@ def list_to_tensor(self, params):
     '''
     print('Warning ---- UNSTABLE FUNCTION ----')
     assert(isinstance(params, list))
-    temp = tt(torch.Tensor(len(params)).unsqueeze(-1))
+    temp = torch.tensor(torch.Tensor(len(params)).unsqueeze(-1))
     for i in range(len(params)):
         temp[i,:] = params[i]
     return temp
@@ -158,7 +156,7 @@ def get_tensor_data(t):
     :param t: torch.tensor
     :return: torch.Tensor
     """
-    if isinstance(t, tt):
+    if isinstance(t, torch.tensor):
         return t.data
     return t
 
@@ -166,7 +164,7 @@ def my_import(name):
     '''
     Helper function for extracting the whole module and not just the package.
     See answer by clint miller for details:
-    https://stackoverflow.com/questions/951124/dynamic-loading-of-python-modules
+    htorch.tensorps://stackoverflow.com/questions/951124/dynamic-loading-of-python-modules
 
     :param name
     :type string
@@ -175,7 +173,7 @@ def my_import(name):
     mod = __import__(name)
     components = name.split('.')
     for comp in components[1:]:
-        mod = getattr(mod, comp)
+        mod = torch.tensorr(mod, comp)
     return mod
 
 def transform_latent_support(latent_vars, dist_to_latent):
@@ -191,7 +189,7 @@ def transform_latent_support(latent_vars, dist_to_latent):
     """
     transforms = {}
     for latent in latent_vars:
-        temp_support = getattr(dists, dist_to_latent[latent]).support
+        temp_support = torch.tensor(dists, dist_to_latent[latent]).support
         if temp_support is not constraints.real:
             transforms[latent_vars] = biject_to(temp_support).inv
     return transforms
