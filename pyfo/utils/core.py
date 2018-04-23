@@ -9,7 +9,6 @@ License: MIT
 '''
 import torch
 import numpy as np
-
 import torch.distributions as dists
 from torch.distributions import constraints, biject_to
 
@@ -33,8 +32,8 @@ class DualAveraging(object):
     References
     [1] `Primal-dual subgradient methods for convex problems`,
     Yurii Nesterov
-    [2] `The No-U-turn sampler: adaptively setorch.tensoring path lengths in Hamiltonian Monte Carlo`,
-    Matorch.tensorhew D. Hoffman, Andrew Gelman
+    [2] `The No-U-turn sampler: adaptively setting path lengths in Hamiltonian Monte Carlo`,
+    Matthew D. Hoffman, Andrew Gelman
     :param float prox_center: A "prox-center" parameter introduced in :math:`[1]`
         which pulls the primal sequence towards it.
     :param float t0: A free parameter introduced in :math:`[2]`
@@ -92,7 +91,7 @@ def VariableCast(value, grad = False, dist=None):
     '''
     if value is None:
         return None
-    elif torch.is_tensor(value):
+    elif isinstance(torch.Tensor, value):
         return torch.tensor(value,requires_grad=grad)
     elif isinstance(value, np.ndarray):
         tensor = torch.from_numpy(value).float()
