@@ -49,7 +49,8 @@ class HMC(MCMC):
     to do the transformation automatically.
     :return:
     '''
-    def __init__(self, step_size=None, step_range= None, num_steps=None, adapt_step_size=False, transforms=None):
+    def __init__(self, step_size=None, step_range= None, num_steps=None, adapt_step_size=False, **kwargs):
+
 
        self.step_size = step_size if step_size is not None else 2
        if step_range is not None:
@@ -63,10 +64,9 @@ class HMC(MCMC):
        self.adapt_step_size = adapt_step_size
        self._target_accept_prob = 0.8
 
-       self.transforms = {} if transforms is not None else False
-       self.automatic_transformed_enbaled = True if transforms is None else False
-       self.initialize()w
-       self.generate_latent_vars()
+
+
+
 
        super(HMC,self).__init__()
 
@@ -181,13 +181,19 @@ class HMC(MCMC):
             p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
         return p
 
-    def sample(self):
+    def sample(self, nsamples= 1000, burnin=100, chains=1, **kwargs):
         '''
+        :param nsamples type: int descript: Specifies how many samples you would like to generate.
+        :param burnin: type: int descript: Specifies how many samples you would like to remove.
+        :param chains :type: int descript: Specifies the number of chains.
+        :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
+        :param dirname :type: str descrip: Path to a directory, where data can be saved.
 
         :return:
         '''
 
         # automatically transform `state` to unconstrained space, if needed.
+
         for key, transform in self.transforms.items():
             state[key] = transform(state[key])
         p = self.momentum_sample()
@@ -214,6 +220,8 @@ class HMC(MCMC):
         for key, transform in self.transforms.items():
             state[key] = transform.inv(state[key])
         return self._get_trace(state)
+
+        # note must return pd.DataFrame[self._all_vars].values
         return 0
 
     def _leapfrog_step(self, x0, p0, stepsize):
