@@ -11,16 +11,20 @@ import torch
 import math
 import inspect
 import warnings
+import pandas as pd
 from pyfo.inference.inference import Inference
 from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
 from pyfo.utils.core import _to_leaf
+from tqdm import tqdm
+import multiprocessing as mp
+import numpy as np
 
 class MCMC(Inference):
     """
 
     """
-    def __int__(self, kernel, model_code, debug_on=False):
+    def __int__(self, kernel, model_code=None, debug_on=False):
         if debug_on:
             self.debug()
         self.kernel = kernel
@@ -38,7 +42,7 @@ class MCMC(Inference):
 
         self.generate_latent_vars()
         self.initialize()
-        self.run_inference(kernel=kernel,nsamples=nsamples,burnin=burnin,chains=chains)
+
     def generate_model(self):
         '''
         Creates an inference algorithm.
@@ -104,7 +108,7 @@ class MCMC(Inference):
                 self._dist_params[vertex.name] = {vertex.distribution_name: vertex.distribution_arguments}
 
 
-    def initialize(self, auto_transform=True):
+    def initialize(self):
         '''
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
@@ -123,10 +127,12 @@ class MCMC(Inference):
             If true, prints out graphical model.
             TODO : Link with a tensorboard style framework
         '''
-
-        self.auto_transform = auto_transform
+        if self.kernel == 'HMC' or self.kernel == 'DHMC':
+            self.auto_transform = True
+        else:
+            self.auto_transform = False
         if self._cont_dists is not None:
-            self.transforms = self.transform_check(self._cont_dists)
+            self.transforms = tls(self._cont_latents,self._cont_dists)
             # Returns {} ff the support does not need to be changed.
         if self._disc_dists is not None:
             self._disc_support
@@ -155,20 +161,57 @@ class MCMC(Inference):
 
 
 
-    def transform_check(self, latent_vars):
-        '''
-        State whether or not the support will need transforming
-        :param latent_vars
-        :return: bool
-        '''
-        self.transforms = tls(self._cont_latents,self._cont_dists)
+    def run_inference(self, nsamples=1000, burnin=100, chains=1,save_data= False, dirname = None, **kwargs):
+            '''
+            The run inference method should be run externally once the class has been created.
+            I.e assume that they have not written there own model.
+
+            hmc = MCMC('HMC')
+            # all of the following kwargs are optional.
+            samples = hmc.run_inference(nsamples=1000,
+                                        burnin=100,
+                                        chains=1,
+                                        step_size=None,
+                                        step_range=None,
+                                        num_steps=None,
+                                        adapt_step_size=False
+                                        save_data= False
+                                        dirname = None)
+
+            It then returns the samples generated from inference. Alternatively you can set a global directory for
+            saving plots and samples generated.
+
+            :param nsamples type: int descript: Specifies how many samples you would like to generate.
+            :param burnin: type: int descript: Specifies how many samples you would like to remove.
+            :param chains :type: int descript: Specifies the number of chains.
+            :param step_size: :type: float descript: Specifies the sized step in inference.
+            :param step_range: :type: list descript: A length-2 list of a lower bound and upper bound. i.e step_range =[5,10]
+            :param num_steps :type: int descript: The trajectory length of the inference algorithm
+            :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
+            :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
+            :param dirname :type: str descrip: Path to a directory, where data can be saved.
+
+            :return: samples, :type pandas.dataframe
+
+            '''
+            AVAILABLE_CPUS = mp.cpu_count()
+            # TODO: Implement a function to count number of latent variables on which inference is performed. May just be len(self._all_vars)
+            def run_sampler(nsamples, burnin, chain):
+                samples = pd.DataFrame(np.zeros((nsamples+burnin,nlatents), columns=self._all_vars))
+                for ii in tqdm(range(nsamples+burnin)):
+                    samples.loc[:,self._all_vars] = self._instance_of_kernel.sample(nsamples, burnin)
+                    #TODO save continuously as samples are generated using save_data and dir_name and chain_numb
+
+            self._instance_of_kernel = self.kernel(kwargs)
+            if chains > 1:
+                pool = mp.Pool(processes=AVAILABLE_CPUS)
+                samples = [pool.apply_async(run_sampler, args=(nsamples, burnin, chain), kwargs=kwargs) for chain in range(chains)]  #runs multiple chains in parallel
+                samples = [chain.get() for chain in samples]
+            else:
+                samples = run_sampler(nsamples, burnin) # runs a single chain
 
 
-    def run_inference(self, nsamples=1000,burnin=100,chains=1):
-        '''
 
-        :return:
-        '''
 
     def __grad_logp(self, logp, param):
         """
