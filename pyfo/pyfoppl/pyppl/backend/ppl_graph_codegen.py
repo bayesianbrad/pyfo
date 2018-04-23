@@ -187,6 +187,9 @@ class GraphCodeGenerator(object):
     def get_vars(self):
         return "return [v.name for v in self.vertices if v.is_sampled]"
 
+    def is_torch_imported(self):
+        return "import sys \nprint('torch' in sys.modules) \nprint(torch.__version__) \nprint(type(torch.tensor)) \nimport inspect \nprint(inspect.getfile(torch))"
+
     def _gen_code(self, buffer: list, code_for_vertex, *, want_data_node: bool=True, flags=None):
         distribution = None
         state = self.state_object
@@ -227,9 +230,9 @@ class GraphCodeGenerator(object):
         def code_for_vertex(name: str, node: Vertex):
             cond_code = node.get_cond_code(state_object=self.state_object)
             if cond_code is not None:
-                result = cond_code + "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
+                result = cond_code + "log_pdf = log_pdf + dst_.log_pdf({}).sum()".format(name)
             else:
-                result = "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
+                result = "log_pdf = log_pdf + dst_.log_pdf({}).sum()".format(name)
             if self.logpdf_suffix is not None:
                 result += self.logpdf_suffix
             return result
