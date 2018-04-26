@@ -121,8 +121,9 @@ for param in model_compiled.get_vars():
     print(distribtuion_params[param].keys())
     print(50*'=')
 
-
+# x = model_compiled.gen_prior_samples()
 print(model_compiled.gen_prior_samples())
 # print(dir(model_compiled))
 print(50 * '=')
+model_compiled.is_torch_imported()
 

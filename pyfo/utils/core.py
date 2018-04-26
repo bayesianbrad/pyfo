@@ -91,7 +91,7 @@ def VariableCast(value, grad = False, dist=None):
     '''
     if value is None:
         return None
-    elif isinstance(torch.Tensor, value):
+    elif isinstance(value,torch.Tensor):
         return torch.tensor(value,requires_grad=grad)
     elif isinstance(value, np.ndarray):
         tensor = torch.from_numpy(value).float()
