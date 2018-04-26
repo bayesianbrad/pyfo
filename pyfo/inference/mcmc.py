@@ -84,9 +84,9 @@ class MCMC(Inference):
         self._vertices = self.model.get_vertices()
         # A list of all observables
         self.observables = dict([(vertex.name, vertex.observation) for vertex in self._vertices if vertex.is_observed])
-        # a list of all vars
+        # a list of all latent vars
         self._all_vars = [vertex.name for vertex in self._vertices if vertex.is_sampled]
-
+        self._number_of_latents = len(self._all_vars)
         # distribution type of each latent variable, used for the bijections and embeddings
         self._cont_dists = dict([(vertex.name, vertex.distribution_name) for vertex in self._vertices if
                                  (vertex.is_continuous and vertex.name in self._all_vars)])
@@ -161,7 +161,7 @@ class MCMC(Inference):
 
 
 
-    def run_inference(self, nsamples=1000, burnin=100, chains=1,save_data= False, dirname = None, **kwargs):
+    def run_inference(self, nsamples=1000, burnin=100, chains=1, **kwargs):
             '''
             The run inference method should be run externally once the class has been created.
             I.e assume that they have not written there own model.
@@ -197,7 +197,7 @@ class MCMC(Inference):
             AVAILABLE_CPUS = mp.cpu_count()
             # TODO: Implement a function to count number of latent variables on which inference is performed. May just be len(self._all_vars)
             def run_sampler(nsamples, burnin, chain):
-                samples = pd.DataFrame(np.zeros((nsamples+burnin,nlatents), columns=self._all_vars))
+                samples = pd.DataFrame(np.zeros((nsamples+burnin, self._number_of_latents), columns=self._all_vars))
                 for ii in tqdm(range(nsamples+burnin)):
                     samples.loc[:,self._all_vars] = self._instance_of_kernel.sample(nsamples, burnin)
                     #TODO save continuously as samples are generated using save_data and dir_name and chain_numb
