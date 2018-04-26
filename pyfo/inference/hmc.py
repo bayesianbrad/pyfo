@@ -64,6 +64,7 @@ class HMC(MCMC):
        self.adapt_step_size = adapt_step_size
        self._target_accept_prob = 0.8
 
+       self.kwargs = kwargs # see pyfo.inference.mcmc.run_inference() for more details
 
 
 
@@ -138,9 +139,10 @@ class HMC(MCMC):
     def _kinetic(self, p):
         """
 
-        :param p:
-        :return:
+        :param p: type: torch.tensor descrip: momentum
 
+        :return: scalar of kinetic energy
+        TODO Implement for batching chains
         """
 
         return 0.5 * torch.sum(torch.stack([torch.dot(p[key], p[key]) for key in self._cont_latents]))
@@ -150,14 +152,14 @@ class HMC(MCMC):
 
         for key, transform in self.transforms.items():
             state_constrained[key] = transform.inv(state_constrained[key])
-        potential_energy = self.__generate_log_pdf(state_constrained, set_leafs=set_leafs)
+        potential_energy = -self.__generate_log_pdf(state_constrained, set_leafs=set_leafs)
         # adjust by the jacobian for this transformation.
         for key, transform in self.transforms.items():
             potential_energy = potential_energy + transform.log_abs_det_jacobian(state_constrained[key],
                                                                                      state[key]).sum()
         return potential_energy
 
-    def _energy(self, state, p, cont_keys):
+    def _energy(self, state, p, cont_latents):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
         :param state:  Dictionary of full program state
@@ -166,19 +168,16 @@ class HMC(MCMC):
         :return: Tensor
         """
 
-        potential_energy = -self.__potential_energy(x)
 
-        return self._kinetic_energy + potential_energy
 
+        return self._kinetic_energy(p) + self._potential_energy(state)
     def momentum_sample(self):
         """
         Constructs a momentum dictionary for contin
         and for continous keys we have gaussian
         :return:
         """
-        p = {}
-        for key in self._cont_keys:
-            p[key] = VariableCast(self.M * np.random.randn(self._sample_sizes[key]))
+        p = dict([[key, VariableCast(self.M * np.random.randn(self._sample_sizes[key]))] for key in self._cont_latents])
         return p
 
     def sample(self, nsamples= 1000, burnin=100, chains=1, **kwargs):
@@ -246,14 +245,14 @@ class HMC(MCMC):
         p = copy.copy(p0)
         # perform first step of leapfrog integrators
         logp = self.__generate_pdf(x, set_leafs=True)
-        for key in self._cont_keys:
+        for key in self._cont_latents:
             p[key] = p[key] + 0.5*stepsize*self.__grad_logp(logp,x[key])
 
 
-        for key in self._cont_keys:
+        for key in self._cont_latents:
             x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
         logp = self.__generate_pdf(x, set_leafs=True)
-        for key in self._cont_keys:
+        for key in self._cont_latents:
             p[key] = p[key] + 0.5*stepsize*self.____grad_logp(logp,x[key])
         return x, p, logp
 
