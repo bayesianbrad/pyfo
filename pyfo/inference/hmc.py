@@ -177,7 +177,7 @@ class HMC(MCMC):
         and for continous keys we have gaussian
         :return:
         """
-        p = dict([[key, VariableCast(self.M * np.random.randn(self._sample_sizes[key]))] for key in self._cont_latents])
+        p = dict([[key, torch.randn(data=torch.size(state[key]))] for key in self._cont_latents])
         return p
 
     def sample(self, nsamples= 1000, burnin=100, chains=1, **kwargs):
