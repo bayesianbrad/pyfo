@@ -8,6 +8,7 @@ License: MIT
 '''
 import time
 from pyfo.pyfoppl.pyppl import compile_model
+
 model="""import torch
 
 n = 50
@@ -28,40 +29,18 @@ x1  = sample(normal(torch.tensor([0,2]), torch.tensor([1,4])))
 x2 = sample(normal(torch.tensor([0,5]), torch.tensor([2,4])))
 
 observations = torch.ones(len(x2))
-# this could get potentially tricky. As although we are performing an ''if'' statement over a vector, we have no
-# explict 'if-then-else' statements.
-# it may be wise to have, in addition to oberve and sample statements and if statement in which the user writes,
-#  if x1 > 0:
-#       do something
-# else:
-#       do something
-# and unpack this within the model as follows
+
 
 boolean = torch.gt(x1, 0)
 truth_index = boolean.nonzero() # indices for which the statement is true
 false_index = (boolean==0).nonzero() # indices for which the statements are false.
 
-# These may be able to vectorized further
 observe(normal(x2[boolean.nonzero()], 1*torch.tensor(len(x2[boolean.nonzero()]))),observations[boolean.nonzero()])
 observe(normal(-1*torch.tensor(len(x2[(boolean==0).nonzero()])), torch.tensor(len(x2[(boolean==0).nonzero()]))), observations[(boolean==0).nonzero()])
 """
 
 model_gmm2 = """
 import torch
-
-# def sample_components(pi):
-#     return sample(categorical(pi))
-#
-# def observe_data(y, z, mus):
-#     mu = mus[z]
-#     observe(normal(mu, 2), y)
-#
-# ys = [-2.0, -2.5, -1.7, -1.9, -2.2, 1.5, 2.2, 3.0, 1.2, 2.8]
-# pi = [0.5, 0.5]
-# zs = map(sample_components, pi * 10)
-# mus = [sample(normal(0, 2)), sample(normal(0, 2))]
-# for y, z in interleave(ys, zs):
-#     observe_data(y, z, mus)
 
 means  = 10
 samples  = 20
@@ -78,8 +57,87 @@ for i in range(len(pi)):
     observe(normal(mus[i]*torch.ones(len(index)), 2*torch.ones(len(index))), ys[index])
 """
 
+neural_network = """
+import torch
 
-model_compiled = compile_model(model_gmm2)
+#
+# latent_dim = 2
+# hidden_dim = 10
+# output_dim = 5
+#
+# def gaussian():
+#     return sample(normal(0.0, 1.0))
+#
+# def make_latent_vector():
+#     return [gaussian() for _ in range(latent_dim)]
+#
+# def make_hidden_vector():
+#     return [gaussian() for _ in range(hidden_dim)]
+#
+# def make_output_vector():
+#     return [gaussian() for _ in range(output_dim)]
+#
+# def relu(v):
+#     return matrix.mul(matrix.ge(v, 0.0), v)
+#
+# def sigmoid(v):
+#     return matrix.div(1.0, matrix.add(1.0, matrix.exp(matrix.sub(0.0, v))))
+#
+# def flip(i, p):
+#     return sample(binomial(p[i]))
+#
+# z = make_latent_vector()
+# W = [make_latent_vector() for _ in range(hidden_dim)]
+# b = make_hidden_vector()
+# h = relu(matrix.add(matrix.mmul(W, z), b))
+#
+# V = [make_hidden_vector() for _ in range(output_dim)]
+# c = make_output_vector()
+#
+# result = []
+# for i in range(output_dim):
+#     result.append( flip(i, sigmoid(matrix.add(matrix.mmul(V, h), c))) )
+
+
+latent_dim = 2
+hidden_dim = 10
+output_dim = 5
+
+def gaussian(n_samples):
+    return sample(normal(0.0*torch.ones(n_samples), 1.0*torch.ones(n_samples)))
+
+def make_latent_vector():
+    return gaussian(latent_dim)
+
+def make_hidden_vector():
+    return gaussian(hidden_dim)
+
+def make_output_vector():
+    return gaussian(output_dim)
+
+def relu(v):
+    relu = torch.nn.ReLU()
+    return relu(v)
+
+def sigmoid(v):
+    return torch.sigmoid(v)
+
+def flip(i, probs):
+    return sample(binomial(total_count=i,probs=probs))
+
+z = make_latent_vector()
+W = torch.stack([make_latent_vector() for _ in range(hidden_dim)], dim=1) # Creates a tenssor of dims latent_dim x hidden_dim (2 x10)
+b = make_hidden_vector() #(10)
+h = relu(torch.mm(W.t(), z.unsqueeze(-1))+ b) # (10 x 2 * 2 x 1 + 10) --> 10 x 1
+
+V = torch.stack([make_hidden_vector() for _ in range(output_dim)], dim=1) # 10 x 5
+c = make_output_vector() # 5
+
+result = []
+# unclear from original model.
+result.append( flip(1, probs=sigmoid(torch.mm(V.t(), h) + c)))"""
+
+model_compiled = compile_model(neural_network)
 st = time.time()
 print(model_compiled.code)
 end = time.time()
