@@ -15,7 +15,7 @@ import pandas as pd
 from pyfo.inference.inference import Inference
 from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
-from pyfo.utils.core import _to_leaf
+from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy
 from tqdm import tqdm
 import multiprocessing as mp
 import numpy as np
@@ -197,9 +197,16 @@ class MCMC(Inference):
             AVAILABLE_CPUS = mp.cpu_count()
 
             def run_sampler(nsamples, burnin, chain):
-                samples = pd.DataFrame(np.zeros((nsamples+burnin, self._number_of_latents), columns=self._all_vars))
+                # samples = pd.DataFrame(np.zeros((nsamples+burnin, self._number_of_latents), columns=self._all_vars))
+                samples_dict = []
+
                 for ii in tqdm(range(nsamples+burnin)):
-                    samples.loc[:,self._all_vars] = self._instance_of_kernel.sample(nsamples, burnin)
+                    sample = self._instance_of_kernel.sample()
+                    samples_dict.append(convert_dict_vars_to_numpy(sample,self._all_vars))
+                samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float)
+                samples.rename(columns=self._names, inplace=True)
+                return samples
+
                     #TODO save continuously as samples are generated using save_data and dir_name and chain_numb
 
             self._instance_of_kernel = self.kernel(kwargs)
