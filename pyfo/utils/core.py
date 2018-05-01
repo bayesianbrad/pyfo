@@ -205,3 +205,17 @@ def _to_leaf(self, state):
         state[key] = VariableCast(tmp.data, grad=True)
         # state[key] = VariableCast(state[key].data, grad=True)
     return state
+
+def convert_dict_vars_to_numpy(self, state, latent_vars ):
+    """
+
+    :param state: Information on the whole state. Likely to be torch objects
+    :param latent_vars:  type: str descript: A list of the latent variables in the state.
+    :return: the torch latent variables converted to numpy arrays
+
+    Converts variables in stat to numpy arrays for plotting purposes
+    """
+    for latent in self.all_vars:
+        state[latent] =  state[latent].numpy()
+        # state[i] = state[i].data.numpy()
+    return state
