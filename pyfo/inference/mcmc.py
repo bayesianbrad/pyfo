@@ -139,7 +139,7 @@ class MCMC(Inference):
         if self.transforms:
             self.state = self.model.gen_prior_samples()
             self._gen_log_pdf = self.model.gen_pdf
-        else:
+        else: # The following is redundant for now.
             self.state  = self.model.gen_prior_samples_transformed()
             self._gen_log_pdf = self.model.gen_pdf_transformed
 
@@ -167,14 +167,14 @@ class MCMC(Inference):
             I.e assume that they have not written there own model.
 
             hmc = MCMC('HMC')
-            # all of the following kwargs are optional.
+            # all of the following kwargs are optional and kernel dependent.
             samples = hmc.run_inference(nsamples=1000,
                                         burnin=100,
                                         chains=1,
                                         step_size=None,
-                                        step_range=None,
                                         num_steps=None,
-                                        adapt_step_size=False
+                                        adapt_step_size=False,
+                                        trajectory_length = None,
                                         save_data= False
                                         dirname = None)
 
@@ -185,9 +185,9 @@ class MCMC(Inference):
             :param burnin: type: int descript: Specifies how many samples you would like to remove.
             :param chains :type: int descript: Specifies the number of chains.
             :param step_size: :type: float descript: Specifies the sized step in inference.
-            :param step_range: :type: list descript: A length-2 list of a lower bound and upper bound. i.e step_range =[5,10]
             :param num_steps :type: int descript: The trajectory length of the inference algorithm
             :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
+            :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps
             :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
             :param dirname :type: str descrip: Path to a directory, where data can be saved.
 
@@ -195,7 +195,7 @@ class MCMC(Inference):
 
             '''
             AVAILABLE_CPUS = mp.cpu_count()
-            # TODO: Implement a function to count number of latent variables on which inference is performed. May just be len(self._all_vars)
+
             def run_sampler(nsamples, burnin, chain):
                 samples = pd.DataFrame(np.zeros((nsamples+burnin, self._number_of_latents), columns=self._all_vars))
                 for ii in tqdm(range(nsamples+burnin)):
