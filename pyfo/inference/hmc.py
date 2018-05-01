@@ -18,7 +18,10 @@ import torch
 import copy
 import torch.distributions as dists
 from torch.autograd import Variable
-from torch.distributions import constraints
+from torch.distributions import constraints, biject_to
+import pyfo.distributions as dist
+
+
 # the state interacts with the interface, where ever that is placed....
 from pyfo.utils import state
 from pyfo.utils.core import VariableCast
@@ -27,7 +30,6 @@ from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
 from pyfo.inference.mcmc import MCMC
 from pyfo.utils.core import DualAveraging
-
 
 class HMC(MCMC):
     '''
@@ -49,17 +51,17 @@ class HMC(MCMC):
     to do the transformation automatically.
     :return:
     '''
-    def __init__(self, step_size=None, step_range= None, num_steps=None, adapt_step_size=False, **kwargs):
+    def __init__(self, step_size=None,  num_steps=None, adapt_step_size=False, trajectory_length=None, **kwargs):
 
 
        self.step_size = step_size if step_size is not None else 2
-       if step_range is not None:
-           self.step_range = step_range
+       if trajectory_length is not None:
+           self.trajectory_length = trajectory_length
        elif num_steps is not None:
-           self.step_range = self.step_size * num_steps
+           self.trajectory_length = self.step_size * num_steps
        else:
-           self.step_range = 2* math.pi
-       self.num_steps = max(1, int(self.num_steps / self.step_size))
+           self.trajectory_length = 2 * math.pi  # from Stan
+       self.num_steps = max(1, int(self.trajectory_length / self.step_size))
 
        self.adapt_step_size = adapt_step_size
        self._target_accept_prob = 0.8
@@ -83,7 +85,7 @@ class HMC(MCMC):
         # then we have to decrease step_size; otherwise, increase step_size.
         p = self.momentum_sample()
         energy_current = self._energy(state, p)
-        state_new, p_new, potential_energy = self.leapfrog_step(state, p, self._potential_energy(state), step_size)
+        state_new, p_new, potential_energy = self.leapfrog_step(state, p, step_size)
         energy_new = potential_energy + self._kinetic_energy(p_new)
         delta_energy = energy_new - energy_current
         # direction=1 means keep increasing step_size, otherwise decreasing step_size
@@ -113,13 +115,12 @@ class HMC(MCMC):
 
     def setup(self, state):
 
-        for name, node in sorted(trace.iter_stochastic_nodes(), key=lambda x: x[0]):
-            r_loc = torch.zeros_like(node["value"])
-            r_scale = torch.ones_like(node["value"])
-            self._r_dist[name] = dist.Normal(loc=r_loc, scale=r_scale)
-            if node["fn"].support is not constraints.real and self._automatic_transform_enabled:
-                self.transforms[name] = biject_to(node["fn"].support).inv
-        self._validate_trace(trace)
+        for name in self._cont_latents:
+            p_loc = torch.zeros(state[name].size())
+            p_scale = torch.ones(state[name].size())
+            self._p[name] = dist.Normal(loc=p_loc, scale=p_scale)
+            if self.transforms[name].support is not constraints.real and self._automatic_transform_enabled:
+                self.transforms[name] = biject_to(state[name].support).inv #TODO: Go over this with a fine comb.
 
         if self.adapt_step_size:
             for name, transform in self.transforms.items():
@@ -164,7 +165,7 @@ class HMC(MCMC):
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
         :param state:  Dictionary of full program state
         :param p:  Dictionary of momentum
-        :param cont keys: list of continous keys within state
+        :param cont keys: list of continuous keys within state
         :return: Tensor
         """
 
@@ -177,10 +178,10 @@ class HMC(MCMC):
         and for continous keys we have gaussian
         :return:
         """
-        p = dict([[key, torch.randn(data=torch.size(state[key]))] for key in self._cont_latents])
+        p = dict([[key, torch.randn(state[key].size())] for key in self._cont_latents])
         return p
 
-    def sample(self, nsamples= 1000, burnin=100, chains=1, **kwargs):
+    def sample(self, state, nsamples= 1000, burnin=100, chains=1, **kwargs):
         '''
         :param nsamples type: int descript: Specifies how many samples you would like to generate.
         :param burnin: type: int descript: Specifies how many samples you would like to remove.
@@ -195,16 +196,14 @@ class HMC(MCMC):
 
         for key, transform in self.transforms.items():
             state[key] = transform(state[key])
-        p = self.momentum_sample()
-        state_new, p_new = velocity_verlet(state, p,
-                                       self._potential_energy,
-                                       self.step_size,
-                                       self.num_steps)
+        p0 = self.momentum_sample()
+        state_new, p_new = self._leapfrog_step(state, p0,
+                                       self.step_size, self.num_steps)
         # apply Metropolis correction.
         energy_proposal = self._energy(state_new, p_new)
-        energy_current = self._energy(state, p)
+        energy_current = self._energy(state, p0)
         delta_energy = energy_proposal - energy_current
-        rand = pyro.sample('rand_t='.format(self._t), dist.Uniform(ng_zeros(1), ng_ones(1)))
+        rand = np.random.uniform(0,1)
         if rand < (-delta_energy).exp():
             self._accept_cnt += 1
             state = state_new
@@ -218,21 +217,20 @@ class HMC(MCMC):
         # get trace with the constrained values for `state`.
         for key, transform in self.transforms.items():
             state[key] = transform.inv(state[key])
-        return self._get_trace(state)
+        return state
 
         # note must return pd.DataFrame[self._all_vars].values
         return 0
 
-    def _leapfrog_step(self, x0, p0, stepsize):
+    def _leapfrog_step(self, state, p, stepsize):
         """
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
 
-        :param x: Type dictionary
-        :param p: Type dictionary
-        :param stepsize:
-        :param log_grad:
-        :param n_disc:
+        :param x: type: dictionary descript: represents the state of the system (all the latents variables and observable
+        quantities.
+        :param p: type: dictionary descript: represents the momentum for each latent variable
+        :param stepsize: type: float
         :return: x, p the proposed values as dict.
         """
 
@@ -240,20 +238,18 @@ class HMC(MCMC):
         n_feval = 0
         n_fupdate = 0
 
-        #performs shallow copy
-        x = copy.copy(x0)
-        p = copy.copy(p0)
         # perform first step of leapfrog integrators
-        logp = self.__generate_pdf(x, set_leafs=True)
-        for key in self._cont_latents:
-            p[key] = p[key] + 0.5*stepsize*self.__grad_logp(logp,x[key])
+        for i in range(self.num_steps):
+            logp = self.__generate_log_pdf(state, set_leafs=True)
+            for key in self._cont_latents:
+                p[key] = p[key] + 0.5*stepsize*self.__grad_logp(logp,state[key])
 
 
-        for key in self._cont_latents:
-            x[key] = x[key] + stepsize*self.M * p[key] # full step for postions
-        logp = self.__generate_pdf(x, set_leafs=True)
-        for key in self._cont_latents:
-            p[key] = p[key] + 0.5*stepsize*self.____grad_logp(logp,x[key])
-        return x, p, logp
+            for key in self._cont_latents:
+                state[key] = state[key] + stepsize*self.M * p[key] # full step for postions
+            logp = self.__generate_pdf(state, set_leafs=True)
+            for key in self._cont_latents:
+                p[key] = p[key] + 0.5*stepsize*self.____grad_logp(logp,[key])
+        return state, p, logp
 
 
