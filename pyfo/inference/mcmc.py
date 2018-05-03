@@ -19,6 +19,10 @@ from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy
 from tqdm import tqdm
 import multiprocessing as mp
 import numpy as np
+import sys
+import os
+import msgpack as mpa
+import datetime
 
 class MCMC(Inference):
     """
@@ -189,22 +193,52 @@ class MCMC(Inference):
             :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
             :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps
             :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
-            :param dirname :type: str descrip: Path to a directory, where data can be saved.
+            :param dirname :type: str descrip: Path to a directory, where data can be saved. Default is the directory in
+            which the code is run.
 
             :return: samples, :type pandas.dataframe
 
             '''
             AVAILABLE_CPUS = mp.cpu_count()
 
-            def run_sampler(nsamples, burnin, chain):
+            def run_sampler(nsamples, burnin, chain, save_data=False, dir_name=sys.path[0]):
                 # samples = pd.DataFrame(np.zeros((nsamples+burnin, self._number_of_latents), columns=self._all_vars))
                 samples_dict = []
+                if save_data:
+                    dir_name = os.path.join(dir_name,'samples')
+                    os.makedirs(dir_name)
+                    UNIQUE_ID = np.random.randint(0,100)
+                    sname = dir_name + 'samles_' + str(UNIQUE_ID)
+                    for ii in tqdm(range(nsamples+burnin)):
+                        sample = self._instance_of_kernel.sample()
+                        # this is going to be computationally expensive.
+                        #
+                        # TODO: create a more effiecent way to do this, ideally store all variables
+                        # then covert all samples at the end.
+                        samples_dict.append(sample)
+                        # TODO: Save the samples to the unique file name and continue to rewrite. Check the arguments of the
+                        # below function.
+                        pd.to_msgpack(sname, samples_dict)
+                        #TODO: if the fucntion  is setopped for whatever reason, trigger a separate function that takes
+                        # the saved msg, upacks it and returns the dataframe with correct
+                        # latent variable names.
 
-                for ii in tqdm(range(nsamples+burnin)):
-                    sample = self._instance_of_kernel.sample()
-                    samples_dict.append(convert_dict_vars_to_numpy(sample,self._all_vars))
-                samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float)
-                samples.rename(columns=self._names, inplace=True)
+                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
+                            columns=self._names, inplace=True)\
+                    # add save statement here.
+
+                else:
+                    for ii in tqdm(range(nsamples+burnin)):
+                        sample = self._instance_of_kernel.sample()
+                        samples_dict.append(sample)
+                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
+                        columns=self._names, inplace=True)
+
+                # convert_to_numpy or just write own function for processing a dataframe full of
+                # tensors?
+
+
+                # samples.rename(columns=self._names, inplace=True) the above may not work.
                 return samples
 
                     #TODO save continuously as samples are generated using save_data and dir_name and chain_numb
