@@ -144,21 +144,11 @@ class dhmc(HMC):
         :param cont keys: list of continous keys within state
         :return: Tensor
         """
-        if self._disc_keys is not None:
-            kinetic_disc = torch.sum(
-                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys]))
-        else:
-            kinetic_disc = VariableCast(0)
-        if self._cont_keys is not None:
-            kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys]))
-        else:
-            kinetic_cont = VariableCast(0)
-        if self._if_keys is not None:
-            kinetic_if = torch.sum(
-                torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._if_keys]))
-        else:
-            kinetic_if = VariableCast(0)
+        kinetic_disc = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys])) if self._disc_keys is not None else 0
+        kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys])) if self._cont_keys is not None else 0
+        kinetic_if = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._if_keys])) if self._if_keys is not None else 0
+
         kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if
-        potential_energy = -self.log_posterior(x)
+        potential_energy = -self.log_posterior(state)
 
         return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
