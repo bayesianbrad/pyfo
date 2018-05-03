@@ -23,6 +23,7 @@ import sys
 import os
 import msgpack as mpa
 import datetime
+import pickle
 
 class MCMC(Inference):
     """
@@ -129,7 +130,7 @@ class MCMC(Inference):
         :param debug:
             type: bool
             If true, prints out graphical model.
-            TODO : Link with a tensorboard style framework
+
         '''
         if self.kernel == 'HMC' or self.kernel == 'DHMC':
             self.auto_transform = True
@@ -139,7 +140,7 @@ class MCMC(Inference):
             self.transforms = tls(self._cont_latents,self._cont_dists)
             # Returns {} ff the support does not need to be changed.
         if self._disc_dists is not None:
-            self._disc_support
+            self._disc_support =
         if self.transforms:
             self.state = self.model.gen_prior_samples()
             self._gen_log_pdf = self.model.gen_pdf
@@ -162,6 +163,10 @@ class MCMC(Inference):
         print(50 * '=')
         print('\n Now generating graph code \n {}'.format(self.model))
         print(50 * '=')
+
+        print(50 * '=')
+        print('\n Outputting the probabilistic graphical model ')
+        model_graph = self.model.display_graph()
 
 
 
@@ -205,43 +210,46 @@ class MCMC(Inference):
                 # samples = pd.DataFrame(np.zeros((nsamples+burnin, self._number_of_latents), columns=self._all_vars))
                 samples_dict = []
                 if save_data:
-                    dir_name = os.path.join(dir_name,'samples')
-                    os.makedirs(dir_name)
+                    dir_n = os.path.join(dir_name,'results')
+                    os.makedirs(dir_name, exists_ok= True)
                     UNIQUE_ID = np.random.randint(0,100)
-                    sname = dir_name + 'samles_' + str(UNIQUE_ID)
-                    for ii in tqdm(range(nsamples+burnin)):
-                        sample = self._instance_of_kernel.sample()
+                    snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + chain + '.pickle')
+                    snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + chain)
+                    # Generates prior sample - the initliaziation of the state
+                    sample= self.state
+                    samples_dict.append(sample)
+                    print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
+                    for ii in tqdm(range(nsamples+burnin - 1)):
+                        sample = self._instance_of_kernel.sample(sample)
                         # this is going to be computationally expensive.
-                        #
-                        # TODO: create a more effiecent way to do this, ideally store all variables
-                        # then covert all samples at the end.
                         samples_dict.append(sample)
-                        # TODO: Save the samples to the unique file name and continue to rewrite. Check the arguments of the
-                        # below function.
-                        pd.to_msgpack(sname, samples_dict)
-                        #TODO: if the fucntion  is setopped for whatever reason, trigger a separate function that takes
+                        with open(snamepick, 'wb') as handle:
+                            pickle.dump(samples_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+                        #TODO: if the fucntion  is stopped for whatever reason, trigger a separate function that takes
                         # the saved msg, upacks it and returns the dataframe with correct
                         # latent variable names.
 
                     samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                            columns=self._names, inplace=True)\
-                    # add save statement here.
+                            columns=self._names, inplace=True)
+                    print(50*'=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
+                    samples.to_csv(snamepd, index=False, header=True)
 
                 else:
-                    for ii in tqdm(range(nsamples+burnin)):
-                        sample = self._instance_of_kernel.sample()
+                    for ii in tqdm(range(nsamples+burnin - 1)):
+                        sample = self._instance_of_kernel.sample(sample)
                         samples_dict.append(sample)
                     samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
                         columns=self._names, inplace=True)
 
                 # convert_to_numpy or just write own function for processing a dataframe full of
-                # tensors?
+                # tensors? May try the later approach
+                # Note : The pd.dataframes contain torch.tensors
 
 
                 # samples.rename(columns=self._names, inplace=True) the above may not work.
                 return samples
 
-                    #TODO save continuously as samples are generated using save_data and dir_name and chain_numb
 
             self._instance_of_kernel = self.kernel(kwargs)
             if chains > 1:
