@@ -181,7 +181,7 @@ class HMC(MCMC):
         p = dict([[key, torch.randn(state[key].size())] for key in self._cont_latents])
         return p
 
-    def sample(self, state, nsamples= 1000, burnin=100, chains=1, **kwargs):
+    def sample(self, state, **kwargs):
         '''
         :param nsamples type: int descript: Specifies how many samples you would like to generate.
         :param burnin: type: int descript: Specifies how many samples you would like to remove.
