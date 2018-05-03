@@ -10,6 +10,7 @@ License: MIT
 import torch
 import copy
 import math
+import torch.distributions as dist
 from pyfo.utils.unembed import Unembed
 from pyfo.inference.hmc import HMC
 from pyfo.utils.core import _to_leaf, VariableCast
@@ -18,7 +19,7 @@ class dhmc(HMC):
     def __init__(self, support_size):
 
         self._unembed_state = Unembed(support_size)
-        super(dhmc,self).__init__()
+        super(HMC,self).__init__()
 
     def __generate_log_pdf(self, state, set_leafs=False, unembed=False, partial_unembed=False, key=None):
         """
@@ -86,6 +87,7 @@ class dhmc(HMC):
         "Multinomial", - x_{i} \in {0,\dots ,n\}, i \in {0,\dots ,k-1} where sum(x_{i}) =n }
         "Poisson" - x_{i} \in {0,\dots ,+inf}  where x_{i} \in \mathbb{Z}^{+}
 
+        TODO: ensure that the correct logpdf is being calculated
         """
         dist_name = 'unembed_' + self._disc_dist[key]
         unembed_var = getattr(self._unembed_state, dist_name)(state, key)
@@ -118,7 +120,23 @@ class dhmc(HMC):
             state = getattr(self._unembed_state, dist_name)(state, key)
         return state
 
-    def _energy(self, x, p, cont_keys):
+    def momentum_sample(self, state):
+        '''
+        Generates either Laplacian or gaussian momentum dependent upon problem set-up
+
+        :return:
+        '''
+        p = {}
+        p_cont = dict([[key, dist.Normal(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._cont_latents]) if self._cont_latents is not None else {}
+        p_disc = dict([[key, dist.Laplace(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._disc_latents]) if self._disc_latents is not None else {}
+        p_if = dict([[key, dist.Laplace(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._if_latents]) if self._if_latents is not None else {}
+        # quicker than using dict then update.
+        p.update(p_cont)
+        p.update(p_disc)
+        p.update(p_if)
+        return p
+
+    def _energy(self, state, p, cont_keys):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
         :param x:  Dictionary of full program state
