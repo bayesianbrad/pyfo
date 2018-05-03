@@ -172,7 +172,7 @@ class HMC(MCMC):
 
 
         return self._kinetic_energy(p) + self._potential_energy(state)
-    def momentum_sample(self):
+    def momentum_sample(self, state):
         """
         Constructs a momentum dictionary for contin
         and for continous keys we have gaussian
@@ -214,13 +214,10 @@ class HMC(MCMC):
 
         self._t += 1
 
-        # get trace with the constrained values for `state`.
+        # Return the unconstrained values for `state` to the constrianed values for 'state'.
         for key, transform in self.transforms.items():
             state[key] = transform.inv(state[key])
         return state
-
-        # note must return pd.DataFrame[self._all_vars].values
-        return 0
 
     def _leapfrog_step(self, state, p, stepsize):
         """
