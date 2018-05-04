@@ -67,7 +67,7 @@ class HMC(MCMC):
        self._target_accept_prob = 0.8
 
        self.kwargs = kwargs # see pyfo.inference.mcmc.run_inference() for more details
-
+       self.setup()
 
 
 
@@ -86,7 +86,7 @@ class HMC(MCMC):
         p = self.momentum_sample()
         energy_current = self._energy(state, p)
         state_new, p_new, potential_energy = self.leapfrog_step(state, p, step_size)
-        energy_new = potential_energy + self._kinetic_energy(p_new)
+        energy_new = potential_energy + self._kinetic_energy_energy(p_new)
         delta_energy = energy_new - energy_current
         # direction=1 means keep increasing step_size, otherwise decreasing step_size
         direction = 1 if target_accept_logprob < -delta_energy else -1
@@ -100,7 +100,7 @@ class HMC(MCMC):
             step_size = step_size_scale * step_size
             state_new, p_new, potential_energy = self._leapfrog_step(
                 state, p, self._potential_energy(state), step_size)
-            energy_new = potential_energy + self._kinetic_energy(p_new)
+            energy_new = potential_energy + self._kinetic_energy_energy(p_new)
             delta_energy = energy_new - energy_current
             direction_new = 1 if target_accept_logprob < -delta_energy else -1
         return step_size
@@ -131,13 +131,16 @@ class HMC(MCMC):
             loc = math.log(10 * self.step_size)
             self._adapted_scheme = DualAveraging(prox_center=loc)
 
+        self.end_warmup()
+
     def end_warmup(self):
         if self.adapt_step_size:
             self.adapt_step_size = False
             _, log_step_size_avg = self._adapted_scheme.get_state()
             self.step_size = math.exp(log_step_size_avg)
             self.num_steps = max(1, int(self.trajectory_length / self.step_size))
-    def _kinetic(self, p):
+
+    def _kinetic_energy(self, p):
         """
 
         :param p: type: torch.tensor descrip: momentum
@@ -171,7 +174,7 @@ class HMC(MCMC):
 
 
 
-        return self._kinetic_energy(p) + self._potential_energy(state)
+        return self._kinetic_energy_energy(p) + self._potential_energy(state)
     def momentum_sample(self, state):
         """
         Constructs a momentum dictionary for contin
