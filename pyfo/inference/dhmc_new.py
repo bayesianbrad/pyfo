@@ -127,7 +127,7 @@ class dhmc(HMC):
         :return:
         '''
         p = {}
-        p_cont = dict([[key, dist.Normal(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._cont_latents]) if self._cont_latents is not None else {}
+        p_cont = dict([[key, torch.randn(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._cont_latents]) if self._cont_latents is not None else {}
         p_disc = dict([[key, dist.Laplace(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._disc_latents]) if self._disc_latents is not None else {}
         p_if = dict([[key, dist.Laplace(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._if_latents]) if self._if_latents is not None else {}
         # quicker than using dict then update.
@@ -136,19 +136,25 @@ class dhmc(HMC):
         p.update(p_if)
         return p
 
-    def _energy(self, state, p, cont_keys):
+    def _kinetic_energy(self, p):
         """
-        Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
-        :param x:  Dictionary of full program state
-        :param p:  Dictionary of momentum
-        :param cont keys: list of continous keys within state
-        :return: Tensor
+        Calculates the discrete kinetic energy
+
+        :param p:
+        :return:
         """
         kinetic_disc = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys])) if self._disc_keys is not None else 0
         kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys])) if self._cont_keys is not None else 0
         kinetic_if = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._if_keys])) if self._if_keys is not None else 0
 
         kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if
-        potential_energy = -self.log_posterior(state)
 
-        return self._state._return_tensor(kinetic_energy) + self._state._return_tensor(potential_energy)
+    def _energy(self, state, p):
+        """
+        Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
+        :param state:  Dictionary of full program state
+        :param p:  Dictionary of momentum
+        :return: Tensor
+        """
+
+        return self._kinetic_energy(p=p) + self._potential_energy(state=state)
