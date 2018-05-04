@@ -212,28 +212,31 @@ class MCMC(Inference):
                 if save_data:
                     dir_n = os.path.join(dir_name,'results')
                     os.makedirs(dir_name, exists_ok= True)
-                    UNIQUE_ID = np.random.randint(0,100)
+                    UNIQUE_ID = np.random.randint(0,1000)
                     snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + chain + '.pickle')
                     snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + chain)
                     # Generates prior sample - the initliaziation of the state
                     sample= self.state
                     samples_dict.append(sample)
                     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
-                    for ii in tqdm(range(nsamples+burnin - 1)):
-                        sample = self._instance_of_kernel.sample(sample)
-                        # this is going to be computationally expensive.
-                        samples_dict.append(sample)
-                        with open(snamepick, 'wb') as handle:
-                            pickle.dump(samples_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    try:
+                        for ii in tqdm(range(nsamples+burnin - 1)):
+                            sample = self._instance_of_kernel.sample(sample)
+                            # this is going to be computationally expensive.
+                            samples_dict.append(sample)
+                            torch.save(samples_dict, snamepick)
+                        samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
+                            columns=self._names, inplace=True)
+                        print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
+                    torch.save(samples, snamepd) # check this later.
+
+                    except Exception:
+                        #TODO : convert the pickle samples to dataframe.
 
                         #TODO: if the fucntion  is stopped for whatever reason, trigger a separate function that takes
                         # the saved msg, upacks it and returns the dataframe with correct
                         # latent variable names.
 
-                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                            columns=self._names, inplace=True)
-                    print(50*'=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
-                    samples.to_csv(snamepd, index=False, header=True)
 
                 else:
                     for ii in tqdm(range(nsamples+burnin - 1)):
