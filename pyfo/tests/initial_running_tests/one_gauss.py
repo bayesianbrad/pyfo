@@ -8,7 +8,6 @@ License: MIT
 '''
 import time
 from pyfo.pyfoppl.pyppl import compile_model
-import torch
 
 model="""import torch
 
