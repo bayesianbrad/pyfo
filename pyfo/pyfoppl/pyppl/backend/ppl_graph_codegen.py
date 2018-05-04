@@ -9,7 +9,14 @@
 import datetime
 from ..graphs import *
 from ..ppl_ast import *
-
+try:
+    import networkx as nx
+except ModuleNotFoundError:
+    nx = None
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    plt = None
 
 class GraphCodeGenerator(object):
     """
@@ -91,6 +98,62 @@ class GraphCodeGenerator(object):
                     return 'import pyfo.distributions as dist\n'
         return ''
 
+    def create_network_graph(self):
+        """
+        Create a `networkx` graph. Used by the method `display_graph()`.
+
+        :return: Either a `networkx.DiGraph` instance or `None`.
+        """
+        if nx:
+            G = nx.DiGraph()
+            for v in self.vertices:
+                G.add_node(v.display_name)
+                for a in v.ancestors:
+                    G.add_edge(a.display_name, v.display_name)
+            return G
+        else:
+            return None
+
+    def display_graph(self):
+        """
+        Transform the graph to a `networkx.DiGraph`-structure and display it using `matplotlib` -- if the necessary
+        libraries are installed.
+
+        :return: `True` if the graph was drawn, `False` otherwise.
+        """
+        G = self.create_network_graph()
+        if nx and plt and G:
+            try:
+                from networkx.drawing.nx_agraph import graphviz_layout
+                pos = graphviz_layout(G, prog='dot')
+            except ModuleNotFoundError:
+                from networkx.drawing.layout import shell_layout
+                pos = shell_layout(G)
+            except ImportError:
+                from networkx.drawing.layout import shell_layout
+                pos = shell_layout(G)
+            plt.subplot(111)
+            plt.axis('off')
+            nx.draw_networkx_nodes(G, pos,
+                                   node_color='r',
+                                   node_size=1250,
+                                   nodelist=[v.display_name for v in self.vertices if v.is_sampled])
+            nx.draw_networkx_nodes(G, pos,
+                                   node_color='b',
+                                   node_size=1250,
+                                   nodelist=[v.display_name for v in self.vertices if v.is_observed])
+            for v in self.vertices:
+                nx.draw_networkx_edges(G, pos, arrows=True,
+                                       edgelist=[(a.display_name, v.display_name) for a in v.dist_ancestors])
+                nx.draw_networkx_edges(G, pos, arrows=True,
+                                       style='dashed',
+                                       edge_color='g',
+                                       edgelist=[(a.display_name, v.display_name) for a in v.cond_ancestors])
+            nx.draw_networkx_labels(G, pos, font_color='w', font_weight='bold')
+            plt.show()
+            return True
+        else:
+            return False
     def generate_model_code(self, *,
                             class_name: str='Model',
                             base_class: str='',
