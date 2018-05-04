@@ -8,14 +8,14 @@ License: MIT
 '''
 import time
 from pyfo.pyfoppl.pyppl import compile_model
+import torch
 
 model="""import torch
 
-n = 50
-d = 3
-x = sample(normal(3*torch.ones(n,d), 5*torch.ones(n,d)))
-# x = sample(normal(torch.zeros([784,10]), torch.ones([784,10])))
-y = x + 1
+n = 1
+d = 1
+x = sample(normal(torch.zeros(n,d), torch.ones(n,d)))
+y = 1
 observations = 7*torch.ones(n,d)
 observe(normal(y, 2*torch.ones(n,d)), observations)
 y
@@ -137,7 +137,10 @@ result = []
 # unclear from original model.
 result.append( flip(1, probs=sigmoid(torch.mm(V.t(), h) + c)))"""
 
-model_compiled = compile_model(neural_network)
+
+
+
+model_compiled = compile_model(model)
 st = time.time()
 print(model_compiled.code)
 end = time.time()

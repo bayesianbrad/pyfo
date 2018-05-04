@@ -8,9 +8,10 @@ Date created:  06/03/2018
 License: MIT
 '''
 import torch
-from abc import ABC, abstractmethod, ABCMeta
+from abc import abstractmethod, ABC
 
-class Inference(ABCMeta):
+class Inference(ABC):
+
     '''
     Abstract base class for all inference methods. All inference methods will inherit from this class and will thus share
     all common methods and attributes.
@@ -69,7 +70,7 @@ class Inference(ABCMeta):
 
 
     @abstractmethod
-    def initialize_latents(self, *args, **kwargs):
+    def generate_latent_vars(self, *args, **kwargs):
         '''
         Initialize inference algorithm. It initializes hyperparameters
         , the initial density and the values of each of the latents.
@@ -99,7 +100,6 @@ class Inference(ABCMeta):
         '''
         raise NotImplementedError
 
-    @abstractmethod
     def __generate_log_pdf(self, *args, **kwargs):
         '''
         A function to generate the correct log posterior. You may have to implement a transformed version if the support
