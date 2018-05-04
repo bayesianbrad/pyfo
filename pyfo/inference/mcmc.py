@@ -15,7 +15,7 @@ import pandas as pd
 from pyfo.inference.inference import Inference
 from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
-from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy
+from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
 from tqdm import tqdm
 import multiprocessing as mp
 import numpy as np
@@ -27,12 +27,13 @@ import pickle
 
 class MCMC(Inference):
     """
-
+    General purpose MCMC inference base class
     """
-    def __int__(self, kernel, model_code=None, debug_on=False):
+    def __init__(self, kernel=None, model_code=None, generate_graph=True, debug_on=False):
         if debug_on:
             self.debug()
-        self.kernel = kernel
+        self.generate_graph=  generate_graph
+        self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
         if inspect.isclass(model_code):
             # check to see if user has overrideded base class
             self.model = model_code
@@ -61,8 +62,7 @@ class MCMC(Inference):
 
         '''
 
-        self.model = compile_model(self.model_code, base_class='base_model',
-                                   imports='from pyfo.pyfoppl.pyppl.ppl_base_model import base_model')
+        self.model = compile_model(self.model_code)
 
 
     def generate_latent_vars(self):
@@ -132,15 +132,16 @@ class MCMC(Inference):
             If true, prints out graphical model.
 
         '''
-        if self.kernel == 'HMC' or self.kernel == 'DHMC':
-            self.auto_transform = True
-        else:
-            self.auto_transform = False
+        self.auto_transform = True
+        # if isinstance(self.kernel, HMC):
+        #     self.auto_transform = True
+        # else:
+        #     self.auto_transform = False
         if self._cont_dists is not None:
             self.transforms = tls(self._cont_latents,self._cont_dists)
             # Returns {} ff the support does not need to be changed.
-        if self._disc_dists is not None:
-            self._disc_support =
+        # if self._disc_dists is not None:
+        #     self._disc_support =
         if self.transforms:
             self.state = self.model.gen_prior_samples()
             self._gen_log_pdf = self.model.gen_pdf
@@ -148,7 +149,9 @@ class MCMC(Inference):
             self.state  = self.model.gen_prior_samples_transformed()
             self._gen_log_pdf = self.model.gen_pdf_transformed
 
-
+        if self.generate_graph:
+            create_network_graph(vertices=self._vertices)
+            display_graph(vertices=self._vertices)
 
 
     def debug(self):
@@ -164,9 +167,6 @@ class MCMC(Inference):
         print('\n Now generating graph code \n {}'.format(self.model))
         print(50 * '=')
 
-        print(50 * '=')
-        print('\n Outputting the probabilistic graphical model ')
-        model_graph = self.model.display_graph()
 
 
 
@@ -219,25 +219,20 @@ class MCMC(Inference):
                     sample= self.state
                     samples_dict.append(sample)
                     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
-                    try:
-                        for ii in tqdm(range(nsamples+burnin - 1)):
-                            sample = self._instance_of_kernel.sample(sample)
-                            # this is going to be computationally expensive.
-                            samples_dict.append(sample)
-                            torch.save(samples_dict, snamepick)
-                        samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                            columns=self._names, inplace=True)
-                        print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
-                    torch.save(samples, snamepd) # check this later.
-
-                    except Exception:
-                        #TODO : convert the pickle samples to dataframe.
-
-                        #TODO: if the fucntion  is stopped for whatever reason, trigger a separate function that takes
-                        # the saved msg, upacks it and returns the dataframe with correct
-                        # latent variable names.
-
-
+                    # try:
+                    for ii in tqdm(range(nsamples+burnin - 1)):
+                        sample = self._instance_of_kernel.sample(sample)
+                        samples_dict.append(sample)
+                        torch.save(samples_dict, snamepick, pickle_module=pickle)
+                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
+                        columns=self._names, inplace=True)
+                    print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
+                    torch.save(samples, snamepd ) # check this later.
+                # except Exception:
+                #TODO : convert the pickle samples to dataframe.
+                #TODO: if the fucntion  is stopped for whatever reason, trigger a separate function that takes
+                # the saved msg, upacks it and returns the dataframe with correct
+                # latent variable names.
                 else:
                     for ii in tqdm(range(nsamples+burnin - 1)):
                         sample = self._instance_of_kernel.sample(sample)
