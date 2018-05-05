@@ -51,29 +51,33 @@ class HMC(MCMC):
     to do the transformation automatically.
     :return:
     '''
-    def __init__(self, step_size=None,  num_steps=None, adapt_step_size=False, trajectory_length=None, **kwargs):
+    def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=False, trajectory_length=None):
+        super(HMC, self).__init__()
+        self.step_size = step_size if step_size is not None else 2
+        if trajectory_length is not None:
+            self.trajectory_length = trajectory_length
+        elif num_steps is not None:
+            self.trajectory_length = self.step_size * num_steps
+        else:
+            self.trajectory_length = 2 * math.pi  # from Stan
+        print('Debug statement in HMC class __init__ \n trajectory_length : {0} \n stepsize : {1} \n numsteps : {2}'.format(self.trajectory_length, self.step_size, num_steps))
+        self.num_steps = max(1, int(self.trajectory_length  / self.step_size))
+        self.model_code = model_code
+        self.adapt_step_size = adapt_step_size
+        self._target_accept_prob = 0.8
+        # need to make calling these functions concrete, as all classes that inherit from
+        # this must inherit the output of the two functions below.
+        self.generate_latent_vars()
+        self.initialize()
+        print(dir(self))
 
 
-       self.step_size = step_size if step_size is not None else 2
-       if trajectory_length is not None:
-           self.trajectory_length = trajectory_length
-       elif num_steps is not None:
-           self.trajectory_length = self.step_size * num_steps
-       else:
-           self.trajectory_length = 2 * math.pi  # from Stan
-       self.num_steps = max(1, int(self.trajectory_length / self.step_size))
 
-       self.adapt_step_size = adapt_step_size
-       self._target_accept_prob = 0.8
-
-       self.kwargs = kwargs # see pyfo.inference.mcmc.run_inference() for more details
-       self.setup()
-
-
-
-       super(HMC,self).__init__()
 
     def _find_reasonable_step_size(self, state):
+        print(10*'-')
+        print('{} Tuning inference hyperparameters {}'.format(5*'*'))
+        print(10 * '-')
         step_size = self.step_size
         # NOTE: This target_accept_prob is 0.5 in NUTS paper, is 0.8 in Stan,
         # and is different to the target_accept_prob for Dual Averaging scheme.
@@ -86,7 +90,7 @@ class HMC(MCMC):
         p = self.momentum_sample()
         energy_current = self._energy(state, p)
         state_new, p_new, potential_energy = self.leapfrog_step(state, p, step_size)
-        energy_new = potential_energy + self._kinetic_energy_energy(p_new)
+        energy_new = potential_energy + self._kinetic_energy(p_new)
         delta_energy = energy_new - energy_current
         # direction=1 means keep increasing step_size, otherwise decreasing step_size
         direction = 1 if target_accept_logprob < -delta_energy else -1
@@ -100,7 +104,7 @@ class HMC(MCMC):
             step_size = step_size_scale * step_size
             state_new, p_new, potential_energy = self._leapfrog_step(
                 state, p, self._potential_energy(state), step_size)
-            energy_new = potential_energy + self._kinetic_energy_energy(p_new)
+            energy_new = potential_energy + self._kinetic_energy(p_new)
             delta_energy = energy_new - energy_current
             direction_new = 1 if target_accept_logprob < -delta_energy else -1
         return step_size
@@ -114,22 +118,20 @@ class HMC(MCMC):
         self.num_steps = max(1, int(self.trajectory_length / self.step_size))
 
     def setup(self, state):
-
-        for name in self._cont_latents:
-            p_loc = torch.zeros(state[name].size())
-            p_scale = torch.ones(state[name].size())
-            self._p[name] = dist.Normal(loc=p_loc, scale=p_scale)
-            if self.transforms[name].support is not constraints.real and self._automatic_transform_enabled:
-                self.transforms[name] = biject_to(state[name].support).inv #TODO: Go over this with a fine comb.
-
+        self.momentum_sample(state)
         if self.adapt_step_size:
+            self._adapt_phase = True
             for name, transform in self.transforms.items():
-                state[name] = transform(state[name])
+                if transform is not constraints.real:
+                    state[name] = transform(state[name])
+                else:
+                    continue
             self.step_size = self._find_reasonable_step_size(state)
             self.num_steps = max(1, int(self.trajectory_length / self.step_size))
             # make prox-center for Dual Averaging scheme
             loc = math.log(10 * self.step_size)
             self._adapted_scheme = DualAveraging(prox_center=loc)
+
 
         self.end_warmup()
 
@@ -139,6 +141,9 @@ class HMC(MCMC):
             _, log_step_size_avg = self._adapted_scheme.get_state()
             self.step_size = math.exp(log_step_size_avg)
             self.num_steps = max(1, int(self.trajectory_length / self.step_size))
+            print(10 * '-')
+            print('{} Adapting step size and number of leapfrog steps now completed {}'.format(5*'*'))
+            print(10 * '-')
 
     def _kinetic_energy(self, p):
         """
@@ -174,7 +179,8 @@ class HMC(MCMC):
 
 
 
-        return self._kinetic_energy_energy(p) + self._potential_energy(state)
+        return self._kinetic_energy(p) + self._potential_energy(state)
+
     def momentum_sample(self, state):
         """
         Constructs a momentum dictionary for contin
@@ -198,10 +204,13 @@ class HMC(MCMC):
         # automatically transform `state` to unconstrained space, if needed.
 
         for key, transform in self.transforms.items():
-            state[key] = transform(state[key])
-        p0 = self.momentum_sample()
-        state_new, p_new = self._leapfrog_step(state, p0,
-                                       self.step_size, self.num_steps)
+            print('Debug statement in HMC.sample \n Printing transform : {0} '.format(transform))
+            if transform is not constraints.real:
+                state[key] = transform(state[key])
+            else:
+                continue
+        p0 = self.momentum_sample(state)
+        state_new, p_new = self._leapfrog_step(state, p0)
         # apply Metropolis correction.
         energy_proposal = self._energy(state_new, p_new)
         energy_current = self._energy(state, p0)
@@ -217,12 +226,15 @@ class HMC(MCMC):
 
         self._t += 1
 
+        # currenttly redundant
+        self.kwargs = kwargs
+
         # Return the unconstrained values for `state` to the constrianed values for 'state'.
         for key, transform in self.transforms.items():
             state[key] = transform.inv(state[key])
         return state
 
-    def _leapfrog_step(self, state, p, stepsize):
+    def _leapfrog_step(self, state, p):
         """
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
@@ -237,19 +249,22 @@ class HMC(MCMC):
         # number of function evaluations and fupdates for discrete parameters
         n_feval = 0
         n_fupdate = 0
-
+        print('Debug statement in leapfrog_step: printing step size : {0}'.format(self.step_size))
         # perform first step of leapfrog integrators
         for i in range(self.num_steps):
             logp = self.__generate_log_pdf(state, set_leafs=True)
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5*stepsize*self.__grad_logp(logp,state[key])
+                p[key] = p[key] + 0.5*self.stepsize*self.__grad_logp(logp,state[key])
 
 
             for key in self._cont_latents:
-                state[key] = state[key] + stepsize*self.M * p[key] # full step for postions
+                state[key] = state[key] + self.stepsize*self.M * p[key] # full step for postions
             logp = self.__generate_pdf(state, set_leafs=True)
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5*stepsize*self.____grad_logp(logp,[key])
+                p[key] = p[key] + 0.5*self.stepsize*self.____grad_logp(logp,[key])
         return state, p, logp
 
 
+    def __generate_log_pdf(self, state, set_leafs=False):
+            # Set default moves by calling method of parent class
+            super(HMC, self).__generate_log_pdf(state, set_leafs=set_leafs)
