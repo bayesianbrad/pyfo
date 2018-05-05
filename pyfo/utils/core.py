@@ -255,11 +255,10 @@ def transform_latent_support(latent_vars, dist_to_latent):
     :return: transform: dictionary of {latent_var: bijector_for_latent}
     """
     transforms = {}
-    print('Printing latent vars ' , latent_vars)
     for latent in latent_vars:
-        print('Debug statement: latent vars: {0} and type: {1}'.format(dist_to_latent[latent], type(dist_to_latent[latent])))
+        # print('Debug statement: latent vars: {0} and type: {1}'.format(dist_to_latent[latent], type(dist_to_latent[latent])))
         temp_support = getattr(dists,dist_to_latent[latent]).support
-        print('Debug statement temp_support {0}'.format(temp_support))
+        # print('Debug statement temp_support {0}'.format(temp_support))
         if temp_support is not constraints.real:
             transforms[latent] = biject_to(temp_support).inv
         else:
