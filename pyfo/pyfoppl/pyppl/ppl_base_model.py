@@ -11,7 +11,7 @@ License: MIT
 from abc import ABC, abstractmethod, ABCMeta
 
 
-class base_model(ABCMeta):
+class base_model(ABC):
     @abstractmethod
     def get_vertices(self):
         '''
