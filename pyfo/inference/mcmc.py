@@ -66,7 +66,9 @@ class MCMC(Inference):
         :return: Attributes to the MCMC class all model parameters and
                  types
         """
-        print('*' * 5 + ' Compiling model ' + '*' * 5)
+        print(50 * '-')
+        print(5 * '-' + ' Compiling model ' + '-' * 5)
+        print(50 * '-')
         if inspect.isclass(self.model_code):
             start = time.time()
             # check to see if user has overrideded base class
@@ -81,14 +83,12 @@ class MCMC(Inference):
             start = time.time()
             self.model = self.generate_model(model_code=self.model_code)
             end = time.time()
-        print('{0} Finished compling model  {0} \n{0} Time taken : {1} {0} '.format(5 * '*', end - start))
-
+        print('\n Model complied in {0} seconds \n '.format(end - start))
+        print(50 * '-')
 
         self._cont_latents = None if len(self.model.gen_cont_vars()) == 0 else self.model.gen_cont_vars()
         self._disc_latents = None if len(self.model.gen_disc_vars()) == 0 else self.model.gen_disc_vars()
         self._if_latents = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_if_vars()
-        print(' The latent variables in the system are : Continuous {0} | Discrete {1} | Conditional {2}'.format(self._cont_latents, self._disc_latents, self._if_latents))
-        print(self.model.code)
         # each predicate has a cond boolean parameter, which represents the evaluated value of the predicate, whenever
         # the log_pdf is calculated.
         self._cond_bools = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_cond_vars()
@@ -138,7 +138,7 @@ class MCMC(Inference):
 
         '''
 
-        print('\n | Intializing the inference .....')
+        print( 5 * '-' + ' Intializing the inference ' + 5 * '-')
         self.auto_transform = True
         # if isinstance(self.kernel, HMC):
         #     self.auto_transform = True
@@ -172,7 +172,7 @@ class MCMC(Inference):
 
 
 
-    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, step_size=None,  num_steps=None, adapt_step_size=False, trajectory_length=None):
+    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
             '''
             The run inference method should be run externally once the class has been created.
             I.e assume that they have not written there own model.
@@ -219,7 +219,7 @@ class MCMC(Inference):
                     snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + chain + '.pickle')
                     snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + chain)
                     # Generates prior sample - the initliaziation of the state
-                    print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
+                    # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
                     sample= state
                     samples_dict.append(sample)
                     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
@@ -238,7 +238,7 @@ class MCMC(Inference):
                 # the saved msg, upacks it and returns the dataframe with correct
                 # latent variable names.
                 else:
-                    print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
+                    # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
                     sample = state
                     samples_dict.append(sample)
                     for ii in tqdm(range(nsamples+burnin - 1)):
@@ -276,6 +276,7 @@ class MCMC(Inference):
         :param state:
         :return: torch.autograd.Variable
         """
+
         gradient_of_param = torch.autograd.grad(outputs=logp, inputs=param, retain_graph=True)[0]
         return gradient_of_param
 
@@ -309,6 +310,7 @@ class MCMC(Inference):
         if set_leafs:
             # only sets the gradients of the latent variables.
             _state = _to_leaf(state=state, latent_vars=self._all_vars)
-
+        else:
+            _state = state
         return self.model.gen_log_pdf(_state)
 
