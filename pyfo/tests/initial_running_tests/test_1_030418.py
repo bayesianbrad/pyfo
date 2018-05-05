@@ -13,7 +13,8 @@ import time
 from pyfo.inference.mcmc import MCMC
 from pyfo.inference.hmc import HMC
 
-model="""import torch
+model="""
+import torch
 
 n = 1
 d = 1
@@ -23,4 +24,8 @@ observations = 7*torch.ones(n,d)
 observe(normal(y, 2*torch.ones(n,d)), observations)
 y
 """
-model_compiled = MCMC(kernel=HMC, model_code=model)
+model_compiled = MCMC(model_code=model, generate_graph=False, debug_on=True)
+
+
+samples = model_compiled.run_inference(kernel=HMC,  nsamples=100, burnin=10, chains=1)
+print(samples)
