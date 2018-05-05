@@ -24,32 +24,20 @@ import os
 import msgpack as mpa
 import datetime
 import pickle
+import time
 
 class MCMC(Inference):
     """
     General purpose MCMC inference base class
     """
-    def __init__(self, kernel=None, model_code=None, generate_graph=True, debug_on=False):
-        if debug_on:
-            self.debug()
+    def __init__(self, model_code=None, generate_graph=False, debug_on=False):
         self.generate_graph=  generate_graph
-        self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
-        if inspect.isclass(model_code):
-            # check to see if user has overrideded base class
-            self.model = model_code
-            warnings.warn('You have overridden the base class, please ensure \n '
-                          'that your model complies with the standard compiler output.\n '
-                          'In regard to the unique parameter names. If you need to determine\n '
-                          'what these are. compile_model(model_code).<methods> and choose the appropriate \n'
-                          'method. See pyfo.pyfoppl.pyppl.ppl_base_model for more info on method names')
-        else:
-            self.model_code = model_code
-            self.generate_model()
+        self.debug_on = debug_on
+        self.model_code = model_code
 
-        self.generate_latent_vars()
-        self.initialize()
 
-    def generate_model(self):
+
+    def generate_model(self, model_code):
         '''
         Creates an inference algorithm.
 
@@ -62,7 +50,7 @@ class MCMC(Inference):
 
         '''
 
-        self.model = compile_model(self.model_code)
+        return compile_model(model_code)
 
 
     def generate_latent_vars(self):
@@ -78,13 +66,32 @@ class MCMC(Inference):
         :return: Attributes to the MCMC class all model parameters and
                  types
         """
+        print('*' * 5 + ' Compiling model ' + '*' * 5)
+        if inspect.isclass(self.model_code):
+            start = time.time()
+            # check to see if user has overrideded base class
+            self.model = self.model_code
+            warnings.warn('You have overridden the base class, please ensure \n '
+                          'that your model complies with the standard compiler output.\n '
+                          'In regard to the unique parameter names. If you need to determine\n '
+                          'what these are. compile_model(model_code).<methods> and choose the appropriate \n'
+                          'method. See pyfo.pyfoppl.pyppl.ppl_base_model for more info on method names')
+            end = time.time()
+        else:
+            start = time.time()
+            self.model = self.generate_model(model_code=self.model_code)
+            end = time.time()
+        print('{0} Finished compling model  {0} \n{0} Time taken : {1} {0} '.format(5 * '*', end - start))
 
-        self._cont_latents = None if len(self.model.gen_cont_vars()) == 0 else self.model.gen_cont_vars
-        self._disc_latents = None if len(self.model.gen_disc_vars()) == 0 else self.model.gen_disc_vars
-        self._if_latents = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_if_vars
+
+        self._cont_latents = None if len(self.model.gen_cont_vars()) == 0 else self.model.gen_cont_vars()
+        self._disc_latents = None if len(self.model.gen_disc_vars()) == 0 else self.model.gen_disc_vars()
+        self._if_latents = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_if_vars()
+        print(' The latent variables in the system are : Continuous {0} | Discrete {1} | Conditional {2}'.format(self._cont_latents, self._disc_latents, self._if_latents))
+        print(self.model.code)
         # each predicate has a cond boolean parameter, which represents the evaluated value of the predicate, whenever
         # the log_pdf is calculated.
-        self._cond_bools = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_cond_vars
+        self._cond_bools = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_cond_vars()
         # all vertices of the graph are objects.
         self._vertices = self.model.get_vertices()
         # A list of all observables
@@ -111,8 +118,6 @@ class MCMC(Inference):
         for vertex in self._vertices:
             if vertex.is_sampled:
                 self._dist_params[vertex.name] = {vertex.distribution_name: vertex.distribution_arguments}
-
-
     def initialize(self):
         '''
         Initialize inference algorithm. It initializes hyperparameters
@@ -132,45 +137,42 @@ class MCMC(Inference):
             If true, prints out graphical model.
 
         '''
+
+        print('\n | Intializing the inference .....')
         self.auto_transform = True
         # if isinstance(self.kernel, HMC):
         #     self.auto_transform = True
         # else:
         #     self.auto_transform = False
-        if self._cont_dists is not None:
+        if self._cont_latents is not None:
             self.transforms = tls(self._cont_latents,self._cont_dists)
             # Returns {} ff the support does not need to be changed.
         # if self._disc_dists is not None:
         #     self._disc_support =
         if self.transforms:
             self.state = self.model.gen_prior_samples()
-            self._gen_log_pdf = self.model.gen_pdf
-        else: # The following is redundant for now.
-            self.state  = self.model.gen_prior_samples_transformed()
-            self._gen_log_pdf = self.model.gen_pdf_transformed
+            self._gen_log_pdf = self.__generate_log_pdf(state=self.state, set_leafs=True)
+        # else: # The following is redundant for now.
+        #         #     self.state  = self.model.gen_prior_samples_transformed()
+        #         #     self._gen_log_pdf = self.model.gen_pdf_transformed
+        else:
+            self.state = self.model.gen_prior_samples()
+            self._gen_log_pdf = self.__generate_log_pdf(state=self.state, set_leafs=True)
 
         if self.generate_graph:
             create_network_graph(vertices=self._vertices)
             display_graph(vertices=self._vertices)
 
-
-    def debug(self):
-        debug_prior = self.model.gen_prior_samples_code
-        debug_pdf = self.model.gen_pdf_code
-        print(50 * '=' + '\n'
-                         'Now generating prior python code \n'
-                         '{}'.format(debug_prior))
-        print(50 * '=' + '\n'
-                         'Now generating posterior python code \n'
-                         '{}'.format(debug_pdf))
-        print(50 * '=')
-        print('\n Now generating graph code \n {}'.format(self.model))
-        print(50 * '=')
+        if self.debug_on:
+            print(50 * '=' + '\n'
+                             'Now generating compiled model code output \n'
+                             '{}'.format(self.model.code))
+            print(50 * '=')
 
 
 
 
-    def run_inference(self, nsamples=1000, burnin=100, chains=1, **kwargs):
+    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, step_size=None,  num_steps=None, adapt_step_size=False, trajectory_length=None):
             '''
             The run inference method should be run externally once the class has been created.
             I.e assume that they have not written there own model.
@@ -204,11 +206,12 @@ class MCMC(Inference):
             :return: samples, :type pandas.dataframe
 
             '''
+            self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
             AVAILABLE_CPUS = mp.cpu_count()
 
-            def run_sampler(nsamples, burnin, chain, save_data=False, dir_name=sys.path[0]):
-                # samples = pd.DataFrame(np.zeros((nsamples+burnin, self._number_of_latents), columns=self._all_vars))
+            def run_sampler(state, nsamples, burnin, chain, save_data=False, dir_name=sys.path[0]):
                 samples_dict = []
+
                 if save_data:
                     dir_n = os.path.join(dir_name,'results')
                     os.makedirs(dir_name, exists_ok= True)
@@ -216,7 +219,8 @@ class MCMC(Inference):
                     snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + chain + '.pickle')
                     snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + chain)
                     # Generates prior sample - the initliaziation of the state
-                    sample= self.state
+                    print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
+                    sample= state
                     samples_dict.append(sample)
                     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
                     # try:
@@ -234,6 +238,9 @@ class MCMC(Inference):
                 # the saved msg, upacks it and returns the dataframe with correct
                 # latent variable names.
                 else:
+                    print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
+                    sample = state
+                    samples_dict.append(sample)
                     for ii in tqdm(range(nsamples+burnin - 1)):
                         sample = self._instance_of_kernel.sample(sample)
                         samples_dict.append(sample)
@@ -249,16 +256,17 @@ class MCMC(Inference):
                 return samples
 
 
-            self._instance_of_kernel = self.kernel(kwargs)
+            self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size,  num_steps=num_steps, adapt_step_size=adapt_step_size, trajectory_length=trajectory_length)
+            self._instance_of_kernel.setup(state=self._instance_of_kernel.state)
             if chains > 1:
                 pool = mp.Pool(processes=AVAILABLE_CPUS)
-                samples = [pool.apply_async(run_sampler, args=(nsamples, burnin, chain), kwargs=kwargs) for chain in range(chains)]  #runs multiple chains in parallel
+                samples = [pool.apply_async(run_sampler, args=(self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
                 samples = [chain.get() for chain in samples]
             else:
-                samples = run_sampler(nsamples, burnin) # runs a single chain
+                samples = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin, chain=chains) # runs a single chain
 
 
-
+            return samples
 
     def __grad_logp(self, logp, param):
         """
@@ -293,13 +301,14 @@ class MCMC(Inference):
         # This overrides the base method.
         # Then all you have to do is pass
         # My model into kernel of choice, i.e
-        hmc_kern = hmc(MyNewModel, ....)
-        hmc_kern.sample()
+        kernel = MCMC(MyNewModel,kernel=HMC)
+        kernel.run_inference()
 
 
         """
         if set_leafs:
-            state = _to_leaf(state)
+            # only sets the gradients of the latent variables.
+            _state = _to_leaf(state=state, latent_vars=self._all_vars)
 
-        return self._gen_logpdf(state)
+        return self.model.gen_log_pdf(_state)
 
