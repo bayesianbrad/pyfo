@@ -265,17 +265,6 @@ def transform_latent_support(latent_vars, dist_to_latent):
             transforms[latent] = constraints.real
     return transforms
 
-def _to_leaf(state, latent_vars):
-    """
-    Ensures that all latent parameters are reset to leaf nodes, before
-    calling
-    :param state:
-    :return:
-    """
-    for key in latent_vars:
-        state[key] = VariableCast(state[key], grad=True)
-    return state
-
 def convert_dict_vars_to_numpy(self, state, latent_vars ):
     """
 
@@ -289,3 +278,67 @@ def convert_dict_vars_to_numpy(self, state, latent_vars ):
         state[latent] =  state[latent].numpy()
         # state[i] = state[i].data.numpy()
     return state
+
+def _grad_logp(input, parameters):
+    """
+    Returns the gradient of the log pdf, with respect for
+    each parameter. Note the double underscore, this is to ensure that if
+    this method is overwritten, then no problems occur when overidded.
+    :param state:
+    :return: torch.autograd.Variable
+    """
+    print(50 *'=')
+    print('Debug statement in _grad_logp \n '+50*'='+'\nChecking gradient flag. \n Printing input : {0} \n Printing parameters : {1} \n Checking if gradient turned on: {2} '.format(input, parameters, parameters.requires_grad))
+    gradient_of_param = torch.autograd.grad(outputs=input, inputs=parameters, retain_graph=True)[0]
+    print('Debug statement in _grad_logp. Printing gradient : {}'.format(gradient_of_param))
+    print(50 * '=')
+    return gradient_of_param
+
+
+def _to_leaf(state, latent_vars):
+    """
+    Ensures that all latent parameters are reset to leaf nodes, before
+    calling
+    :param state:
+    :return:
+    """
+    for key in latent_vars:
+        state[key] = torch.tensor(state[key], requires_grad=True)
+    return state
+
+def _generate_log_pdf(model,  state, latents, set_leafs=False):
+    """
+    The compiled pytorch function, log_pdf, should automatically
+    return the pdf.
+    :param keys type: list of discrete embedded discrete parameters
+    :return: log_pdf
+
+    Maybe overidden in other methods, that require dynamic pdfs.
+    For example
+    if you have a model called my mymodel, you could write the following:
+    Model = compile_model(mymodel) # returns class
+    class MyNewModel(Model):
+
+        def gen_log_pdf(self, state):
+            for vertex in self.vertices:
+                pass
+    return "Whatever you fancy"
+
+    # This overrides the base method.
+    # Then all you have to do is pass
+    # My model into kernel of choice, i.e
+    kernel = MCMC(MyNewModel,kernel=HMC)
+    kernel.run_inference()
+
+
+    """
+
+    if set_leafs:
+        # only sets the gradients of the latent variables.
+        _state = _to_leaf(state=state, latent_vars=latents)
+    else:
+        _state = state
+    print(50*'=')
+    for key in _state:
+        print('Debug statement in _generate_log_p \n',50*'='+ '\n Printing set_leafs : {0} \n Printing latents : {1} \n gradient: {2} \n key: {3} '.format(set_leafs, latents,  _state[key].requires_grad, key))
+    return model.gen_log_pdf(_state)
