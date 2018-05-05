@@ -8,9 +8,9 @@ Date created:  06/03/2018
 License: MIT
 '''
 import torch
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 
-class Inference(ABC):
+class Inference(object):
 
     '''
     Abstract base class for all inference methods. All inference methods will inherit from this class and will thus share
@@ -68,48 +68,16 @@ class Inference(ABC):
 
         '''
 
-
     @abstractmethod
-    def generate_latent_vars(self, *args, **kwargs):
+    def initialize(self, *args, **kwargs):
         '''
-        Initialize inference algorithm. It initializes hyperparameters
-        , the initial density and the values of each of the latents.
 
-        Initialize inference algorithm. It initializes hyperparameters
-        and builds ops for the algorithm's computation graph.
-
-        :param n_itersy
-            type: int
-            description: Number of iterations for algorithm when calling 'run()'.
-            If called manually, it is the number of expected calls of 'update()';
-            determines the tracking information during the print progress.
-        :param n_chains
-            type: int
-            description: Number of chains for MCMC inference.
-        :param generate_prior_sample
-            type: dictionary
-             description: Intilaizes all model parameters with float or int values and stores that in a dictionary of the
-             entire state of the model. [See gen_prior_samples function within pyfo.pyppl.ppl_graoh_codegen.py
-             for more details.
-        :param auto_transform
-            type: transforms the latent variables automatically to the same support
-        :param debug:
-            type: bool
-            If true, prints out graphical model.
-            TODO : Link with a tensorboard style framework
-        '''
-        raise NotImplementedError
-
-    def __generate_log_pdf(self, *args, **kwargs):
-        '''
-        A function to generate the correct log posterior. You may have to implement a transformed version if the support
-        of the model has to be unconstrained.
-
-        :param args:
-
-        :param transform:
-            type: bool
         :return:
         '''
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def run_inference(self, *args, **kwargs):
 
         raise NotImplementedError
