@@ -51,7 +51,7 @@ class HMC(MCMC):
     to do the transformation automatically.
     :return:
     '''
-    def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=False, trajectory_length=None):
+    def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
         super(HMC, self).__init__()
         self.step_size = step_size if step_size is not None else 2
         if trajectory_length is not None:
@@ -60,7 +60,6 @@ class HMC(MCMC):
             self.trajectory_length = self.step_size * num_steps
         else:
             self.trajectory_length = 2 * math.pi  # from Stan
-        print('Debug statement in HMC class __init__ \n trajectory_length : {0} \n stepsize : {1} \n numsteps : {2}'.format(self.trajectory_length, self.step_size, num_steps))
         self.num_steps = max(1, int(self.trajectory_length  / self.step_size))
         self.model_code = model_code
         self.adapt_step_size = adapt_step_size
@@ -69,15 +68,13 @@ class HMC(MCMC):
         # this must inherit the output of the two functions below.
         self.generate_latent_vars()
         self.initialize()
-        print(dir(self))
-
 
 
 
     def _find_reasonable_step_size(self, state):
-        print(10*'-')
-        print('{} Tuning inference hyperparameters {}'.format(5*'*'))
-        print(10 * '-')
+        print(50*'-')
+        print('{0} Tuning inference hyperparameters {0}'.format('-' * 5))
+        print(50*'-')
         step_size = self.step_size
         # NOTE: This target_accept_prob is 0.5 in NUTS paper, is 0.8 in Stan,
         # and is different to the target_accept_prob for Dual Averaging scheme.
@@ -87,9 +84,9 @@ class HMC(MCMC):
         # We are going to find a step_size which make accept_prob (Metropolis correction)
         # near the target_accept_prob. If accept_prob:=exp(-delta_energy) is small,
         # then we have to decrease step_size; otherwise, increase step_size.
-        p = self.momentum_sample()
+        p = self.momentum_sample(state=state)
         energy_current = self._energy(state, p)
-        state_new, p_new, potential_energy = self.leapfrog_step(state, p, step_size)
+        state_new, p_new, potential_energy = self._leapfrog_step(state, p)
         energy_new = potential_energy + self._kinetic_energy(p_new)
         delta_energy = energy_new - energy_current
         # direction=1 means keep increasing step_size, otherwise decreasing step_size
@@ -102,8 +99,7 @@ class HMC(MCMC):
         # TODO: make thresholds for too small step_size or too large step_size
         while direction_new == direction:
             step_size = step_size_scale * step_size
-            state_new, p_new, potential_energy = self._leapfrog_step(
-                state, p, self._potential_energy(state), step_size)
+            state_new, p_new, potential_energy = self._leapfrog_step(state, p)
             energy_new = potential_energy + self._kinetic_energy(p_new)
             delta_energy = energy_new - energy_current
             direction_new = 1 if target_accept_logprob < -delta_energy else -1
@@ -118,6 +114,7 @@ class HMC(MCMC):
         self.num_steps = max(1, int(self.trajectory_length / self.step_size))
 
     def setup(self, state):
+        self.momentum_sample(state)
         self.momentum_sample(state)
         if self.adapt_step_size:
             self._adapt_phase = True
@@ -142,7 +139,7 @@ class HMC(MCMC):
             self.step_size = math.exp(log_step_size_avg)
             self.num_steps = max(1, int(self.trajectory_length / self.step_size))
             print(10 * '-')
-            print('{} Adapting step size and number of leapfrog steps now completed {}'.format(5*'*'))
+            print('{} Tuning of hyperparameters now completed {}'.format(5*'*'))
             print(10 * '-')
 
     def _kinetic_energy(self, p):
@@ -153,22 +150,27 @@ class HMC(MCMC):
         :return: scalar of kinetic energy
         TODO Implement for batching chains
         """
+        print('Debug statement in momentum : printing momentum p : {0}'.format(p[self._cont_latents[0]]))
 
-        return 0.5 * torch.sum(torch.stack([torch.dot(p[key], p[key]) for key in self._cont_latents]))
+        return 0.5 * torch.sum(torch.stack([torch.mm(p[key], p[key]) for key in self._cont_latents]))
 
     def _potential_energy(self, state, set_leafs=False):
         state_constrained = state.copy()
-
+        transform_keys = []
         for key, transform in self.transforms.items():
-            state_constrained[key] = transform.inv(state_constrained[key])
-        potential_energy = -self.__generate_log_pdf(state_constrained, set_leafs=set_leafs)
+            if transform is constraints.real:
+                continue
+            else:
+                transform_keys.append(key)
+                state_constrained[key] = transform.inv(state_constrained[key])
+        potential_energy = -self._MCMC__generate_log_pdf(state_constrained, set_leafs=set_leafs)
         # adjust by the jacobian for this transformation.
-        for key, transform in self.transforms.items():
-            potential_energy = potential_energy + transform.log_abs_det_jacobian(state_constrained[key],
+        for key in transform_keys:
+            potential_energy = potential_energy + self.transforms[key].log_abs_det_jacobian(state_constrained[key],
                                                                                      state[key]).sum()
         return potential_energy
 
-    def _energy(self, state, p, cont_latents):
+    def _energy(self, state, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
         :param state:  Dictionary of full program state
@@ -210,10 +212,10 @@ class HMC(MCMC):
             else:
                 continue
         p0 = self.momentum_sample(state)
-        state_new, p_new = self._leapfrog_step(state, p0)
+        energy_current = self._energy(state, p0)
+        state_new, p_new, _ = self._leapfrog_step(state, p0)
         # apply Metropolis correction.
         energy_proposal = self._energy(state_new, p_new)
-        energy_current = self._energy(state, p0)
         delta_energy = energy_proposal - energy_current
         rand = np.random.uniform(0,1)
         if rand < (-delta_energy).exp():
@@ -239,10 +241,9 @@ class HMC(MCMC):
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
 
-        :param x: type: dictionary descript: represents the state of the system (all the latents variables and observable
+        :param state: type: dictionary descript: represents the state of the system (all the latents variables and observable
         quantities.
         :param p: type: dictionary descript: represents the momentum for each latent variable
-        :param stepsize: type: float
         :return: x, p the proposed values as dict.
         """
 
@@ -252,19 +253,14 @@ class HMC(MCMC):
         print('Debug statement in leapfrog_step: printing step size : {0}'.format(self.step_size))
         # perform first step of leapfrog integrators
         for i in range(self.num_steps):
-            logp = self.__generate_log_pdf(state, set_leafs=True)
+            logp = self._potential_energy(state, set_leafs=True)
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5*self.stepsize*self.__grad_logp(logp,state[key])
+                p[key] = p[key] + 0.5*self.step_size*self._MCMC__grad_logp(logp,state[key])
 
 
             for key in self._cont_latents:
-                state[key] = state[key] + self.stepsize*self.M * p[key] # full step for postions
-            logp = self.__generate_pdf(state, set_leafs=True)
+                state[key] = state[key] + self.step_size * p[key] # full step for postions
+            logp = self._potential_energy(state, set_leafs=True)
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5*self.stepsize*self.____grad_logp(logp,[key])
+                p[key] = p[key] + 0.5*self.step_size*self._MCMC__grad_logp(logp,state[key])
         return state, p, logp
-
-
-    def __generate_log_pdf(self, state, set_leafs=False):
-            # Set default moves by calling method of parent class
-            super(HMC, self).__generate_log_pdf(state, set_leafs=set_leafs)
