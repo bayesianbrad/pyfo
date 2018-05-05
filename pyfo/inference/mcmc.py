@@ -34,6 +34,7 @@ class MCMC(Inference):
         self.generate_graph=  generate_graph
         self.debug_on = debug_on
         self.model_code = model_code
+        super(MCMC, self).__init__()
 
 
 
@@ -146,18 +147,11 @@ class MCMC(Inference):
         #     self.auto_transform = False
         if self._cont_latents is not None:
             self.transforms = tls(self._cont_latents,self._cont_dists)
-            # Returns {} ff the support does not need to be changed.
-        # if self._disc_dists is not None:
-        #     self._disc_support =
-        if self.transforms:
-            self.state = self.model.gen_prior_samples()
-            self._gen_log_pdf = self.__generate_log_pdf(state=self.state, set_leafs=True)
+
         # else: # The following is redundant for now.
         #         #     self.state  = self.model.gen_prior_samples_transformed()
         #         #     self._gen_log_pdf = self.model.gen_pdf_transformed
-        else:
-            self.state = self.model.gen_prior_samples()
-            self._gen_log_pdf = self.__generate_log_pdf(state=self.state, set_leafs=True)
+        self.state = self.model.gen_prior_samples()
 
         if self.generate_graph:
             create_network_graph(vertices=self._vertices)
@@ -170,7 +164,8 @@ class MCMC(Inference):
             print(50 * '=')
 
 
-
+    def warmup(self):
+        return 0
 
     def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
             '''
@@ -268,7 +263,7 @@ class MCMC(Inference):
 
             return samples
 
-    def __grad_logp(self, logp, param):
+    def _grad_logp(self, logp, param):
         """
         Returns the gradient of the log pdf, with respect for
         each parameter. Note the double underscore, this is to ensure that if
@@ -281,7 +276,7 @@ class MCMC(Inference):
         return gradient_of_param
 
 
-    def __generate_log_pdf(self, state, set_leafs=False):
+    def _generate_log_pdf(self, state, set_leafs=False):
         """
         The compiled pytorch function, log_pdf, should automatically
         return the pdf.
