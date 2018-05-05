@@ -29,7 +29,7 @@ from pyfo.utils.eval_stats import extract_stats
 from pyfo.utils.eval_stats import save_data
 from pyfo.utils.plotting import Plotting as plot
 from pyfo.inference.mcmc import MCMC
-from pyfo.utils.core import DualAveraging
+from pyfo.utils.core import DualAveraging, _generate_log_pdf, _grad_logp
 
 class HMC(MCMC):
     '''
@@ -97,12 +97,16 @@ class HMC(MCMC):
         direction_new = direction
         # keep scale step_size until accept_prob crosses its target
         # TODO: make thresholds for too small step_size or too large step_size
-        while direction_new == direction:
+        condition = 1 # Step size within threshold.
+        while direction_new == direction and condition:
             step_size = step_size_scale * step_size
             state_new, p_new, potential_energy = self._leapfrog_step(state, p)
             energy_new = potential_energy + self._kinetic_energy(p_new)
             delta_energy = energy_new - energy_current
             direction_new = 1 if target_accept_logprob < -delta_energy else -1
+            print('Debug statement in _find_reasonable_step_size. Printing step_size : {}'.format(step_size))
+            condition = 1 if step_size < 2 and step_size >= 0.1 else 0
+
         return step_size
 
     def _adapt_step_size(self, accept_prob):
@@ -130,7 +134,6 @@ class HMC(MCMC):
             self._adapted_scheme = DualAveraging(prox_center=loc)
 
 
-        self.end_warmup()
 
     def end_warmup(self):
         if self.adapt_step_size:
@@ -163,7 +166,7 @@ class HMC(MCMC):
             else:
                 transform_keys.append(key)
                 state_constrained[key] = transform.inv(state_constrained[key])
-        potential_energy = -self._MCMC__generate_log_pdf(state_constrained, set_leafs=set_leafs)
+        potential_energy = -_generate_log_pdf(model=self.model,state=state_constrained, set_leafs=set_leafs, latents=self._all_vars)
         # adjust by the jacobian for this transformation.
         for key in transform_keys:
             potential_energy = potential_energy + self.transforms[key].log_abs_det_jacobian(state_constrained[key],
@@ -189,7 +192,7 @@ class HMC(MCMC):
         and for continous keys we have gaussian
         :return:
         """
-        p = dict([[key, torch.randn(state[key].size())] for key in self._cont_latents])
+        p = dict([[key, torch.randn(state[key].size()[0], state[key].size()[1], requires_grad=False)] for key in self._cont_latents])
         return p
 
     def sample(self, state, **kwargs):
@@ -226,14 +229,17 @@ class HMC(MCMC):
             accept_prob = (-delta_energy).exp().clamp(max=1).item()
             self._adapt_step_size(accept_prob)
 
-        self._t += 1
+        self._adapted_scheme._t += 1
 
         # currenttly redundant
         self.kwargs = kwargs
 
         # Return the unconstrained values for `state` to the constrianed values for 'state'.
         for key, transform in self.transforms.items():
-            state[key] = transform.inv(state[key])
+            if transform is constraints.real:
+                continue
+            else:
+                state[key] = transform.inv(state[key])
         return state
 
     def _leapfrog_step(self, state, p):
@@ -255,12 +261,9 @@ class HMC(MCMC):
         for i in range(self.num_steps):
             logp = self._potential_energy(state, set_leafs=True)
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5*self.step_size*self._MCMC__grad_logp(logp,state[key])
-
-
-            for key in self._cont_latents:
+                p[key] = p[key] + 0.5*self.step_size*_grad_logp(input=logp,parameters=state[key])
                 state[key] = state[key] + self.step_size * p[key] # full step for postions
             logp = self._potential_energy(state, set_leafs=True)
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5*self.step_size*self._MCMC__grad_logp(logp,state[key])
+                p[key] = p[key] + 0.5*self.step_size*_grad_logp(input=logp,parameters=state[key])
         return state, p, logp
