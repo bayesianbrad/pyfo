@@ -113,7 +113,7 @@ def display_graph(vertices):
 
     :return: `True` if the graph was drawn, `False` otherwise.
     """
-    G = create_network_graph()
+    G = create_network_graph(vertices=vertices)
     if nx and plt and G:
         try:
             from networkx.drawing.nx_agraph import graphviz_layout
@@ -248,30 +248,33 @@ def transform_latent_support(latent_vars, dist_to_latent):
     Returns a new state with the required transformations for the log pdf. It checks the support of each continuous
     distribution and if that support does not encompass the whole real line, the required bijector is added to a
     transform list.
-
+    TODO: Ensure that only continuous latent variables are beingpassed through this function for now.
     :param latent_vars: dictionary of {latent_var: distribution_name}
     :param dist_to_latent: dictionary that maps latent_variable names to distribution name
 
     :return: transform: dictionary of {latent_var: bijector_for_latent}
     """
     transforms = {}
+    print('Printing latent vars ' , latent_vars)
     for latent in latent_vars:
-        temp_support = torch.tensor(dists, dist_to_latent[latent]).support
+        print('Debug statement: latent vars: {0} and type: {1}'.format(dist_to_latent[latent], type(dist_to_latent[latent])))
+        temp_support = getattr(dists,dist_to_latent[latent]).support
+        print('Debug statement temp_support {0}'.format(temp_support))
         if temp_support is not constraints.real:
-            transforms[latent_vars] = biject_to(temp_support).inv
+            transforms[latent] = biject_to(temp_support).inv
+        else:
+            transforms[latent] = constraints.real
     return transforms
 
-def _to_leaf(self, state):
+def _to_leaf(state, latent_vars):
     """
     Ensures that all latent parameters are reset to leaf nodes, before
     calling
     :param state:
     :return:
     """
-    for key in state:
-        tmp = VariableCast(state[key])
-        state[key] = VariableCast(tmp.data, grad=True)
-        # state[key] = VariableCast(state[key].data, grad=True)
+    for key in latent_vars:
+        state[key] = VariableCast(state[key], grad=True)
     return state
 
 def convert_dict_vars_to_numpy(self, state, latent_vars ):
