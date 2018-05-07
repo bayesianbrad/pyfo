@@ -114,4 +114,4 @@ class rrhmc(HMC):
         return 0
 
     def _binary_line_search(self):
-        return 0s
+        return 0

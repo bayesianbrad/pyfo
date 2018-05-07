@@ -13,13 +13,13 @@ import torch.distributions as dists
 from torch.distributions import constraints, biject_to
 
 try:
-    import networkx as nx
+    import networkx as _nx
 except ModuleNotFoundError:
-    nx = None
+    _nx = None
 try:
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as _plt
 except ModuleNotFoundError:
-    plt = None
+    _plt = None
 
 class DualAveraging(object):
     """
@@ -90,14 +90,11 @@ class DualAveraging(object):
 
 def create_network_graph(vertices):
     """
-
     Create a `networkx` graph. Used by the method `display_graph()`.
-
-    :param vertices :type set :descript a collection of vertices that form the graph
     :return: Either a `networkx.DiGraph` instance or `None`.
     """
-    if nx:
-        G = nx.DiGraph()
+    if _nx:
+        G = _nx.DiGraph()
         for v in vertices:
             G.add_node(v.display_name)
             for a in v.ancestors:
@@ -106,15 +103,15 @@ def create_network_graph(vertices):
     else:
         return None
 
+
 def display_graph(vertices):
     """
     Transform the graph to a `networkx.DiGraph`-structure and display it using `matplotlib` -- if the necessary
     libraries are installed.
-
     :return: `True` if the graph was drawn, `False` otherwise.
     """
     G = create_network_graph(vertices=vertices)
-    if nx and plt and G:
+    if _nx and _plt and G:
         try:
             from networkx.drawing.nx_agraph import graphviz_layout
             pos = graphviz_layout(G, prog='dot')
@@ -124,25 +121,26 @@ def display_graph(vertices):
         except ImportError:
             from networkx.drawing.layout import shell_layout
             pos = shell_layout(G)
-        plt.subplot(111)
-        plt.axis('off')
-        nx.draw_networkx_nodes(G, pos,
-                               node_color='r',
-                               node_size=1250,
-                               nodelist=[v.display_name for v in vertices if v.is_sampled])
-        nx.draw_networkx_nodes(G, pos,
-                               node_color='b',
-                               node_size=1250,
-                               nodelist=[v.display_name for v in vertices if v.is_observed])
+        _plt.subplot(111)
+        _plt.axis('off')
+        _nx.draw_networkx_nodes(G, pos,
+                                node_color='r',
+                                node_size=1250,
+                                nodelist=[v.display_name for v in vertices if v.is_sampled])
+        _nx.draw_networkx_nodes(G, pos,
+                                node_color='b',
+                                node_size=1250,
+                                nodelist=[v.display_name for v in vertices if v.is_observed])
         for v in vertices:
-            nx.draw_networkx_edges(G, pos, arrows=True,
-                                   edgelist=[(a.display_name, v.display_name) for a in v.dist_ancestors])
-            nx.draw_networkx_edges(G, pos, arrows=True,
-                                   style='dashed',
-                                   edge_color='g',
-                                   edgelist=[(a.display_name, v.display_name) for a in v.cond_ancestors])
-        nx.draw_networkx_labels(G, pos, font_color='w', font_weight='bold')
-        plt.show()
+            _nx.draw_networkx_edges(G, pos, arrows=True,
+                                    edgelist=[(a.display_name, v.display_name) for a in v.ancestors])
+            if v.condition_ancestors is not None:
+                _nx.draw_networkx_edges(G, pos, arrows=True,
+                                        style='dashed',
+                                        edge_color='g',
+                                        edgelist=[(a.display_name, v.display_name) for a in v.condition_ancestors])
+        _nx.draw_networkx_labels(G, pos, font_color='w', font_weight='bold')
+        _plt.show()
         return True
     else:
         return False
