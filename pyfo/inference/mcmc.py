@@ -223,16 +223,13 @@ class MCMC(Inference):
                     UNIQUE_ID = np.random.randint(0,1000)
                     snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
                     snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
-                    # Generates prior sample - the initliaziation of the state
-                    # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
                     sample= state
                     samples_dict.append(sample)
                     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
-                    # try:
+
                     with open(snamepick, 'wb') as fout:
                         for ii in tqdm(range(nsamples+burnin - 1)):
                             sample = self._instance_of_kernel.sample(sample)
-                            # print('Debug statement in run_sampler() : \n Printing samples : {}'.format(sample))
                             samples_dict.append(sample)
                             pickle.dump(samples_dict, fout)
 
@@ -242,12 +239,6 @@ class MCMC(Inference):
                     print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
 
                     samples.to_csv(snamepd, index=False, header=True)
-
-                # except Exception:
-                #TODO : convert the pickle samples to dataframe.
-                #TODO: if the fucntion  is stopped for whatever reason, trigger a separate function that takes
-                # the saved msg, upacks it and returns the dataframe with correct
-                # latent variable names.
                 else:
                     # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
                     sample = state
@@ -274,8 +265,9 @@ class MCMC(Inference):
             print(5*'-' + ' Generating samples ' + 5*'-')
             print(50 * '-')
             if chains > 1:
+
                 pool = pmp.Pool(processes=AVAILABLE_CPUS)
-                samples = [pool.apply_async(run_sampler, (self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
+                samples = [pool.apply_async(run_sampler,args= (self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
                 samples = [chain_.get() for chain_ in samples]
             else:
                 samples = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin, chain=chains) # runs a single chain
