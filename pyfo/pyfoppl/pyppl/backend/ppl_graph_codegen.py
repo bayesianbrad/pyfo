@@ -85,7 +85,7 @@ class GraphCodeGenerator(object):
                 uses_numpy = uses_numpy or m == 'numpy'
                 uses_torch = uses_torch or m == 'torch'
             if uses_torch or uses_numpy:
-                self.logpdf_suffix = '.sum()'
+                self.logpdf_suffix = ''
             if not has_dist:
                 if uses_torch:
                     return 'import pyfo.distributions as dist\n'
@@ -231,11 +231,11 @@ class GraphCodeGenerator(object):
         def code_for_vertex(name: str, node: Vertex):
             cond_code = node.get_cond_code(state_object=self.state_object)
             if cond_code is not None:
-                result = cond_code + "log_pdf = log_pdf + dst_.log_pdf({}).sum()".format(name)
+                result = cond_code + "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
             else:
-                result = "log_pdf = log_pdf + dst_.log_pdf({}).sum()".format(name)
+                result = "log_pdf = log_pdf + dst_.log_pdf({})".format(name)
             if self.logpdf_suffix is not None:
-                result += self.logpdf_suffix
+                result = result + self.logpdf_suffix
             return result
 
         logpdf_code = ["log_pdf = 0"]
@@ -253,10 +253,10 @@ class GraphCodeGenerator(object):
             if self.logpdf_suffix is not None:
                 result += self.logpdf_suffix
             return result
-
+        # Note to self : To change suffix for torch or numpy look at line 87-88 in compiled imports (above)
         logpdf_code = ["log_pdf = 0"]
         self._gen_code(logpdf_code, code_for_vertex=code_for_vertex, want_data_node=False, flags={'transformed': True})
-        logpdf_code.append("return log_pdf")
+        logpdf_code.append("return log_pdf.sum()")
         return 'state', '\n'.join(logpdf_code)
 
     def gen_prior_samples(self):
