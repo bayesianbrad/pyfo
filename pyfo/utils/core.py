@@ -287,11 +287,13 @@ def _grad_logp(input, parameters):
     :param state:
     :return: torch.autograd.Variable
     """
-    print(50 *'=')
-    print('Debug statement in _grad_logp \n '+50*'='+'\nChecking gradient flag. \n Printing input : {0} \n Printing parameters : {1} \n Checking if gradient turned on: {2} '.format(input, parameters, parameters.requires_grad))
-    gradient_of_param = torch.autograd.grad(outputs=input, inputs=parameters, retain_graph=True)[0]
-    print('Debug statement in _grad_logp. Printing gradient : {}'.format(gradient_of_param))
-    print(50 * '=')
+    # print(50 *'=')
+    # print('Debug statement in _grad_logp \n '+50*'='+'\nChecking gradient flag. \n Printing input : {0} \n Printing parameters : {1} \n Checking if gradient turned on: {2} '.format(input, parameters, parameters.requires_grad))
+    import warnings
+    warnings.warn('be careful about using input.sum() as model code should have .sum() in gen_log_pdf')
+    gradient_of_param = torch.autograd.grad(outputs=input.sum(), inputs=parameters, retain_graph=True)[0]
+    # print('Debug statement in _grad_logp. Printing gradient : {}'.format(gradient_of_param))
+    # print(50 * '=')
     return gradient_of_param
 
 
@@ -302,11 +304,11 @@ def _to_leaf(state, latent_vars):
     :param state:
     :return:
     """
-    for key in latent_vars:
+    for key in state:
         state[key] = torch.tensor(state[key], requires_grad=True)
     return state
 
-def _generate_log_pdf(model,  state, latents, set_leafs=False):
+def _generate_log_pdf(model,  state):
     """
     The compiled pytorch function, log_pdf, should automatically
     return the pdf.
@@ -330,15 +332,15 @@ def _generate_log_pdf(model,  state, latents, set_leafs=False):
     kernel = MCMC(MyNewModel,kernel=HMC)
     kernel.run_inference()
 
-
+    If you require gradients, ensure that you have used the the core._to_leaf() function on the 'state'
     """
 
-    if set_leafs:
-        # only sets the gradients of the latent variables.
-        _state = _to_leaf(state=state, latent_vars=latents)
-    else:
-        _state = state
-    print(50*'=')
-    for key in _state:
-        print('Debug statement in _generate_log_p \n',50*'='+ '\n Printing set_leafs : {0} \n Printing latents : {1} \n gradient: {2} \n key: {3} '.format(set_leafs, latents,  _state[key].requires_grad, key))
-    return model.gen_log_pdf(_state)
+    # if set_leafs:
+    #     # only sets the gradients of the latent variables.
+    #     _state = _to_leaf(state=state, latent_vars=latents)
+    # else:
+    #     _state = state
+    # print(50*'=')
+    # for key in state:
+    #     print('Debug statement in _generate_log_p \n',50*'='+ '\n Printing set_leafs : {0} \n Printing latents : {1} \n gradient: {2} \n key: {3} '.format(set_leafs, latents,  state[key].requires_grad, key))
+    return model.gen_log_pdf(state)
