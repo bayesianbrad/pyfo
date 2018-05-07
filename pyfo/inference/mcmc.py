@@ -17,23 +17,25 @@ from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
 from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
 from tqdm import tqdm
-import multiprocessing as mp
+from multiprocessing import Pool, cpu_count
+from multiprocessing.pool import ApplyResult
 import numpy as np
 import sys
 import os
-import msgpack as mpa
-import datetime
 import pickle
+import pathlib
 import time
 
 class MCMC(Inference):
     """
     General purpose MCMC inference base class
     """
-    def __init__(self, model_code=None, generate_graph=False, debug_on=False):
+    def __init__(self, model_code=None, generate_graph=False, debug_on=False, save_data=False, dir_name=sys.path[0]):
         self.generate_graph=  generate_graph
         self.debug_on = debug_on
         self.model_code = model_code
+        self._save_data =save_data
+        self._dir_name = dir_name
         super(MCMC, self).__init__()
 
 
@@ -167,7 +169,7 @@ class MCMC(Inference):
     def warmup(self):
         return 0
 
-    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
+    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
             '''
             The run inference method should be run externally once the class has been created.
             I.e assume that they have not written there own model.
@@ -177,6 +179,7 @@ class MCMC(Inference):
             samples = hmc.run_inference(nsamples=1000,
                                         burnin=100,
                                         chains=1,
+                                        warmup= 100,
                                         step_size=None,
                                         num_steps=None,
                                         adapt_step_size=False,
@@ -202,31 +205,37 @@ class MCMC(Inference):
 
             '''
             self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
-            AVAILABLE_CPUS = mp.cpu_count()
+            AVAILABLE_CPUS = cpu_count()
 
-            def run_sampler(state, nsamples, burnin, chain, save_data=False, dir_name=sys.path[0]):
+            def run_sampler(state, nsamples, burnin, chain, save_data=self._save_data, dir_name=self._dir_name):
                 samples_dict = []
 
                 if save_data:
                     dir_n = os.path.join(dir_name,'results')
-                    os.makedirs(dir_name, exists_ok= True)
+                    pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
                     UNIQUE_ID = np.random.randint(0,1000)
-                    snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + chain + '.pickle')
-                    snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + chain)
+                    snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
+                    snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
                     # Generates prior sample - the initliaziation of the state
                     # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
                     sample= state
                     samples_dict.append(sample)
                     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
                     # try:
-                    for ii in tqdm(range(nsamples+burnin - 1)):
-                        sample = self._instance_of_kernel.sample(sample)
-                        samples_dict.append(sample)
-                        torch.save(samples_dict, snamepick, pickle_module=pickle)
-                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                        columns=self._names, inplace=True)
+                    with open(snamepick, 'wb') as fout:
+                        for ii in tqdm(range(nsamples+burnin - 1)):
+                            sample = self._instance_of_kernel.sample(sample)
+                            # print('Debug statement in run_sampler() : \n Printing samples : {}'.format(sample))
+                            samples_dict.append(sample)
+                            pickle.dump(samples_dict, fout)
+
+                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
+                        columns=self._instance_of_kernel._names, inplace=True)
+                    print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
                     print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
-                    torch.save(samples, snamepd ) # check this later.
+
+                    samples.to_csv(snamepd, index=False, header=True)
+
                 # except Exception:
                 #TODO : convert the pickle samples to dataframe.
                 #TODO: if the fucntion  is stopped for whatever reason, trigger a separate function that takes
@@ -240,7 +249,7 @@ class MCMC(Inference):
                         sample = self._instance_of_kernel.sample(sample)
                         samples_dict.append(sample)
                     samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                        columns=self._names, inplace=True)
+                        columns=self._instance_of_kernel._names, inplace=True)
 
                 # convert_to_numpy or just write own function for processing a dataframe full of
                 # tensors? May try the later approach
@@ -252,11 +261,13 @@ class MCMC(Inference):
 
 
             self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size,  num_steps=num_steps, adapt_step_size=adapt_step_size, trajectory_length=trajectory_length)
-            self._instance_of_kernel.setup(state=self._instance_of_kernel.state)
+            self._instance_of_kernel.setup(state=self._instance_of_kernel.state, warmup=warmup)
+            print(50*'-')
+            print(5*'-' + ' Generating samples ' + 5*'-')
             if chains > 1:
-                pool = mp.Pool(processes=AVAILABLE_CPUS)
-                samples = [pool.apply_async(run_sampler, args=(self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
-                samples = [chain.get() for chain in samples]
+                pool = Pool(processes=AVAILABLE_CPUS)
+                samples = [pool.apply_async(run_sampler, (self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
+                samples = [chain_.get() for chain_ in samples]
             else:
                 samples = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin, chain=chains) # runs a single chain
 
