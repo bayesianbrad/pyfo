@@ -17,11 +17,14 @@ from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
 from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
 from tqdm import tqdm
-from multiprocessing import Pool, cpu_count
-from multiprocessing.pool import ApplyResult
+# from multiprocessing import Pool, cpu_count
+# from multiprocessing.pool import ApplyResult
 import numpy as np
 import sys
 import os
+import pathos.multiprocessing as pmp
+import pathos.pools as pp
+# import dill as pickle
 import pickle
 import pathlib
 import time
@@ -121,6 +124,7 @@ class MCMC(Inference):
         for vertex in self._vertices:
             if vertex.is_sampled:
                 self._dist_params[vertex.name] = {vertex.distribution_name: vertex.distribution_arguments}
+
     def initialize(self):
         '''
         Initialize inference algorithm. It initializes hyperparameters
@@ -156,8 +160,11 @@ class MCMC(Inference):
         self.state = self.model.gen_prior_samples()
 
         if self.generate_graph:
+            print(50*'-')
+            print('{0} Generating an a graph G(V,E) of your model {0}'.format('-'))
             create_network_graph(vertices=self._vertices)
             display_graph(vertices=self._vertices)
+            print(50 * '-')
 
         if self.debug_on:
             print(50 * '=' + '\n'
@@ -205,7 +212,7 @@ class MCMC(Inference):
 
             '''
             self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
-            AVAILABLE_CPUS = cpu_count()
+            AVAILABLE_CPUS = pmp.cpu_count()
 
             def run_sampler(state, nsamples, burnin, chain, save_data=self._save_data, dir_name=self._dir_name):
                 samples_dict = []
@@ -260,12 +267,14 @@ class MCMC(Inference):
                 return samples
 
 
-            self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size,  num_steps=num_steps, adapt_step_size=adapt_step_size, trajectory_length=trajectory_length)
+            self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size,  num_steps=num_steps, adapt_step_size=adapt_step_size, trajectory_length=trajectory_length,\
+                                                   generate_graph = self.generate_graph, debug_on= self.debug_on)
             self._instance_of_kernel.setup(state=self._instance_of_kernel.state, warmup=warmup)
             print(50*'-')
             print(5*'-' + ' Generating samples ' + 5*'-')
+            print(50 * '-')
             if chains > 1:
-                pool = Pool(processes=AVAILABLE_CPUS)
+                pool = pmp.Pool(processes=AVAILABLE_CPUS)
                 samples = [pool.apply_async(run_sampler, (self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
                 samples = [chain_.get() for chain_ in samples]
             else:
