@@ -50,7 +50,7 @@ class HMC(MCMC):
     to do the transformation automatically.
     :return:
     '''
-    def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
+    def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None, **kwargs):
         super(HMC, self).__init__()
         # self.step_size = step_size if step_size is not None else 2
         # if trajectory_length is not None:
@@ -64,6 +64,7 @@ class HMC(MCMC):
         self.model_code = model_code
         self.adapt_step_size = adapt_step_size
         self._accept_cnt = 0
+        self.__dict__.update(kwargs)
         # need to make calling these functions concrete, as all classes that inherit from
         # this must inherit the output of the two functions below.
         self.generate_latent_vars()
@@ -202,7 +203,7 @@ class HMC(MCMC):
         p = dict([[key, torch.randn(state[key].size()[0], state[key].size()[1], requires_grad=False)] for key in self._cont_latents])
         return p
 
-    def sample(self, state, **kwargs):
+    def sample(self, state):
         '''
         :param nsamples type: int descript: Specifies how many samples you would like to generate.
         :param burnin: type: int descript: Specifies how many samples you would like to remove.
@@ -241,8 +242,6 @@ class HMC(MCMC):
         #
         # self._adapted_scheme._t += 1
 
-        # currenttly redundant
-        self.kwargs = kwargs
 
         # Return the unconstrained values for `state` to the constrianed values for 'state'.
         for key, transform in self.transforms.items():
