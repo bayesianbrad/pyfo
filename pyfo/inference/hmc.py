@@ -210,7 +210,6 @@ class HMC(MCMC):
         :param chains :type: int descript: Specifies the number of chains.
         :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
         :param dirname :type: str descrip: Path to a directory, where data can be saved.
-
         :return:
         '''
 
@@ -230,7 +229,7 @@ class HMC(MCMC):
         energy_proposal = logp + self._kinetic_energy(p_new)
         delta_energy = energy_proposal - energy_current
         rand = torch.rand(1)
-        accept = torch.lt(rand ,(-delta_energy).exp()).byte().any().item()
+        accept = torch.lt(rand, (-delta_energy).exp()).byte().any().item()
         if accept:
             # print('Debug statement in hmc.sample() : \n Printing : state accepted')
             self._accept_cnt += 1
@@ -242,7 +241,6 @@ class HMC(MCMC):
         #
         # self._adapted_scheme._t += 1
 
-
         # Return the unconstrained values for `state` to the constrianed values for 'state'.
         for key, transform in self.transforms.items():
             if transform is constraints.real:
@@ -250,7 +248,6 @@ class HMC(MCMC):
             else:
                 state[key] = transform.inv(state[key])
         return state
-
     def _leapfrog_step(self, state, p):
         """
         Performs the full DHMC update step. It updates the continous parameters using

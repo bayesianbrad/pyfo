@@ -17,31 +17,32 @@ from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
 from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
 from tqdm import tqdm
-# from multiprocessing import Pool, cpu_count
-# from multiprocessing.pool import ApplyResult
+
+from torch.multiprocessing import cpu_count
+import torch.multiprocessing as mp
 import numpy as np
 import sys
 import os
-import pathos.multiprocessing as pmp
-import pathos.pools as pp
+# import multiprocessing as pmp
+# import pathos.pools as pp
 # import dill as pickle
 import pickle
 import pathlib
 import time
 
+
+
 class MCMC(Inference):
     """
     General purpose MCMC inference base class
     """
-    def __init__(self, model_code=None, generate_graph=False, debug_on=False, save_data=False, dir_name=sys.path[0]):
-        self.generate_graph=  generate_graph
+
+    def __init__(self, model_code=None, generate_graph=False, debug_on=False, dir_name=sys.path[0]):
+        self.generate_graph = generate_graph
         self.debug_on = debug_on
         self.model_code = model_code
-        self._save_data =save_data
         self._dir_name = dir_name
         super(MCMC, self).__init__()
-
-
 
     def generate_model(self, model_code):
         '''
@@ -57,7 +58,6 @@ class MCMC(Inference):
         '''
 
         return compile_model(model_code)
-
 
     def generate_latent_vars(self):
         """
@@ -145,14 +145,14 @@ class MCMC(Inference):
 
         '''
 
-        print( 5 * '-' + ' Intializing the inference ' + 5 * '-')
+        print(5 * '-' + ' Intializing the inference ' + 5 * '-')
         self.auto_transform = True
         # if isinstance(self.kernel, HMC):
         #     self.auto_transform = True
         # else:
         #     self.auto_transform = False
         if self._cont_latents is not None:
-            self.transforms = tls(self._cont_latents,self._cont_dists)
+            self.transforms = tls(self._cont_latents, self._cont_dists)
 
         # else: # The following is redundant for now.
         #         #     self.state  = self.model.gen_prior_samples_transformed()
@@ -160,7 +160,7 @@ class MCMC(Inference):
         self.state = self.model.gen_prior_samples()
 
         if self.generate_graph:
-            print(50*'-')
+            print(50 * '-')
             print('{0} Generating an a graph G(V,E) of your model {0}'.format('-'))
             create_network_graph(vertices=self._vertices)
             display_graph(vertices=self._vertices)
@@ -172,160 +172,157 @@ class MCMC(Inference):
                              '{}'.format(self.model.code))
             print(50 * '=')
 
-
     def warmup(self):
         return 0
 
-    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
-            '''
-            The run inference method should be run externally once the class has been created.
-            I.e assume that they have not written there own model.
 
-            hmc = MCMC('HMC')
-            # all of the following kwargs are optional and kernel dependent.
-            samples = hmc.run_inference(nsamples=1000,
-                                        burnin=100,
-                                        chains=1,
-                                        warmup= 100,
-                                        step_size=None,
-                                        num_steps=None,
-                                        adapt_step_size=False,
-                                        trajectory_length = None,
-                                        save_data= False
-                                        dirname = None)
+    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,
+                      num_steps=None, adapt_step_size=True, trajectory_length=None):
+        '''
+        The run inference method should be run externally once the class has been created.
+        I.e assume that they have not written there own model.
 
-            It then returns the samples generated from inference. Alternatively you can set a global directory for
-            saving plots and samples generated.
+        hmc = MCMC('HMC')
+        # all of the following kwargs are optional and kernel dependent.
+        samples = hmc.run_inference(nsamples=1000,
+                                    burnin=100,
+                                    chains=1,
+                                    warmup= 100,
+                                    step_size=None,
+                                    num_steps=None,
+                                    adapt_step_size=False,
+                                    trajectory_length = None,
+                                    dirname = None)
 
-            :param nsamples type: int descript: Specifies how many samples you would like to generate.
-            :param burnin: type: int descript: Specifies how many samples you would like to remove.
-            :param chains :type: int descript: Specifies the number of chains.
-            :param step_size: :type: float descript: Specifies the sized step in inference.
-            :param num_steps :type: int descript: The trajectory length of the inference algorithm
-            :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
-            :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps
-            :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
-            :param dirname :type: str descrip: Path to a directory, where data can be saved. Default is the directory in
-            which the code is run.
+        It then returns the samples generated from inference. Alternatively you can set a global directory for
+        saving plots and samples generated.
 
-            :return: samples, :type pandas.dataframe
+        :param nsamples type: int descript: Specifies how many samples you would like to generate.
+        :param burnin: type: int descript: Specifies how many samples you would like to remove.
+        :param chains :type: int descript: Specifies the number of chains.
+        :param step_size: :type: float descript: Specifies the sized step in inference.
+        :param num_steps :type: int descript: The trajectory length of the inference algorithm
+        :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
+        :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps
+        :param dirname :type: str descrip: Path to a directory, where data can be saved. Default is the directory in
+        which the code is run.
 
-            '''
-            self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
-            AVAILABLE_CPUS = pmp.cpu_count()
+        :return: samples, :type pandas.dataframe
 
-            def run_sampler(state, nsamples, burnin, chain, save_data=self._save_data, dir_name=self._dir_name):
-                samples_dict = []
+        '''
+        self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
+        AVAILABLE_CPUS = cpu_count()
 
-                if save_data:
-                    dir_n = os.path.join(dir_name,'results')
-                    pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
-                    UNIQUE_ID = np.random.randint(0,1000)
-                    snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
-                    snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
-                    # Generates prior sample - the initliaziation of the state
-                    # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
-                    sample= state
-                    samples_dict.append(sample)
-                    print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
-                    # try:
-                    with open(snamepick, 'wb') as fout:
-                        for ii in tqdm(range(nsamples+burnin - 1)):
-                            sample = self._instance_of_kernel.sample(sample)
-                            # print('Debug statement in run_sampler() : \n Printing samples : {}'.format(sample))
-                            samples_dict.append(sample)
-                            pickle.dump(samples_dict, fout)
+        #
+        def run_sampler(state, nsamples, burnin, chain, dir_name=self._dir_name):
+            samples_dict = []
 
-                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
-                        columns=self._instance_of_kernel._names, inplace=True)
-                    print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
-                    print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
-
-                    samples.to_csv(snamepd, index=False, header=True)
-
-                # except Exception:
-                #TODO : convert the pickle samples to dataframe.
-                #TODO: if the fucntion  is stopped for whatever reason, trigger a separate function that takes
-                # the saved msg, upacks it and returns the dataframe with correct
-                # latent variable names.
-                else:
-                    # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
-                    sample = state
-                    samples_dict.append(sample)
-                    for ii in tqdm(range(nsamples+burnin - 1)):
-                        sample = self._instance_of_kernel.sample(sample)
-                        samples_dict.append(sample)
-                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                        columns=self._instance_of_kernel._names, inplace=True)
-
-                # convert_to_numpy or just write own function for processing a dataframe full of
-                # tensors? May try the later approach
-                # Note : The pd.dataframes contain torch.tensors
-
-
-                # samples.rename(columns=self._names, inplace=True) the above may not work.
-                return samples
-
-
-            self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size,  num_steps=num_steps, adapt_step_size=adapt_step_size, trajectory_length=trajectory_length,\
-                                                   generate_graph = self.generate_graph, debug_on= self.debug_on)
-            self._instance_of_kernel.setup(state=self._instance_of_kernel.state, warmup=warmup)
-            print(50*'-')
-            print(5*'-' + ' Generating samples ' + 5*'-')
-            print(50 * '-')
-            if chains > 1:
-                pool = pmp.Pool(processes=AVAILABLE_CPUS)
-                samples = [pool.apply_async(run_sampler, (self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
-                samples = [chain_.get() for chain_ in samples]
+            dir_n = os.path.join(dir_name,'results')
+            pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
+            UNIQUE_ID = np.random.randint(0,1000)
+            snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
+            snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
+            if not isinstance(state, dict):
+                sample = state.get()
             else:
-                samples = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin, chain=chains) # runs a single chain
+                sample = state
+            samples_dict.append(sample)
+            print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
 
+            with open(snamepick, 'wb') as fout:
+                for ii in tqdm(range(nsamples + burnin - 1)):
+                    sample = self._instance_of_kernel.sample(sample)
+                    samples_dict.append(sample)
+                    pickle.dump(samples_dict, fout)
 
-            return samples
+        # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
+        #     columns=self._instance_of_kernel._names, inplace=True)
+        # print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
+        # print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
+        #
+        # samples.to_csv(snamepd, index=False, header=True)
 
-    def _grad_logp(self, logp, param):
-        """
-        Returns the gradient of the log pdf, with respect for
-        each parameter. Note the double underscore, this is to ensure that if
-        this method is overwritten, then no problems occur when overidded.
-        :param state:
-        :return: torch.autograd.Variable
-        """
+        # convert_to_numpy or just write own function for processing a dataframe full of
+        # tensors? May try the later approach
+        # Note : The pd.dataframes contain torch.tensors
+            if not isinstance(state, dict):
+                sys.stdout.write('The type of q is : {} '.format(type(state)))
+                state.put(samples_dict)
+            else:
+                sys.stdout.write('The type of q is : {} '.format(type(state)))
+                return state
 
-        gradient_of_param = torch.autograd.grad(outputs=logp, inputs=param, retain_graph=True)[0]
-        return gradient_of_param
+        # def run_sampler(state, nsamples, burnin, chain, dir_name=self._dir_name):
+        #     samples_dict = []
+        #
+        #     dir_n = os.path.join(dir_name,'results')
+        #     pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
+        #     UNIQUE_ID = np.random.randint(0,1000)
+        #     snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
+        #     snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
+        #     sample = state
+        #     samples_dict.append(sample)
+        #     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
+        #
+        #     with open(snamepick, 'wb') as fout:
+        #         for ii in tqdm(range(nsamples + burnin - 1)):
+        #             sample = self._instance_of_kernel.sample(sample)
+        #             samples_dict.append(sample)
+        #             pickle.dump(samples_dict, fout)
+        #     return samples_dict
 
+        # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
+        #     columns=self._instance_of_kernel._names, inplace=True)
+        # print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
+        # print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
+        #
+        # samples.to_csv(snamepd, index=False, header=True)
 
-    def _generate_log_pdf(self, state, set_leafs=False):
-        """
-        The compiled pytorch function, log_pdf, should automatically
-        return the pdf.
-        :param keys type: list of discrete embedded discrete parameters
-        :return: log_pdf
+        # convert_to_numpy or just write own function for processing a dataframe full of
+        # tensors? May try the later approach
+        # Note : The pd.dataframes contain torch.tensors
 
-        Maybe overidden in other methods, that require dynamic pdfs.
-        For example
-        if you have a model called my mymodel, you could write the following:
-        Model = compile_model(mymodel) # returns class
-        class MyNewModel(Model):
+        self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size, num_steps=num_steps,
+                                               adapt_step_size=adapt_step_size, trajectory_length=trajectory_length, \
+                                               generate_graph=self.generate_graph, debug_on=self.debug_on)
+        self._instance_of_kernel.setup(state=self._instance_of_kernel.state, warmup=warmup)
+        print(50 * '-')
+        print(5 * '-' + ' Generating samples ' + 5 * '-')
+        print(50 * '-')
+        if chains > 1:
+            q = mp.Queue()
+            processes = []
+            for rank in range(AVAILABLE_CPUS):
+                q.put(self._instance_of_kernel.state)
+                p = mp.Process(target=run_sampler, args=(q, nsamples, burnin, rank))
+                p.start()
+                processes.append(p)
+            for p in processes:
+                p.join()
+            samples_ = [q.get() for _ in range(AVAILABLE_CPUS)]
 
-            def gen_log_pdf(self, state):
-                for vertex in self.vertices:
-                    pass
-        return "Whatever you fancy"
-
-        # This overrides the base method.
-        # Then all you have to do is pass
-        # My model into kernel of choice, i.e
-        kernel = MCMC(MyNewModel,kernel=HMC)
-        kernel.run_inference()
-
-
-        """
-        if set_leafs:
-            # only sets the gradients of the latent variables.
-            _state = _to_leaf(state=state, latent_vars=self._all_vars)
+            # pool = pmp.Pool(processes=AVAILABLE_CPUS)
+            # samples = [pool.apply_async(run_sampler, args=(self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]
+            #
         else:
-            _state = state
-        return self.model.gen_log_pdf(_state)
+            samples_ = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin,
+                                  chain=chains)  # runs a single chain
 
+        return samples_
+
+
+def _pickle_method(method):
+    func_name = method.im_func.__name__
+    obj = method.im_self
+    cls = method.im_class
+    return _unpickle_method, (func_name, obj, cls)
+
+def _unpickle_method(func_name, obj, cls):
+    for cls in cls.mro():
+        try:
+            func = cls.__dict__[func_name]
+        except KeyError:
+            pass
+        else:
+            break
+    return func.__get__(obj, cls)
