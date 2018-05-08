@@ -30,6 +30,7 @@ import pickle
 import pathlib
 import time
 import xarray
+import warnings
 
 
 class MCMC(Inference):
@@ -42,6 +43,7 @@ class MCMC(Inference):
         self.debug_on = debug_on
         self.model_code = model_code
         self._dir_name = dir_name
+        warnings.warn('be careful about using input.sum() as model code should have .sum() in gen_log_pdf')
         super(MCMC, self).__init__()
 
     def generate_model(self, model_code):
@@ -231,10 +233,10 @@ class MCMC(Inference):
                     samples_dict.append(sample)
                     pickle.dump(samples_dict, fout)
 
-                samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(columns=self._instance_of_kernel._names, inplace=True)
+                # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(columns=self._instance_of_kernel._names, inplace=True)
                 print(50 * '=', '\n Saving xarray dataframe to : {0} '.format(snamepd))
         #
-                xarray.DataArray,from_dict(snamepd, index=False, header=True)
+                xarray.DataArray.from_dict(snamepd)
                 print(50* '=')
 
         # convert_to_numpy or just write own function for processing a dataframe full of

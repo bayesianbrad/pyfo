@@ -287,8 +287,6 @@ def _grad_logp(input, parameters):
     """
     # print(50 *'=')
     # print('Debug statement in _grad_logp \n '+50*'='+'\nChecking gradient flag. \n Printing input : {0} \n Printing parameters : {1} \n Checking if gradient turned on: {2} '.format(input, parameters, parameters.requires_grad))
-    import warnings
-    warnings.warn('be careful about using input.sum() as model code should have .sum() in gen_log_pdf')
     gradient_of_param = torch.autograd.grad(outputs=input.sum(), inputs=parameters, retain_graph=True)[0]
     # print('Debug statement in _grad_logp. Printing gradient : {}'.format(gradient_of_param))
     # print(50 * '=')

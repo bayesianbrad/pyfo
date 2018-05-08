@@ -16,16 +16,16 @@ from pyfo.inference.hmc import HMC
 model="""
 import torch
 
-n = 1
-d = 1
-x = sample(normal(torch.zeros(n,d), torch.ones(n,d)))
-y = 1
-observations = 7*torch.ones(n,d)
-observe(normal(y, 2*torch.ones(n,d)), observations)
+n = 10
+d = 10
+x1 = sample(normal(torch.zeros(n,d), torch.ones(n,d)))
+x2 = sample(normal(x1, torch.ones(n,d)))
+y = 7*torch.ones(n,d)
+observe(normal(x1, 2*torch.ones(n,d)),y)
 y
 """
-model_compiled = MCMC(model_code=model, generate_graph=False, debug_on=True)
+model_compiled = MCMC(model_code=model, generate_graph=True, debug_on=False)
 
 
-samples = model_compiled.run_inference(kernel=HMC,  nsamples=100, burnin=10, chains=1)
+samples = model_compiled.run_inference(kernel=HMC,  nsamples=100, burnin=10, chains=4)
 print(samples)
