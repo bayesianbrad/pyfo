@@ -29,7 +29,7 @@ import os
 import pickle
 import pathlib
 import time
-
+import xarray
 
 
 class MCMC(Inference):
@@ -214,33 +214,28 @@ class MCMC(Inference):
         AVAILABLE_CPUS = cpu_count()
 
         #
-        def run_sampler(state, nsamples, burnin, chain, dir_name=self._dir_name):
+        def run_sampler(state, nsamples, burnin, chain, UNIQUE_ID, snamepick, snamepd):
             samples_dict = []
 
-            dir_n = os.path.join(dir_name,'results')
             pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
-            UNIQUE_ID = np.random.randint(0,1000)
-            snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
-            snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
             if not isinstance(state, dict):
                 sample = state.get()
             else:
                 sample = state
             samples_dict.append(sample)
-            print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
-
+            snamepick = snamepick + str(UNIQUE_ID) + '_chain_' + str(chain) + '.pickle'
+            snamepd = snamepd + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv'
             with open(snamepick, 'wb') as fout:
                 for ii in tqdm(range(nsamples + burnin - 1)):
                     sample = self._instance_of_kernel.sample(sample)
                     samples_dict.append(sample)
                     pickle.dump(samples_dict, fout)
 
-        # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
-        #     columns=self._instance_of_kernel._names, inplace=True)
-        # print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
-        # print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
+                samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(columns=self._instance_of_kernel._names, inplace=True)
+                print(50 * '=', '\n Saving xarray dataframe to : {0} '.format(snamepd))
         #
-        # samples.to_csv(snamepd, index=False, header=True)
+                xarray.DataArray,from_dict(snamepd, index=False, header=True)
+                print(50* '=')
 
         # convert_to_numpy or just write own function for processing a dataframe full of
         # tensors? May try the later approach
@@ -250,63 +245,41 @@ class MCMC(Inference):
                 state.put(samples_dict)
             else:
                 sys.stdout.write('The type of q is : {} '.format(type(state)))
-                return state
+                return samples_dict
 
-        # def run_sampler(state, nsamples, burnin, chain, dir_name=self._dir_name):
-        #     samples_dict = []
-        #
-        #     dir_n = os.path.join(dir_name,'results')
-        #     pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
-        #     UNIQUE_ID = np.random.randint(0,1000)
-        #     snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
-        #     snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
-        #     sample = state
-        #     samples_dict.append(sample)
-        #     print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
-        #
-        #     with open(snamepick, 'wb') as fout:
-        #         for ii in tqdm(range(nsamples + burnin - 1)):
-        #             sample = self._instance_of_kernel.sample(sample)
-        #             samples_dict.append(sample)
-        #             pickle.dump(samples_dict, fout)
-        #     return samples_dict
-
-        # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
-        #     columns=self._instance_of_kernel._names, inplace=True)
-        # print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
-        # print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
-        #
-        # samples.to_csv(snamepd, index=False, header=True)
-
-        # convert_to_numpy or just write own function for processing a dataframe full of
-        # tensors? May try the later approach
-        # Note : The pd.dataframes contain torch.tensors
+        # Generate instance of transition kernel
 
         self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size, num_steps=num_steps,
                                                adapt_step_size=adapt_step_size, trajectory_length=trajectory_length, \
                                                generate_graph=self.generate_graph, debug_on=self.debug_on)
         self._instance_of_kernel.setup(state=self._instance_of_kernel.state, warmup=warmup)
-        print(50 * '-')
-        print(5 * '-' + ' Generating samples ' + 5 * '-')
+
+        # save  samples paths
+        dir_n = os.path.join(self._dir_name, 'results')
+        UNIQUE_ID = np.random.randint(0, 1000)
+        snamepick = os.path.join(dir_n, 'samples_')
+        snamepd = os.path.join(dir_n, 'all_samples_' + str(UNIQUE_ID))
+        print('Saving individual samples in:  {0} \nwith unique ID: {1}'.format(dir_n, UNIQUE_ID))
+
+
         print(50 * '-')
         if chains > 1:
+            print(5 * '-' + ' Generating samples for {0} chains {1}'.format(chains, 5*'-'))
+            print(50 * '-')
             q = mp.Queue()
             processes = []
             for rank in range(AVAILABLE_CPUS):
                 q.put(self._instance_of_kernel.state)
-                p = mp.Process(target=run_sampler, args=(q, nsamples, burnin, rank))
+                p = mp.Process(target=run_sampler, args=(q, nsamples, burnin, rank, UNIQUE_ID, snamepick, snamepd))
                 p.start()
                 processes.append(p)
             for p in processes:
                 p.join()
             samples_ = [q.get() for _ in range(AVAILABLE_CPUS)]
-
-            # pool = pmp.Pool(processes=AVAILABLE_CPUS)
-            # samples = [pool.apply_async(run_sampler, args=(self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]
-            #
         else:
-            samples_ = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin,
-                                  chain=chains)  # runs a single chain
+            print(5 * '-' + ' Generating samples for {0} chain {1}'.format(chains, 5*'-'))
+            print(50 * '-')
+            samples_ = run_sampler(self._instance_of_kernel.state, nsamples, burnin, chains, UNIQUE_ID, snamepick, snamepd) # runs a single chain
 
         return samples_
 
