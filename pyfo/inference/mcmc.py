@@ -149,16 +149,10 @@ class MCMC(Inference):
 
         print(5 * '-' + ' Intializing the inference ' + 5 * '-')
         self.auto_transform = True
-        # if isinstance(self.kernel, HMC):
-        #     self.auto_transform = True
-        # else:
-        #     self.auto_transform = False
+    
         if self._cont_latents is not None:
             self.transforms = tls(self._cont_latents, self._cont_dists)
-
-        # else: # The following is redundant for now.
-        #         #     self.state  = self.model.gen_prior_samples_transformed()
-        #         #     self._gen_log_pdf = self.model.gen_pdf_transformed
+  
         self.state = self.model.gen_prior_samples()
 
         if self.generate_graph:
@@ -173,10 +167,91 @@ class MCMC(Inference):
                              'Now generating compiled model code output \n'
                              '{}'.format(self.model.code))
             print(50 * '=')
+            print(50 * '=' + '\n'
+                             'Now generating vertices \n'
+                             '{}'.format(self._vertices))
+            print(50 * '=')
+
 
     def warmup(self):
         return 0
 
+    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
+            '''
+            The run inference method should be run externally once the class has been created.
+            I.e assume that they have not written there own model.
+
+            hmc = MCMC('HMC')
+            # all of the following kwargs are optional and kernel dependent.
+            samples = hmc.run_inference(nsamples=1000,
+                                        burnin=100,
+                                        chains=1,
+                                        warmup= 100,
+                                        step_size=None,
+                                        num_steps=None,
+                                        adapt_step_size=False,
+                                        trajectory_length = None,
+                                        save_data= False
+                                        dirname = None)
+
+            It then returns the samples generated from inference. Alternatively you can set a global directory for
+            saving plots and samples generated.
+
+            :param nsamples type: int descript: Specifies how many samples you would like to generate.
+            :param burnin: type: int descript: Specifies how many samples you would like to remove.
+            :param chains :type: int descript: Specifies the number of chains.
+            :param step_size: :type: float descript: Specifies the sized step in inference.
+            :param num_steps :type: int descript: The trajectory length of the inference algorithm
+            :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
+            :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps
+            :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
+            :param dirname :type: str descrip: Path to a directory, where data can be saved. Default is the directory in
+            which the code is run.
+
+            :return: samples, :type pandas.dataframe
+
+            '''
+            self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
+            AVAILABLE_CPUS = pmp.cpu_count()
+
+            def run_sampler(state, nsamples, burnin, chain, save_data=self._save_data, dir_name=self._dir_name):
+                samples_dict = []
+
+                if save_data:
+                    dir_n = os.path.join(dir_name,'results')
+                    pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
+                    UNIQUE_ID = np.random.randint(0,1000)
+                    snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
+                    snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
+                    sample= state
+                    samples_dict.append(sample)
+                    print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
+
+                    with open(snamepick, 'wb') as fout:
+                        for ii in tqdm(range(nsamples+burnin - 1)):
+                            sample = self._instance_of_kernel.sample(sample)
+                            samples_dict.append(sample)
+                            pickle.dump(samples_dict, fout)
+
+                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
+                        columns=self._instance_of_kernel._names, inplace=True)
+                    print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
+                    print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
+
+                    samples.to_csv(snamepd, index=False, header=True)
+                else:
+                    # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
+                    sample = state
+                    samples_dict.append(sample)
+                    for ii in tqdm(range(nsamples+burnin - 1)):
+                        sample = self._instance_of_kernel.sample(sample)
+                        samples_dict.append(sample)
+                    # samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
+                    #     columns=self._instance_of_kernel._names, inplace=True)
+
+                # convert_to_numpy or just write own function for processing a dataframe full of
+                # tensors? May try the later approach
+                # Note : The pd.dataframes contain torch.tensors
 
     def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,
                       num_steps=None, adapt_step_size=True, trajectory_length=None):
@@ -214,11 +289,10 @@ class MCMC(Inference):
         '''
         self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
         AVAILABLE_CPUS = cpu_count()
-
-        #
+        
         def run_sampler(state, nsamples, burnin, chain, UNIQUE_ID, snamepick, snamepd):
             samples_dict = []
-
+            
             pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
             if not isinstance(state, dict):
                 sample = state.get()
@@ -235,13 +309,9 @@ class MCMC(Inference):
 
                 # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(columns=self._instance_of_kernel._names, inplace=True)
                 print(50 * '=', '\n Saving xarray dataframe to : {0} '.format(snamepd))
-        #
                 xarray.DataArray.from_dict(snamepd)
                 print(50* '=')
 
-        # convert_to_numpy or just write own function for processing a dataframe full of
-        # tensors? May try the later approach
-        # Note : The pd.dataframes contain torch.tensors
             if not isinstance(state, dict):
                 sys.stdout.write('The type of q is : {} '.format(type(state)))
                 state.put(samples_dict)
