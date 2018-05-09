@@ -15,7 +15,6 @@ from pyfo.inference.hmc import HMC
 
 model_gamma="""
 import torch
-
 n = 1 
 d = 1
 x1 = sample(gamma(2*torch.ones(n,d), 3*torch.ones(n,d)))
@@ -67,8 +66,4 @@ observe(normal(x2, torch.ones(n,d)), y)
 y
 """
 model_compiled = MCMC(model_code=model_gamma, generate_graph=True, debug_on=True)
-
-
 samples = model_compiled.run_inference(kernel=HMC,  nsamples=20, burnin=10, chains=4)
-print(samples)
-#
