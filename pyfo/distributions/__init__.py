@@ -47,7 +47,7 @@ from  pyfo.distributions.laplace import Laplace
 from  pyfo.distributions.log_gamma import LogGamma
 from  pyfo.distributions.multinomial import Multinomial
 from  pyfo.distributions.normal import Normal
-from  pyfo.distributions.mvn import MultivariateNormal #as mvn
+from  pyfo.distributions.mvn import MultivariateNormal
 from  pyfo.distributions.one_hot_categorical import OneHotCategorical
 from  pyfo.distributions.pareto import Pareto
 from  pyfo.distributions.poisson import Poisson
