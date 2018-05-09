@@ -153,7 +153,9 @@ class MCMC(Inference):
         #     self.auto_transform = False
         if self._cont_latents is not None:
             self.transforms = tls(self._cont_latents,self._cont_dists)
-
+        print('Debug statement in MCMC.initialize() \n printing self.transforms : {} '.format(self.transforms))
+        for key in self.transforms:
+            print("Debug statement in MCMC.initialize() \n printing self.transforms : {0} key : {1}  ".format(self.transforms[key], key))
         # else: # The following is redundant for now.
         #         #     self.state  = self.model.gen_prior_samples_transformed()
         #         #     self._gen_log_pdf = self.model.gen_pdf_transformed
@@ -171,6 +173,11 @@ class MCMC(Inference):
                              'Now generating compiled model code output \n'
                              '{}'.format(self.model.code))
             print(50 * '=')
+            print(50 * '=' + '\n'
+                             'Now generating vertices \n'
+                             '{}'.format(self._vertices))
+            print(50 * '=')
+
 
 
     def warmup(self):
@@ -246,8 +253,8 @@ class MCMC(Inference):
                     for ii in tqdm(range(nsamples+burnin - 1)):
                         sample = self._instance_of_kernel.sample(sample)
                         samples_dict.append(sample)
-                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                        columns=self._instance_of_kernel._names, inplace=True)
+                    # samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
+                    #     columns=self._instance_of_kernel._names, inplace=True)
 
                 # convert_to_numpy or just write own function for processing a dataframe full of
                 # tensors? May try the later approach
@@ -255,7 +262,7 @@ class MCMC(Inference):
 
 
                 # samples.rename(columns=self._names, inplace=True) the above may not work.
-                return samples
+                return samples_dict
 
 
             self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size,  num_steps=num_steps, adapt_step_size=adapt_step_size, trajectory_length=trajectory_length,\
@@ -264,13 +271,7 @@ class MCMC(Inference):
             print(50*'-')
             print(5*'-' + ' Generating samples ' + 5*'-')
             print(50 * '-')
-            if chains > 1:
-
-                pool = pmp.Pool(processes=AVAILABLE_CPUS)
-                samples = [pool.apply_async(run_sampler,args= (self._instance_of_kernel.state, nsamples, burnin, chain)) for chain in range(chains)]  #runs multiple chains in parallel
-                samples = [chain_.get() for chain_ in samples]
-            else:
-                samples = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin, chain=chains) # runs a single chain
+            samples = run_sampler(state=self._instance_of_kernel.state, nsamples=nsamples, burnin=burnin, chain=chains) # runs a single chain
 
 
             return samples
