@@ -68,10 +68,12 @@ distributions = {
     Distribution('LogGamma',    DistributionType.CONTINUOUS, ['alpha', 'beta']),
     Distribution('LogNormal',   DistributionType.CONTINUOUS, ['mu', 'sigma'], foppl_name='log_normal'),
     Distribution('Multinomial', DistributionType.DISCRETE,   ['total_count', 'probs', 'n']),
+    # Distribution('MultivariateNormal',
+    #                             DistributionType.CONTINUOUS, ['loc', 'covariance_matrix'], vector_sample=True, foppl_name='mvn'),
     Distribution('MultivariateNormal',
-                                DistributionType.CONTINUOUS, ['mu', 'covariance_matrix'], vector_sample=True, foppl_name='mvn'),
+                 DistributionType.CONTINUOUS, ['loc', 'covariance_matrix'], foppl_name='mvn'),
     Distribution('Normal',      DistributionType.CONTINUOUS, ['loc', 'scale']),
-    Distribution('Poisson',     DistributionType.DISCRETE,   ['lam']),
+    Distribution('Poisson',     DistributionType.DISCRETE,   ['rate']),
     Distribution('Uniform',     DistributionType.CONTINUOUS, ['a', 'b'])
 }
 
