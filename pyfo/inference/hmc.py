@@ -15,18 +15,10 @@ from itertools import permutations
 import numpy as np
 import pandas as pd
 import torch
-import copy
 import torch.distributions as dists
-from torch.autograd import Variable
-from torch.distributions import constraints, biject_to
+from torch.distributions import constraints
 import pyfo.distributions as dist
 
-# the state interacts with the interface, where ever that is placed....
-from pyfo.utils import state
-from pyfo.utils.core import VariableCast
-from pyfo.utils.eval_stats import extract_stats
-from pyfo.utils.eval_stats import save_data
-from pyfo.utils.plotting import Plotting as plot
 from pyfo.inference.mcmc import MCMC
 from pyfo.utils.core import DualAveraging, _generate_log_pdf, _grad_logp, _to_leaf
 

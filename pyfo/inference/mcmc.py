@@ -43,7 +43,7 @@ class MCMC(Inference):
         self.debug_on = debug_on
         self.model_code = model_code
         self._dir_name = dir_name
-        warnings.warn('be careful about using input.sum() as model code should have .sum() in gen_log_pdf')
+        # warnings.warn('be careful about using input.sum() as model code should have .sum() in gen_log_pdf')
         super(MCMC, self).__init__()
 
     def generate_model(self, model_code):
@@ -112,8 +112,12 @@ class MCMC(Inference):
                                  (vertex.is_continuous and vertex.name in self._all_vars)])
         self._disc_dists = dict([(vertex.name, vertex.distribution_name) for vertex in self._vertices if
                                  (vertex.is_discrete and vertex.name in self._all_vars)])
-
+        for vertex in self._vertices:
+            self._ancestors = dict([(vertex.name, vertex.ancestors) for vertex in self._vertices])
+            # self._ancestors_conditioned = dict([(vertex.name , vertex.ancestors)])
+        print('Debug statement in MCMC.generate_latents() \n Printing ancestors : {0}'.format(self._ancestors))
         # discrete support sizes
+        print()
         self._disc_support = dict(
             [(vertex.name, vertex.support_size) for vertex in self._vertices if vertex.is_discrete])
 
@@ -148,12 +152,19 @@ class MCMC(Inference):
         '''
 
         print(5 * '-' + ' Intializing the inference ' + 5 * '-')
-        self.auto_transform = True
-    
-        if self._cont_latents is not None:
-            self.transforms = tls(self._cont_latents, self._cont_dists)
-  
-        self.state = self.model.gen_prior_samples()
+        if self.debug_on:
+            print(50 * '-')
+            print('Debug function printing .....')
+            print(50 * '-' + '\n'
+                             'Now generating compiled model code output \n'
+                             '{}'.format(self.model.code))
+            print(50 * '-')
+            print(50 * '-' + '\n'
+                             'Now generating vertices \n'
+                             '{}'.format(self._vertices))
+            print(50 * '-')
+            print('End of debug function printing .....')
+            print(50 * '-')
 
         if self.generate_graph:
             print(50 * '-')
@@ -162,15 +173,17 @@ class MCMC(Inference):
             display_graph(vertices=self._vertices)
             print(50 * '-')
 
-        if self.debug_on:
-            print(50 * '=' + '\n'
-                             'Now generating compiled model code output \n'
-                             '{}'.format(self.model.code))
-            print(50 * '=')
-            print(50 * '=' + '\n'
-                             'Now generating vertices \n'
-                             '{}'.format(self._vertices))
-            print(50 * '=')
+
+        self.auto_transform = True
+
+    
+        if self._cont_latents is not None:
+            self.transforms = tls(self._cont_latents, self._cont_dists)
+  
+        self.state = self.model.gen_prior_samples()
+
+
+
 
 
     def warmup(self):
@@ -212,7 +225,7 @@ class MCMC(Inference):
 
             '''
             self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
-            AVAILABLE_CPUS = pmp.cpu_count()
+            AVAILABLE_CPUS = mp.cpu_count()
 
             def run_sampler(state, nsamples, burnin, chain, save_data=self._save_data, dir_name=self._dir_name):
                 samples_dict = []
@@ -235,7 +248,6 @@ class MCMC(Inference):
 
                     samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
                         columns=self._instance_of_kernel._names, inplace=True)
-                    print('Debug statement in run_sampler() : \n Printing true names: {}'.format(self._instance_of_kernel._names))
                     print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
 
                     samples.to_csv(snamepd, index=False, header=True)
@@ -308,9 +320,6 @@ class MCMC(Inference):
                     pickle.dump(samples_dict, fout)
 
                 # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(columns=self._instance_of_kernel._names, inplace=True)
-                print(50 * '=', '\n Saving xarray dataframe to : {0} '.format(snamepd))
-                xarray.DataArray.from_dict(snamepd)
-                print(50* '=')
 
             if not isinstance(state, dict):
                 sys.stdout.write('The type of q is : {} '.format(type(state)))
