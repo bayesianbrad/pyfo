@@ -7,6 +7,7 @@
 # 23. Mar 2018, Tobias Kohn
 #
 import datetime
+import importlib
 from ..graphs import *
 from ..ppl_ast import *
 
@@ -101,6 +102,17 @@ class GraphCodeGenerator(object):
             imports = self.imports + "\n" + imports
         if base_class is None:
             base_class = ''
+
+        if '.' in base_class:
+            idx = base_class.rindex('.')
+            base_module = base_class[:idx]
+            try:
+                importlib.import_module(base_module)
+                base_class = base_class[idx + 1:]
+                imports = "from {} import {}\n".format(base_module, base_class) + imports
+            except:
+                pass
+
 
         imports = self._complete_imports(imports) + imports
 
