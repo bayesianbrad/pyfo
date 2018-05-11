@@ -138,8 +138,19 @@ result.append( flip(1, probs=sigmoid(torch.mm(V.t(), h) + c)))"""
 
 
 
+model_simple="""
+import torch
 
-model_compiled = compile_model(model)
+n = 1
+d = 1
+x = sample(normal(torch.zeros(n,d), torch.ones(n,d)))
+y = 1
+observations = 7*torch.ones(n,d)
+observe(normal(y, 2*torch.ones(n,d)), observations)
+y
+"""
+
+model_compiled = compile_model(model_simple)
 st = time.time()
 print(model_compiled.code)
 end = time.time()

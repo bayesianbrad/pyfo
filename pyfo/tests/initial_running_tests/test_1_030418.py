@@ -13,15 +13,15 @@ import time
 from pyfo.inference.mcmc import MCMC
 from pyfo.inference.hmc import HMC
 
-model_gamma="""
-import torch
-n = 1 
-d = 1
-x1 = sample(gamma(2*torch.ones(n,d), 3*torch.ones(n,d)))
-# y = 1*torch.zeros(n,d)
-# observe(normal(torch.zeros(n,d), torch.ones(n,d)), y)
-x1
-"""
+# def model_gamma():
+#     import torch
+#     n = 1
+#     d = 1
+#     x1 = sample(gamma(2*torch.ones(n,d), 3*torch.ones(n,d)))
+#     # y = 1*torch.zeros(n,d)
+#     # observe(normal(torch.zeros(n,d), torch.ones(n,d)), y)
+#     x1
+
 model_normal="""
 import torch 
 
@@ -65,13 +65,13 @@ y = torch.rand((n,d))
 observe(normal(x2, torch.ones(n,d)), y)
 y
 """
-model_if_nd = """
+model_if_nd ="""
 import torch
 
 
-x1  = sample(normal(torch.tensor([[0,2]]), torch.tensor([[1,4]])))
+x1  = sample(normal(torch.tensor([[0.,2.]]), torch.tensor([[1.,4.]])))
 
-x2 = sample(normal(torch.tensor([[0,5]]), torch.tensor([[2,4]])))
+x2 = sample(normal(torch.tensor([[0.,5.]]), torch.tensor([[2.,4.]])))
 
 observations = torch.ones(x2.size())
 
@@ -80,10 +80,9 @@ boolean = torch.gt(x2, x1)
 truth_index = boolean.nonzero() # indices for which the statement is true
 false_index = (boolean==0).nonzero() # indices for which the statements are false.
 
-observe(normal(x2[boolean.nonzero()], 1*torch.tensor(len(x2[boolean.nonzero()]))),observations[boolean.nonzero()])
-observe(normal(-1*torch.tensor(len(x2[(boolean==0).nonzero()])), torch.tensor(len(x2[(boolean==0).nonzero()]))), observations[(boolean==0).nonzero()])
+observe(normal(x2[boolean], 1*torch.tensor(len(x2[boolean]))),observations[boolean])
+observe(normal(-1*torch.tensor(len(x2[(boolean==0).nonzero()]),1), torch.tensor(len(x2[(boolean==0).nonzero()]),1)), observations[(boolean==0).nonzero()])
 """
-
 model_if_1d ="""
 x1 = sample(gamma(0.4, 0.3))
 x2 = sample(normal(x1, 1))
@@ -94,6 +93,14 @@ if x1> 0:
 x1,x2
 """
 
+model_if_1d_2 = """
+x1 = sample(normal(0, 2))
+x2 = sample(normal(x1, 4))
+if x1 > x2:
+    observe(normal(x2, 1), 1)
+else:
+    observe(normal(-1, 1), 1)
+"""
 model_gmm2 = """
 import torch
 
@@ -105,12 +112,12 @@ ys = torch.tensor(y)
 pi = torch.tensor(0.5*torch.ones(samples,means))
 mus = sample(normal(torch.zeros(means), 2*torch.ones(means)))
 
-zn = sample(categorical(pi, size=10))
+zn = sample(categorical(pi))
 
 for i in range(len(pi)):
     index = (zn == i).nonzero()
     observe(normal(mus[i]*torch.ones(len(index)), 2*torch.ones(len(index))), ys[index])
 """
 
-model_compiled = MCMC(model_code=model_gmm2, generate_graph=True, debug_on=True)
+model_compiled = MCMC(model_code=model_gmm2,model_name='gmm', generate_graph=True, debug_on=True)
 samples = model_compiled.run_inference(kernel=HMC,  nsamples=20, burnin=10, chains=4)

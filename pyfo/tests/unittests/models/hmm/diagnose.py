@@ -65,11 +65,11 @@ for i in range(n_chain):
     plt.show()
 
 
-### load MwG data
-# samples_MwG = {}
-# for i in range(n_chain):
-#     df = pd.read_csv(dir_MwG + '/chain-{}.csv'.format(i), index_col=None, header=0)
-#     samples_MwG[i] = df.as_matrix() # type, dict{chain number: samples(sample size by T)
+## load MwG data
+samples_MwG = {}
+for i in range(n_chain):
+    df = pd.read_csv(dir_MwG + '/chain-{}.csv'.format(i), index_col=None, header=0)
+    samples_MwG[i] = df.as_matrix() # type, dict{chain number: samples(sample size by T)
 #
 # heatmap = samples_heatmap(num_state,T,samples_MwG[4][n_burnin:]) # 3 by 17
 # plt.imshow(heatmap, interpolation='None', aspect=1, cmap='gray')
