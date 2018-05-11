@@ -15,9 +15,10 @@ from torch.distributions import constraints, biject_to
 try:
     import networkx as _nx
 except ModuleNotFoundError:
-    _nx = None
+     _nx = None
 try:
     import matplotlib.pyplot as _plt
+    import matplotlib.patches as mpatches
 except ModuleNotFoundError:
     _plt = None
 
@@ -89,20 +90,19 @@ class DualAveraging(object):
 
 
 def create_network_graph(vertices):
-    """
-    Create a `networkx` graph. Used by the method `display_graph()`.
-    :return: Either a `networkx.DiGraph` instance or `None`.
-    """
-    if _nx:
-        G = _nx.DiGraph()
-        for v in vertices:
-            G.add_node(v.display_name)
-            for a in v.ancestors:
-                G.add_edge(a.display_name, v.display_name)
-        return G
-    else:
-        return None
-
+        """
+        Create a `networkx` graph. Used by the method `display_graph()`.
+        :return: Either a `networkx.DiGraph` instance or `None`.
+        """
+        if _nx:
+            G = _nx.DiGraph()
+            for v in vertices:
+                G.add_node(v.display_name)
+                for a in v.ancestors:
+                    G.add_edge(a.display_name, v.display_name)
+            return G
+        else:
+            return None
 
 def display_graph(vertices):
     """
@@ -110,7 +110,8 @@ def display_graph(vertices):
     libraries are installed.
     :return: `True` if the graph was drawn, `False` otherwise.
     """
-    G = create_network_graph(vertices=vertices)
+    G =create_network_graph(vertices)
+    _is_conditioned = None
     if _nx and _plt and G:
         try:
             from networkx.drawing.nx_agraph import graphviz_layout
@@ -131,21 +132,34 @@ def display_graph(vertices):
                                 node_color='b',
                                 node_size=1250,
                                 nodelist=[v.display_name for v in vertices if v.is_observed])
+
         for v in vertices:
             _nx.draw_networkx_edges(G, pos, arrows=True,
                                     edgelist=[(a.display_name, v.display_name) for a in v.ancestors])
-            if v.condition_ancestors is not None:
+            if v.condition_ancestors is not None and len(v.condition_ancestors) > 0:
+                _is_conditioned = 1
                 _nx.draw_networkx_edges(G, pos, arrows=True,
                                         style='dashed',
                                         edge_color='g',
                                         edgelist=[(a.display_name, v.display_name) for a in v.condition_ancestors])
         _nx.draw_networkx_labels(G, pos, font_color='w', font_weight='bold')
+
+        # for node, _ in G.nodes():
+        red_patch = mpatches.Circle((0,0), radius=2, color='r', label='Sampled Variables')
+        blue_patch = mpatches.Circle((0,0), radius=2, color='b', label='Observed Variables')
+        green_patch = mpatches.Circle((0,0), radius=2, color='g', label='Conditioned Variables') if _is_conditioned else 0
+        if _is_conditioned:
+            _plt.legend(handles=[red_patch, blue_patch, green_patch])
+        else:
+            _plt.legend(handles=[red_patch, blue_patch])
         _plt.show()
+
+
         return True
     else:
         return False
 
-def VariableCast(value, grad = False, dist=None):
+def VariableCast(value, grad = False):
     '''casts an input to torch.tensor object
 
     :param value Type: scalar, torch.Tensor object, torch.Tensor, numpy ndarray
@@ -155,17 +169,18 @@ def VariableCast(value, grad = False, dist=None):
     ------
     torch.tensor object
     '''
+    dtype = torch.float
     if value is None:
         return None
     elif isinstance(value,torch.Tensor):
-        return torch.tensor(value,requires_grad=grad)
+        return torch.tensor(value,dtype=dtype,requires_grad=grad)
     elif isinstance(value, np.ndarray):
         tensor = torch.from_numpy(value).float()
-        return torch.tensor(tensor, requires_grad = grad)
+        return torch.tensor(tensor, dtype=dtype, requires_grad = grad)
     elif isinstance(value,list):
-        return torch.tensor(torch.FloatTensor(value), requires_grad=grad)
+        return torch.tensor(value,dtype=dtype, requires_grad=grad).unsqueeze(-1)
     else:
-        return torch.tensor(torch.FloatTensor([value]), requires_grad = grad)
+        return torch.tensor([value],dtype=dtype, requires_grad = grad).unsqueeze(-1)
 
 def tensor_to_list(self,values):
     ''' Converts a tensor to a list
