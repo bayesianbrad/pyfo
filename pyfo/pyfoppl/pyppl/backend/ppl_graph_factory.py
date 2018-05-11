@@ -106,7 +106,7 @@ class GraphFactory(object):
                         distribution_transform=trans, distribution_arg_names=arg_names,
                         observation=v_code,
                         observation_value=obs_value, conditions=conditions,
-                        condition_ancestors=cc.cond_nodes if len(cc.cond_nodes) > 0 else None)
+                        condition_nodes=cc.cond_nodes if len(cc.cond_nodes) > 0 else None)
         self.nodes.append(result)
         return result
 

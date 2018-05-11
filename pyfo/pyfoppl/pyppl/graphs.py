@@ -14,16 +14,13 @@ class GraphNode(object):
     """
     The base class for all nodes, including the actual graph vertices, but also conditionals, data, and possibly
     parameters.
-
     Each node has a name, which is usually generated automatically. The generation of the name is based on a simple
     counter. This generated name (i.e. the counter value inside the name) is used later on to impose a compute order
     on the nodes (see the method `get_ordered_list_of_all_nodes` in the `graph`). Hence, you should not change the
     naming scheme unless you know exactly what you are doing!
-
     The set of ancestors provides the edges for the graph and the graphical model, respectively. Note that all
     ancestors are always vertices. Conditions, parameters, data, etc. are hold in other fields. This ensures that by
     looking at the ancestors of vertices, we get the pure graphical model.
-
     Finally, the methods `evaluate`, `update` and `update_pdf` are used by the model to sample values and compute
     log-pdf, etc. Of course, `evaluate` is just a placeholder here so as to define a minimal interface. Usually, you
     will use `update` and `update_pdf` instead of `evaluate`. However, given a `state`-dictionary holding all the
@@ -91,7 +88,6 @@ class ConditionNode(GraphNode):
     """
     A `ConditionNode` represents a condition that depends on stochastic variables (vertices). It is not directly
     part of the graphical model, but you can think of conditions to be attached to a specific vertex.
-
     Usually, we try to transform all conditions into the form `f(state) >= 0` (this is not possible for `f(X) == 0`,
     through). However, if the condition satisfies this format, the node object has an associated `function`, which
     can be evaluated on its own. In other words: you can not only check if a condition is `True` or `False`, but you
@@ -156,11 +152,9 @@ class Vertex(GraphNode):
     """
     Vertices play the crucial and central role in the graphical model. Each vertex represents either the sampling from
     a distribution, or the observation of such a sampled value.
-
     You can get the entire graphical model by taking the set of vertices and their `ancestors`-fields, containing all
     vertices, upon which this vertex depends. However, there is a plethora of additional fields, providing information
     about the node and its relationship and status.
-
     `name`:
       The generated name of the vertex. See also: `original_name`.
     `original_name`:
@@ -194,7 +188,7 @@ class Vertex(GraphNode):
 
     def __init__(self, name: str, *,
                  ancestors: Optional[set]=None,
-                 condition_ancestors: Optional[set]=None,
+                 condition_nodes: Optional[set]=None,
                  conditions: Optional[set]=None,
                  distribution_args: Optional[list]=None,
                  distribution_arg_names: Optional[list]=None,
@@ -208,7 +202,7 @@ class Vertex(GraphNode):
                  sample_size: int = 1,
                  line_number: int = -1):
         super().__init__(name, ancestors)
-        self.condition_ancestors = condition_ancestors
+        self.condition_nodes = condition_nodes
         self.conditions = conditions
         self.distribution_args = distribution_args
         self.distribution_arg_names = distribution_arg_names
@@ -225,8 +219,14 @@ class Vertex(GraphNode):
         self.sample_size = sample_size
         self.dependent_conditions = set()
         if conditions is not None:
+            if self.condition_nodes is None:
+                self.condition_nodes = set()
             for cond, truth_value in conditions:
-                self.condition_ancestors.add(cond)
+                self.condition_nodes.add(cond)
+        self.condition_ancestors = set()
+        if self.condition_nodes is not None:
+            for cond in self.condition_nodes:
+                self.condition_ancestors = set.union(self.condition_ancestors, cond.ancestors)
         if self.distribution_args is not None and self.distribution_arg_names is not None and \
             len(self.distribution_args) == len(self.distribution_arg_names):
             self.distribution_arguments = { n: v for n, v in zip(self.distribution_arg_names, self.distribution_args) }
@@ -237,6 +237,7 @@ class Vertex(GraphNode):
         args = {
             "Conditions":  self.conditions,
             "Cond-Ancs.":  self.condition_ancestors,
+            "Cond-Nodes":  self.condition_nodes,
             "Dist-Args":   self.distribution_arguments,
             "Dist-Code":   self.distribution_code,
             "Dist-Name":   self.distribution_name,

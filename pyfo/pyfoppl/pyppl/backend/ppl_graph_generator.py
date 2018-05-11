@@ -309,7 +309,6 @@ class GraphGenerator(ScopedVisitor):
                 data.add(node)
             elif isinstance(node, ConditionNode):
                 conditionals.add(node)
-
         code = self.generate_code(imports=imports, base_class=base_class, class_name=class_name)
         c_globals = {}
         exec(code, c_globals)

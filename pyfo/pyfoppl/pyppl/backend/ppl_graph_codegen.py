@@ -88,8 +88,7 @@ class GraphCodeGenerator(object):
             if uses_torch or uses_numpy:
                 self.logpdf_suffix = ''
             if not has_dist:
-                if uses_torch:
-                    return 'import pyfo.distributions as dist\n'
+                return 'import pyfo.distributions as dist\n'
         return ''
 
 
