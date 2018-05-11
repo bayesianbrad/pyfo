@@ -19,33 +19,31 @@ License: MIT
 import torch
 import copy
 import math
+import numpy as np
 import torch.distributions as dist
+from torch.distributions.transforms import constraints
 from pyfo.utils.unembed import Unembed
 from pyfo.inference.hmc import HMC
 from pyfo.utils.core import _to_leaf, _grad_logp, _generate_log_pdf
 
+
 class rrhmc(HMC):
 
-    def __init__(self, support_size):
-
-        self._unembed_state = Unembed(support_size)
+    def __init__(self, model_code, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None, **kwargs):
+        self.generate_latent_vars()
+        self.initialize()
+        if self._disc_latents == None:
+            return True
+        else:
+            import warnings
+            warnings.warn('The DHMC integrator should have be called intiially. '
+                          'now transferring to the DHMC integrator.')
+            self._no_discrete()
+        self.model_code = model_code
+        self.adapt_step_size = adapt_step_size
+        self._accept_cnt = 0
+        self.__dict__.update(kwargs)
         super(HMC,self).__init__()
-
-    def _potential_energy(self, state, set_leafs=False):
-        """
-        The compiled pytorch function, log_pdf, should automatically
-        return the pdf.
-        :param keys type: list of discrete embedded discrete parameters
-        :return: log_pdf
-
-        Do I need to convert the variables within state, to requires grad = True
-        here? Then they will be passed to gen_logpdf to create the differentiable logpdf
-        . Answer: yes, because
-        """
-
-
-
-        return self._gen_logpdf(state, set_leafs=set_leafs)
 
 
     def momentum_sample(self, state):
@@ -56,27 +54,19 @@ class rrhmc(HMC):
         '''
         p = {}
         p_cont = dict([[key, torch.randn(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._cont_latents]) if self._cont_latents is not None else {}
-        p_disc = dict([[key, dist.Laplace(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._disc_latents]) if self._disc_latents is not None else {}
-        p_if = dict([[key, dist.Laplace(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._if_latents]) if self._if_latents is not None else {}
+        p_if = dict([[key, torch.randn(loc=torch.zeros(state[key].size()),scale=torch.ones(state[key].size())).sample()] for key in self._if_latents]) if self._if_latents is not None else {}
         # quicker than using dict then update.
         p.update(p_cont)
-        p.update(p_disc)
         p.update(p_if)
         return p
 
     def _kinetic_energy(self, p):
         """
-        Calculates the discrete kinetic energy
-
+        All params are initiated with gaussian momentum
         :param p:
         :return:
         """
-        kinetic_disc = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._disc_keys])) if self._disc_keys is not None else 0
-        kinetic_cont = 0.5 * torch.sum(torch.stack([torch.dot(p[name], p[name]) for name in self._cont_keys])) if self._cont_keys is not None else 0
-        kinetic_if = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]), torch.abs(p[name])) for name in self._if_keys])) if self._if_keys is not None else 0
-
-        kinetic_energy = kinetic_cont + kinetic_disc + kinetic_if
-
+        return 0.5 * torch.sum(torch.stack([torch.mm(p[key].t(), p[key]) for key in self._all_vars]))
     def _energy(self, state, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
@@ -110,8 +100,89 @@ class rrhmc(HMC):
 
         return grad_vec
 
-    def _rrhmc_integrator(self):
+    def _half_step(self, state,logp, p):
+        for key in self._all_vars:
+            p[key] = p[key] + 0.5 * self.step_size * _grad_logp(input=logp, parameters=state[key])
+        return p
+
+    def sample(self, state):
+        '''
+        :param nsamples type: int descript: Specifies how many samples you would like to generate.
+        :param burnin: type: int descript: Specifies how many samples you would like to remove.
+        :param chains :type: int descript: Specifies the number of chains.
+        :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
+        :param dirname :type: str descrip: Path to a directory, where data can be saved.
+        :return:
+        '''
+
+        # automatically transform `state` to unconstrained space, if needed.
+        self.step_size = np.random.uniform(0.05, 0.18)
+        self.num_steps = int(np.random.uniform(10, 20))
+        for key, transform in self.transforms.items():
+            # print('Debug statement in HMC.sample \n Printing transform : {0} '.format(transform))
+            if transform is not constraints.real:
+                state[key] = transform(state[key])
+            else:
+                continue
+        p0 = self.momentum_sample(state)
+        energy_current = self._energy(state, p0)
+
+        state_new, p_new, logp = self._rrhmc_step(state, p0)
+
+
+        # apply Metropolis correction.
+        energy_proposal = logp + self._kinetic_energy(p_new)
+        delta_energy = energy_proposal - energy_current
+        rand = torch.rand(1)
+        accept = torch.lt(rand, (-delta_energy).exp()).byte().any().item()
+        if accept:
+            self._accept_cnt += 1
+            state = state_new
+
+        # Return the unconstrained values for `state` to the constrianed values for 'state'.
+        for key, transform in self.transforms.items():
+            if transform is constraints.real:
+                continue
+            else:
+                state[key] = transform.inv(state[key])
+        return state
+
+    def _no_discrete(self):
+        """
+        Ensures that there are no fully discrete distributions.
+        If there are emits a warning.
+        :param state:
+        :return:
+        """
+            #TODO: write function that takes the number of samples, burn in etc and transfers to DHMC instance.
+
+    def _rrhmc_step(self, state, p0, state_prev=None):
+        """ This integrator would have been selected if we have if statements and no
+        other forms of discreteness. It has a built in check to ensure self._all_vars
+        contains either continuous and if vars, or just if vars."""
+        # keep copies of the state and momentum. As the discontinuity maybe crossed.
+        p0_copy = copy.copy(p0)
+        state_copy = copy.copy(state)
+        # need to check the change in conditions between the proposed_state and
+        # original state
+        bool = self._check_for_discontinuities(state_new=state, state_prev=state_prev)
+
+        for i in range(self.num_steps):
+            logp, state = self._potential_energy(state, set_leafs=True)
+            p_new = self.halfstep(state, p0)
+
+
+
         return 0
 
+    def _check_for_discontinuities(self,state_new, state_prev):
+        """
+        Checks to see if any of the conitional statements evaluated the
+        consequence path. If so, it returns those keys and the while loop
+        is initiated.
+
+        :param state:
+        :return:
+        """
     def _binary_line_search(self):
         return 0
