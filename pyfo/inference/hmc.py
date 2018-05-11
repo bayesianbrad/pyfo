@@ -64,48 +64,35 @@ class HMC(MCMC):
 
 
 
-    # def _find_reasonable_step_size(self, state, warmup):
-    #     print(50*'-')
-    #     print('{0} Tuning inference hyperparameters {0}'.format('-' * 5))
-    #     print(50*'-')
-    #     step_size = self.step_size
-    #     # NOTE: This target_accept_prob is 0.5 in NUTS paper, is 0.8 in Stan,
-    #     # and is different to the target_accept_prob for Dual Averaging scheme.
-    #     # We need to discuss which one is better.
-    #     target_accept_logprob = math.log(self._target_accept_prob)
-    #
-    #     # We are going to find a step_size which make accept_prob (Metropolis correction)
-    #     # near the target_accept_prob. If accept_prob:=exp(-delta_energy) is small,
-    #     # then we have to decrease step_size; otherwise, increase step_size.
-    #     warmup_count = 0
-    #     p = self.momentum_sample(state=state)
-    #     energy_current = self._energy(state, p)
-    #     state_new, p_new, potential_energy = self._leapfrog_step(state, p)
-    #     energy_new = potential_energy + self._kinetic_energy(p_new)
-    #     delta_energy = energy_new - energy_current
-    #     # direction=1 means keep increasing step_size, otherwise decreasing step_size
-    #     direction = 1 if target_accept_logprob < -delta_energy else -1
-    #
-    #     # define scale for step_size: 2 for increasing, 1/2 for decreasing
-    #     step_size_scale = 2 ** direction
-    #     direction_new = direction
-    #     # keep scale step_size until accept_prob crosses its target
-    #     # TODO: make thresholds for too small step_size or too large step_size
-    #     condition = 1 # Step size within threshold.
-    #     while direction_new == direction or warmup_count < warmup:
-    #         self.step_size = step_size_scale * self.step_size
-    #         state_new, p_new, potential_energy = self._leapfrog_step(state, p)
-    #         energy_new = potential_energy + self._kinetic_energy(p_new)
-    #         delta_energy = energy_new - energy_current
-    #         direction_new = 1 if target_accept_logprob < -delta_energy else -1
-    #         print('Debug statement in _find_reasonable_step_size. Printing step_size : {}'.format(step_size))
-    #         condition = 1 if self.step_size <= 2 and self.step_size >= 0.1 else 0
-    #         warmup_count = warmup_count + 1
-    #         print('Debug statement in _find_reasonable_step_size. Printing condition : {}'.format(condition))
-    #         if condition == 0:
-    #             break
-    #
-    #     return step_size
+    def _find_reasonable_step_size(self, state, warmup):
+        print(50*'-')
+        print('{0} Tuning inference hyperparameters {0}'.format('-' * 5))
+        print(50*'-')
+        # optionally tune epsilon
+
+        # from gretta
+        # if (tune) {
+        #
+        # adapt_epsilon < - in_periods(i, n_samples, epsilon_periods)
+        # if (adapt_epsilon) {
+        #
+        # # acceptance rate over the last accept_group runs
+        # start < - max(1, i - accept_group)
+        # end < - i
+        # accept_rate < - mean(accept_trace[start:end], na.rm = TRUE)
+        #
+        # # decrease the adaptation rate as we go
+        # adapt_rate < - min(1, gamma * i ^ (-kappa))
+        #
+        # # shift epsilon in the right direction, making sure it never goes negative
+        # epsilon < - epsilon + pmax(-(epsilon + sqrt(.Machine$double.eps)),
+        # adapt_rate * (accept_rate - target_acceptance))
+        #
+        # # keep track of epsilon
+        # epsilon_trace[i] < - epsilon
+
+        #     # TODO: make thresholds for too small step_size or too large step_size
+    #return step_size
 
     # def _adapt_step_size(self, accept_prob):
     #     # calculate a statistic for Dual Averaging scheme
@@ -117,6 +104,7 @@ class HMC(MCMC):
 
     def setup(self, state, warmup):
         self.momentum_sample(state)
+        #TODO: Implelement adaptive tuning of parameters.
         # warmup = warmup redunedent for now. Until tuning is added back in.
         # if self.adapt_step_size:
         #     self._adapt_phase = True
