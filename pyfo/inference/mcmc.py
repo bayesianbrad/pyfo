@@ -38,11 +38,15 @@ class MCMC(Inference):
     General purpose MCMC inference base class
     """
 
-    def __init__(self, model_code=None, generate_graph=False, debug_on=False, dir_name=sys.path[0]):
+    def __init__(self, model_code=None, generate_graph=False, debug_on=False, model_name=None, dir_name=sys.path[0]):
         self.generate_graph = generate_graph
         self.debug_on = debug_on
         self.model_code = model_code
         self._dir_name = dir_name
+        if model_name:
+            self.model_name = model_name
+        else:
+            self.model_name = 'unique'
         # warnings.warn('be careful about using input.sum() as model code should have .sum() in gen_log_pdf')
         super(MCMC, self).__init__()
 
@@ -118,8 +122,8 @@ class MCMC(Inference):
         print('Debug statement in MCMC.generate_latents() \n Printing ancestors : {0}'.format(self._ancestors))
         # discrete support sizes
         print()
-        self._disc_support = dict(
-            [(vertex.name, vertex.support_size) for vertex in self._vertices if vertex.is_discrete])
+        # TODO fix this function self._disc_support = dict(
+        #     [(vertex.name, vertex.support_size) for vertex in self._vertices if vertex.is_discrete])
 
         # original parameter names. Parameter names are transformed in the compiler to ensure uniqueness
         self._names = dict(
@@ -189,81 +193,6 @@ class MCMC(Inference):
     def warmup(self):
         return 0
 
-    def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None):
-            '''
-            The run inference method should be run externally once the class has been created.
-            I.e assume that they have not written there own model.
-
-            hmc = MCMC('HMC')
-            # all of the following kwargs are optional and kernel dependent.
-            samples = hmc.run_inference(nsamples=1000,
-                                        burnin=100,
-                                        chains=1,
-                                        warmup= 100,
-                                        step_size=None,
-                                        num_steps=None,
-                                        adapt_step_size=False,
-                                        trajectory_length = None,
-                                        save_data= False
-                                        dirname = None)
-
-            It then returns the samples generated from inference. Alternatively you can set a global directory for
-            saving plots and samples generated.
-
-            :param nsamples type: int descript: Specifies how many samples you would like to generate.
-            :param burnin: type: int descript: Specifies how many samples you would like to remove.
-            :param chains :type: int descript: Specifies the number of chains.
-            :param step_size: :type: float descript: Specifies the sized step in inference.
-            :param num_steps :type: int descript: The trajectory length of the inference algorithm
-            :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
-            :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps
-            :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
-            :param dirname :type: str descrip: Path to a directory, where data can be saved. Default is the directory in
-            which the code is run.
-
-            :return: samples, :type pandas.dataframe
-
-            '''
-            self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
-            AVAILABLE_CPUS = mp.cpu_count()
-
-            def run_sampler(state, nsamples, burnin, chain, save_data=self._save_data, dir_name=self._dir_name):
-                samples_dict = []
-
-                if save_data:
-                    dir_n = os.path.join(dir_name,'results')
-                    pathlib.Path(dir_n).mkdir(parents=True, exist_ok=True)
-                    UNIQUE_ID = np.random.randint(0,1000)
-                    snamepick = os.path.join(dir_n,'samples_' + str(UNIQUE_ID) + '_chain_' + str(chain)+'.pickle')
-                    snamepd =  os.path.join(dir_n,'all_samples_' + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv')
-                    sample= state
-                    samples_dict.append(sample)
-                    print('Saving individual samples in:  {0} \n with unique ID: {1}'.format(dir_n, UNIQUE_ID))
-
-                    with open(snamepick, 'wb') as fout:
-                        for ii in tqdm(range(nsamples+burnin - 1)):
-                            sample = self._instance_of_kernel.sample(sample)
-                            samples_dict.append(sample)
-                            pickle.dump(samples_dict, fout)
-
-                    samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(
-                        columns=self._instance_of_kernel._names, inplace=True)
-                    print(50 * '=', '\n Saving pandas dataframe to : {0} '.format(snamepd))
-
-                    samples.to_csv(snamepd, index=False, header=True)
-                else:
-                    # print('Debug statement in run_sampler() . Printing state : {0}'.format(state))
-                    sample = state
-                    samples_dict.append(sample)
-                    for ii in tqdm(range(nsamples+burnin - 1)):
-                        sample = self._instance_of_kernel.sample(sample)
-                        samples_dict.append(sample)
-                    # samples = pd.DataFrame.from_dict(samples_dict, orient='columns', dtype=float).rename(
-                    #     columns=self._instance_of_kernel._names, inplace=True)
-
-                # convert_to_numpy or just write own function for processing a dataframe full of
-                # tensors? May try the later approach
-                # Note : The pd.dataframes contain torch.tensors
 
     def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,
                       num_steps=None, adapt_step_size=True, trajectory_length=None):
@@ -338,9 +267,9 @@ class MCMC(Inference):
         # save  samples paths
         dir_n = os.path.join(self._dir_name, 'results')
         UNIQUE_ID = np.random.randint(0, 1000)
-        snamepick = os.path.join(dir_n, 'samples_')
-        snamepd = os.path.join(dir_n, 'all_samples_' + str(UNIQUE_ID))
-        print('Saving individual samples in:  {0} \nwith unique ID: {1}'.format(dir_n, UNIQUE_ID))
+        snamepick = os.path.join(dir_n, self.model_name + '_samples_')
+        snamepd = os.path.join(dir_n, self.model_name + '_samples_' + str(UNIQUE_ID))
+        print('Saving {0} model samples in:  {1} \nwith unique ID: {2}'.format(self.model_name,dir_n, UNIQUE_ID))
 
 
         print(50 * '-')
