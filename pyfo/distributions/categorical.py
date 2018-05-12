@@ -36,6 +36,7 @@ class Categorical(TorchDistribution):
     def __init__(self, probs=None, logits=None):
         self.probs = vc(probs)
         self.logits = vc(logits)
+        self.param_shape = self.probs.size()
         self._param = self.probs if probs is not None else self.logits
         torch_dist = torch.distributions.Categorical(probs=self._param, logits=self.logits)
         super(Categorical, self).__init__(torch_dist)
