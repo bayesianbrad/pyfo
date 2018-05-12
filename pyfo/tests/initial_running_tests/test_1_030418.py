@@ -13,14 +13,15 @@ import time
 from pyfo.inference.mcmc import MCMC
 from pyfo.inference.hmc import HMC
 
-# def model_gamma():
-#     import torch
-#     n = 1
-#     d = 1
-#     x1 = sample(gamma(2*torch.ones(n,d), 3*torch.ones(n,d)))
-#     # y = 1*torch.zeros(n,d)
-#     # observe(normal(torch.zeros(n,d), torch.ones(n,d)), y)
-#     x1
+model_gamma="""
+import torch
+n = 1
+d = 1
+x1 = sample(gamma(2*torch.ones(n,d), 3*torch.ones(n,d)))
+# y = 1*torch.zeros(n,d)
+# observe(normal(torch.zeros(n,d), torch.ones(n,d)), y)
+x1
+"""
 
 model_normal="""
 import torch 
@@ -83,8 +84,13 @@ false_index = (boolean==0).nonzero() # indices for which the statements are fals
 observe(normal(x2[boolean], 1*torch.tensor(len(x2[boolean]))),observations[boolean])
 observe(normal(-1*torch.tensor(len(x2[(boolean==0).nonzero()]),1), torch.tensor(len(x2[(boolean==0).nonzero()]),1)), observations[(boolean==0).nonzero()])
 """
+
+model_categorical ="""
+x1 = sample(categorical([[0.1,0.2,0.7],[0.2,0.4,0.4]]), sample_size=3)
+"""
 model_if_1d ="""
-x1 = sample(gamma(0.4, 0.3))
+q = 2
+x1 = q*sample(gamma(0.4, 0.3))
 x2 = sample(normal(x1, 1))
 y = 1
 if x1> 0:
@@ -92,7 +98,15 @@ if x1> 0:
     observe(normal(-1,1), y)
 x1,x2
 """
-
+model_if_1d_torch ="""
+x1 = sample(gamma(torch.tensor([0.4], 0.3))
+x2 = sample(normal(x1, 1))
+y = 1
+if x1> 0:
+    observe(normal(x2, 1), y)
+    observe(normal(-1,1), y)
+x1,x2
+"""
 model_if_1d_2 = """
 x1 = sample(normal(0, 2))
 x2 = sample(normal(x1, 4))
@@ -104,20 +118,23 @@ else:
 model_gmm2 = """
 import torch
 
-means  = 10
-samples  = 20
+means  = 2
+samples  = 2
 y = [-2.0, -2.5, -1.7, -1.9, -2.2, 1.5, 2.2, 3.0, 1.2, 2.8,
       -1.7, -1.3,  3.2,  0.8, -0.9, 0.3, 1.4, 2.1, 0.8, 1.9] 
-ys = torch.tensor(y)
+ys = torch.tensor([y])
 pi = torch.tensor(0.5*torch.ones(samples,means))
-mus = sample(normal(torch.zeros(means), 2*torch.ones(means)))
+mus = sample(normal(torch.zeros(means,1), 2*torch.ones(means,1)))
 
-zn = sample(categorical(pi))
+zn = sample(categorical(pi), sample_size=2)
 
-for i in range(len(pi)):
+
+for i in range(samples):
     index = (zn == i).nonzero()
-    observe(normal(mus[i]*torch.ones(len(index)), 2*torch.ones(len(index))), ys[index])
+    observe(normal(mus[i]*torch.ones(len(index),1), 2*torch.ones(len(index),1)), ys[index])
 """
 
-model_compiled = MCMC(model_code=model_gmm2,model_name='gmm', generate_graph=True, debug_on=True)
+model_compiled = MCMC(model_code=model_gamma,model_name='gamma1ss', generate_graph=True, debug_on=True)
 samples = model_compiled.run_inference(kernel=HMC,  nsamples=20, burnin=10, chains=4)
+
+print(samples)
