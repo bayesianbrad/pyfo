@@ -103,7 +103,6 @@ class HMC(MCMC):
     #     self.num_steps = max(1, int(self.trajectory_length / self.step_size))
 
     def setup(self, state, warmup):
-        self.momentum_sample(state)
         #TODO: Implelement adaptive tuning of parameters.
         # warmup = warmup redunedent for now. Until tuning is added back in.
         # if self.adapt_step_size:
@@ -119,18 +118,16 @@ class HMC(MCMC):
             # loc = math.log(10 * self.step_size)
             # self._adapted_scheme = DualAveraging(prox_center=loc)
 
-
-
-    # def end_warmup(self):
-    #     if self.adapt_step_size:
-    #         self.adapt_step_size = False
-    #         _, log_step_size_avg = self._adapted_scheme.get_state()
-    #         self.step_size = math.exp(log_step_size_avg)
-    #         self.num_steps = max(1, int(self.trajectory_length / self.step_size))
-    #         print(10 * '-')
-    #         print('{} Tuning of hyperparameters now completed {}'.format(5*'*'))
-    #         print(10 * '-')
-
+        # def end_warmup(self):
+        #     if self.adapt_step_size:
+        #         self.adapt_step_size = False
+        #         _, log_step_size_avg = self._adapted_scheme.get_state()
+        #         self.step_size = math.exp(log_step_size_avg)
+        #         self.num_steps = max(1, int(self.trajectory_length / self.step_size))
+        #         print(10 * '-')
+        #         print('{} Tuning of hyperparameters now completed {}'.format(5*'*'))
+        #         print(10 * '-')
+        return 0
     def _kinetic_energy(self, p):
         """
 
@@ -193,7 +190,7 @@ class HMC(MCMC):
         :return:
         '''
 
-        # automatically transform `state` to unconstrained space, if needed.
+        # automatically transform `state` to unconstrained space, if needed
         self.step_size = np.random.uniform(0.05, 0.18)
         self.num_steps = int(np.random.uniform(10, 20))
         for key, transform in self.transforms.items():
