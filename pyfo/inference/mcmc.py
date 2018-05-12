@@ -17,7 +17,7 @@ from pyfo.pyfoppl.pyppl import compile_model
 from pyfo.utils.core import transform_latent_support as tls
 from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
 from tqdm import tqdm
-
+import torch.distributions as dists_
 from torch.multiprocessing import cpu_count
 import torch.multiprocessing as mp
 import numpy as np
@@ -101,6 +101,7 @@ class MCMC(Inference):
         self._cont_latents = None if len(self.model.gen_cont_vars()) == 0 else self.model.gen_cont_vars()
         self._disc_latents = None if len(self.model.gen_disc_vars()) == 0 else self.model.gen_disc_vars()
         self._if_latents = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_if_vars()
+        # print('Debebug statement in MCMC.generate_latents() \n Printing if vars : {} '.format(self._if_latents))
         # each predicate has a cond boolean parameter, which represents the evaluated value of the predicate, whenever
         # the log_pdf is calculated.
         self._cond_bools = None if len(self.model.gen_if_vars()) == 0 else self.model.gen_cond_vars()
@@ -116,14 +117,14 @@ class MCMC(Inference):
                                  (vertex.is_continuous and vertex.name in self._all_vars)])
         self._disc_dists = dict([(vertex.name, vertex.distribution_name) for vertex in self._vertices if
                                  (vertex.is_discrete and vertex.name in self._all_vars)])
-        for vertex in self._vertices:
-            self._ancestors = dict([(vertex.name, vertex.ancestors) for vertex in self._vertices])
+        self._ancestors = {}
+        for v in self._vertices:
+            if v.is_sampled:
+                for a in v.ancestors:
+                    self._ancestors[a.name] =  v.name
             # self._ancestors_conditioned = dict([(vertex.name , vertex.ancestors)])
         print('Debug statement in MCMC.generate_latents() \n Printing ancestors : {0}'.format(self._ancestors))
-        # discrete support sizes
-        print()
-        # TODO fix this function self._disc_support = dict(
-        #     [(vertex.name, vertex.support_size) for vertex in self._vertices if vertex.is_discrete])
+
 
         # original parameter names. Parameter names are transformed in the compiler to ensure uniqueness
         self._names = dict(
@@ -134,6 +135,27 @@ class MCMC(Inference):
         for vertex in self._vertices:
             if vertex.is_sampled:
                 self._dist_params[vertex.name] = {vertex.distribution_name: vertex.distribution_arguments}
+        print('Debug statement in MCMC.generate_latents() \n Printing _dist_params : {0}'.format(self._dist_params))
+
+        # TODO fix this function self._disc_support = dict(
+        # key: values of parameter name and string of distribution object.
+        self._dist_obj = {}
+        print('Debug statement in MCMC.generate_latents() \n Printing _dist_latents : {0}'.format(self._disc_latents))
+        if self._disc_latents:
+            for param in self._disc_latents:
+                for dist in self._dist_params[param]:
+                    i = 0
+                    self._dist_obj[param] = ''
+                    for key in [*self._dist_params[param][dist]]:
+                        self._dist_obj[param] = self._dist_obj[param] + key + '=' + self._dist_params[param][dist][key]
+                        i += 1
+                        if len(self._dist_params[param][dist].keys()) > 1 and i == 1:
+                            self._dist_obj[param] = self._dist_obj[param] + ','
+                        if len(self._dist_params[param][dist].keys()) > 2 and i == 2:
+                            self._dist_obj[param] = self._dist_obj[param] + ','
+                    self._dist_obj[param] = dist + '( {0} )'.format(self._dist_obj[param])
+        # discrete support sizes
+        self._discrete_support = {}
 
     def initialize(self):
         '''
@@ -183,12 +205,6 @@ class MCMC(Inference):
     
         if self._cont_latents is not None:
             self.transforms = tls(self._cont_latents, self._cont_dists)
-  
-        self.state = self.model.gen_prior_samples()
-
-
-
-
 
     def warmup(self):
         return 0
@@ -228,6 +244,7 @@ class MCMC(Inference):
         :return: samples, :type pandas.dataframe
 
         '''
+
         self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
         AVAILABLE_CPUS = cpu_count()
         
@@ -262,34 +279,35 @@ class MCMC(Inference):
         self._instance_of_kernel = self.kernel(model_code=self.model_code, step_size=step_size, num_steps=num_steps,
                                                adapt_step_size=adapt_step_size, trajectory_length=trajectory_length, \
                                                generate_graph=self.generate_graph, debug_on=self.debug_on)
-        self._instance_of_kernel.setup(state=self._instance_of_kernel.state, warmup=warmup)
-
+        self.state = []
+        for i in range(chains):
+            self.state.append(self._instance_of_kernel.model.gen_prior_samples())
         # save  samples paths
         dir_n = os.path.join(self._dir_name, 'results')
         UNIQUE_ID = np.random.randint(0, 1000)
         snamepick = os.path.join(dir_n, self.model_name + '_samples_')
         snamepd = os.path.join(dir_n, self.model_name + '_samples_' + str(UNIQUE_ID))
-        print('Saving {0} model samples in:  {1} \nwith unique ID: {2}'.format(self.model_name,dir_n, UNIQUE_ID))
-
+        print('Saving {0} model samples in:  {1} \nwith unique ID: {2}'.format(self.model_name, dir_n, UNIQUE_ID))
 
         print(50 * '-')
         if chains > 1:
-            print(5 * '-' + ' Generating samples for {0} chains {1}'.format(chains, 5*'-'))
+            print(5 * '-' + ' Generating samples for {0} chains {1}'.format(chains, 5 * '-'))
             print(50 * '-')
             q = mp.Queue()
             processes = []
-            for rank in range(AVAILABLE_CPUS):
-                q.put(self._instance_of_kernel.state)
+            for rank in range(chains):
+                q.put(self.state[rank])
                 p = mp.Process(target=run_sampler, args=(q, nsamples, burnin, rank, UNIQUE_ID, snamepick, snamepd))
                 p.start()
                 processes.append(p)
             for p in processes:
                 p.join()
-            samples_ = [q.get() for _ in range(AVAILABLE_CPUS)]
+            samples_ = [q.get() for _ in range(chains)]
         else:
-            print(5 * '-' + ' Generating samples for {0} chain {1}'.format(chains, 5*'-'))
+            print(5 * '-' + ' Generating samples for {0} chain {1}'.format(chains, 5 * '-'))
             print(50 * '-')
-            samples_ = run_sampler(self._instance_of_kernel.state, nsamples, burnin, chains, UNIQUE_ID, snamepick, snamepd) # runs a single chain
+            samples_ = run_sampler(self.state[chains-1], nsamples, burnin, chains, UNIQUE_ID, snamepick,
+                                   snamepd)  # runs a single chain
 
         return samples_
 
