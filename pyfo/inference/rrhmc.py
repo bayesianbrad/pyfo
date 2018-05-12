@@ -97,6 +97,7 @@ class rrhmc(HMC):
         grad_vec = []
         for ancestor in ancestors:
             grad_vec.append(torch.autograd.grad(scalar_field, ancestor, retain_graph=True))
+            # calculate the gradient field of the surface.
 
         return grad_vec
 
