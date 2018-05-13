@@ -10,13 +10,14 @@ License: MIT
 
 
 import numpy as np
+from numpy import array
+from numpy import *
 import sys
 import os
 import pandas as pd
 import datetime
 from pathlib import Path
 
-# ESS from DHMC
 def mono_seq_ess(samples, key, normed=False, mu=None, var=None):
     # Estimates effective sample sizes of samples along the specified axis
     # with the monotone positive sequence estimator of "Practical Markov
@@ -134,7 +135,6 @@ def effective_sample_size(x, mu=None, var=None, logger=None):
     # logger.info('ESS: max [%f] min [%f] / [%d]' % (t / np.min(ess_), t / np.max(ess_), t))
     return t / ess_
 
-# A-NICE-MC
 def auto_correlation_time(x, s, mu, var):
     b, t, d = x.shape
     act_ = np.zeros([d])
@@ -313,3 +313,43 @@ def multi_l2norm_hmm(each_num, total_num, l2_norm, true_post, raw_samples, num_s
         heatmap = samples_heatmap(num_state, T, raw_samples[:each_num * (i + 1), :])
         l2norm_result[i] = l2_norm(heatmap, true_post.transpose())
     return l2norm_result
+
+
+def data_summary(samples=None, burnin=None, true_names=None):
+    '''
+    Takes a list , or dictionary of samples. The samples are torch.tensors.
+    Converts the samples to numpy arrays and stores inside a pandas data frame.
+
+    :param samples: The samples generated from inference.
+    :param keys: The latent variable parameter names.
+    :param true_names: The latent variable model names
+    :param burnin: Number of samples to discard.
+    :param moments: If true returns mean and variance.
+    :return:
+    '''
+
+
+    latents = {}
+    CHAINS = len(samples)
+    i = 1
+    print('{0} Translating samples to numpy array {0}'.format(5*'-'))
+    for chain in samples:
+        for key in true_names:
+            latents[i] = {}
+            latents[i][true_names[key]] = []
+            for sample in chain[burnin:]:
+                latents[i][true_names[key]].append(sample[key].data.numpy())
+        i += 1
+
+    means = {}
+    var = {}
+    std ={}
+    for chain in latents:
+        for key in latents[chain]:
+            means[chain] = {key: None}
+            var[chain] = {key: None}
+            std[chain] = {key: None}
+            means[chain][key] = np.mean(latents[chain][key], axis=0,dtype=float32)
+            var[chain][key] = np.var(latents[chain][key], axis=0)
+            std[chain][key] = np.std(latents[chain][key], axis=0)
+    return latents, means, var, std
