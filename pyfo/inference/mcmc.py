@@ -23,9 +23,7 @@ import torch.multiprocessing as mp
 import numpy as np
 import sys
 import os
-# import multiprocessing as pmp
-# import pathos.pools as pp
-# import dill as pickle
+from pyfo.utils.eval_stats import data_summary as ds
 import pickle
 import pathlib
 import time
@@ -122,8 +120,8 @@ class MCMC(Inference):
             if v.is_sampled:
                 for a in v.ancestors:
                     self._ancestors[a.name] =  v.name
-            # self._ancestors_conditioned = dict([(vertex.name , vertex.ancestors)])
-        print('Debug statement in MCMC.generate_latents() \n Printing ancestors : {0}'.format(self._ancestors))
+
+
 
 
         # original parameter names. Parameter names are transformed in the compiler to ensure uniqueness
@@ -135,12 +133,10 @@ class MCMC(Inference):
         for vertex in self._vertices:
             if vertex.is_sampled:
                 self._dist_params[vertex.name] = {vertex.distribution_name: vertex.distribution_arguments}
-        print('Debug statement in MCMC.generate_latents() \n Printing _dist_params : {0}'.format(self._dist_params))
 
         # TODO fix this function self._disc_support = dict(
         # key: values of parameter name and string of distribution object.
         self._dist_obj = {}
-        print('Debug statement in MCMC.generate_latents() \n Printing _dist_latents : {0}'.format(self._disc_latents))
         if self._disc_latents:
             for param in self._disc_latents:
                 for dist in self._dist_params[param]:
@@ -154,8 +150,9 @@ class MCMC(Inference):
                         if len(self._dist_params[param][dist].keys()) > 2 and i == 2:
                             self._dist_obj[param] = self._dist_obj[param] + ','
                     self._dist_obj[param] = dist + '( {0} )'.format(self._dist_obj[param])
-        # discrete support sizes
-        self._discrete_support = {}
+            # discrete support sizes using the self.__dist_obj get the support of each
+            # distribution by reconstructing it. Might be able to include this in the outer for loop.
+            self._discrete_support = {}
 
     def initialize(self):
         '''
@@ -246,6 +243,7 @@ class MCMC(Inference):
         '''
 
         self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
+        self.burnin = burnin
         AVAILABLE_CPUS = cpu_count()
         
         def run_sampler(state, nsamples, burnin, chain, UNIQUE_ID, snamepick, snamepd):
@@ -268,10 +266,10 @@ class MCMC(Inference):
                 # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(columns=self._instance_of_kernel._names, inplace=True)
 
             if not isinstance(state, dict):
-                sys.stdout.write('The type of q is : {} '.format(type(state)))
+                # sys.stdout.write('The type of q is : {} '.format(type(state)))
                 state.put(samples_dict)
             else:
-                sys.stdout.write('The type of q is : {} '.format(type(state)))
+                # sys.stdout.write('The type of q is : {} '.format(type(state)))
                 return samples_dict
 
         # Generate instance of transition kernel
@@ -306,10 +304,42 @@ class MCMC(Inference):
         else:
             print(5 * '-' + ' Generating samples for {0} chain {1}'.format(chains, 5 * '-'))
             print(50 * '-')
-            samples_ = run_sampler(self.state[chains-1], nsamples, burnin, chains, UNIQUE_ID, snamepick,
-                                   snamepd)  # runs a single chain
-
+            samples_ = [run_sampler(self.state[chains-1], nsamples, burnin, chains, UNIQUE_ID, snamepick,
+                                   snamepd)]  # runs a single chain
+        self.samples = samples_
+        self._names = self._instance_of_kernel._names
         return samples_
+
+    def return_statistics(self):
+        ''' Returns dictionary of samples with burnin, a dictionary of means and a dictionary of variancea summary stats '''
+
+        samples, means, variances, std =  ds(samples=self.samples, burnin=self.burnin, true_names=self._names)
+        print(70*'-')
+        print('{0} Printing summary statistics {0}'.format(10*'-'))
+        print(70*'-')
+        import texttable as tt
+        tab = tt.Texttable()
+        headings = ['Chain', 'Parameter', 'Mean', 'Variance', 'Std']
+        tab.header(headings)
+        chains = []
+        params = []
+        means_ = []
+        vars_ = []
+        std_ =[]
+        for chain in means:
+            chains.append(chain)
+            for key in means[chain]:
+                params.append(key)
+                means_.append(means[chain][key])
+                vars_.append(variances[chain][key])
+                std_.append(variances[chain][key])
+        for row in zip(chains, params, means_, vars_, std_):
+            tab.add_row(row)
+
+        table = tab.draw()
+        print(table)
+
+        return samples, means, variances, std
 
 
 def _pickle_method(method):
