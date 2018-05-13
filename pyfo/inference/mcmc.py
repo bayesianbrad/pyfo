@@ -332,7 +332,7 @@ class MCMC(Inference):
                 params.append(key)
                 means_.append(means[chain][key])
                 vars_.append(variances[chain][key])
-                std_.append(variances[chain][key])
+                std_.append(std[chain][key])
         for row in zip(chains, params, means_, vars_, std_):
             tab.add_row(row)
 

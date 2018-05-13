@@ -18,20 +18,21 @@ import torch
 n = 1
 d = 1
 x1 = sample(gamma(2*torch.ones(n,d), 3*torch.ones(n,d)))
-# y = 1*torch.zeros(n,d)
-# observe(normal(torch.zeros(n,d), torch.ones(n,d)), y)
+y = 1*torch.zeros(n,d)
+ observe(normal(torch.zeros(n,d), torch.ones(n,d)), y)
 x1
 """
 
 model_normal="""
 import torch 
 
-n = 1 
+n = 1
 d = 1
-x1 = sample(normal(torch.zeros(n,d), 1*torch.ones(n,d)))
-# y = 1*torch.zeros(n,d)
-# observe(normal(torch.zeros(n,d), torch.ones(n,d)), y)
-x1
+x = sample(normal(torch.zeros(n,d), 5*torch.ones(n,d)))
+y = 1
+observations = 7*torch.ones(n,d)
+observe(normal(x, 2*torch.ones(n,d)), observations)
+y
 
 """
 model_mvn="""
@@ -39,7 +40,7 @@ import torch
 
 n = 100
 d = 1
-x1 = sample(mvn(2*torch.ones(d,n), torch.eye(n)))
+x1 = sample(mvn(torch.ones(d,n), torch.eye(n)))
 # y = 1*torch.zeros(n,d)
 # observe(mvn(torch.zeros(n,d), torch.ones(n,d)), y)
 x1
@@ -95,6 +96,7 @@ x2 = sample(normal(x1, 1))
 y = 1
 if x1> 0:
     observe(normal(x2, 1), y)
+else:
     observe(normal(-1,1), y)
 x1,x2
 """
@@ -104,6 +106,7 @@ x2 = sample(normal(x1, 1))
 y = 1
 if x1> 0:
     observe(normal(x2, 1), y)
+else:
     observe(normal(-1,1), y)
 x1,x2
 """
@@ -134,7 +137,6 @@ for i in range(samples):
     observe(normal(mus[i]*torch.ones(len(index),1), 2*torch.ones(len(index),1)), ys[index])
 """
 
-model_compiled = MCMC(model_code=model_gamma,model_name='gamma1ss', generate_graph=True, debug_on=True)
-samples = model_compiled.run_inference(kernel=HMC,  nsamples=20, burnin=10, chains=4)
-
-print(samples)
+model_compiled = MCMC(model_code=model_normal,model_name='normal', generate_graph=True, debug_on=True)
+all_samples = model_compiled.run_inference(kernel=HMC,  nsamples=600, burnin=100, chains=1)
+samples, means, variances, std = model_compiled.return_statistics()
