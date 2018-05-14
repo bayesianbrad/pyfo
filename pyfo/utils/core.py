@@ -292,7 +292,7 @@ def convert_dict_vars_to_numpy(self, state, latent_vars ):
         # state[i] = state[i].data.numpy()
     return state
 
-def _grad_logp(input, parameters):
+def _grad_logp(input, parameters, latents):
     """
     Returns the gradient of the log pdf, with respect for
     each parameter. Note the double underscore, this is to ensure that if
@@ -302,10 +302,10 @@ def _grad_logp(input, parameters):
     """
     # print(50 *'=')
     # print('Debug statement in _grad_logp \n '+50*'='+'\nChecking gradient flag. \n Printing input : {0} \n Printing parameters : {1} \n Checking if gradient turned on: {2} '.format(input, parameters, parameters.requires_grad))
-    gradient_of_param = torch.autograd.grad(outputs=input.sum(), inputs=parameters, retain_graph=True)[0]
+    gradient_of_param = torch.autograd.grad(outputs=input.sum(), inputs=latents, retain_graph=True)
     # print('Debug statement in _grad_logp. Printing gradient : {}'.format(gradient_of_param))
     # print(50 * '=')
-    return gradient_of_param
+    return gradient_of_param[0]
 
 
 def _to_leaf(state, latent_vars):
