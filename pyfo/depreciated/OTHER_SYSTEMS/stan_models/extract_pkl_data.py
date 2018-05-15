@@ -21,8 +21,8 @@ means_gt_0_model3 = []
 means_lte_0_model3 = []
 
 for chain in chains_model3:
-    means_gt_0_model3.append(np.mean([chain>0]))
-    means_lte_0_model3.append(np.mean([chain<=0]))
+    means_gt_0_model3.append(np.mean(chain[chain>0]))
+    means_lte_0_model3.append(np.mean(chain[chain<=0]))
 
 print(' This is the expectaton > 0 for model 3 : {0} \n This i the expectation < 0 for model 3 : {1}'.format(means_gt_0_model3, means_lte_0_model3))
 
@@ -34,7 +34,8 @@ means_gt_0_model2 = []
 means_lte_0_model2 = []
 q  =0.5
 for chain in chains_model2:
-    means_gt_0_model2.append(np.mean([chain>q]))
-    means_lte_0_model2.append(np.mean([chain<=q]))
+    means_gt_0_model2.append(np.mean(chain[chain>q]))
+    means_lte_0_model2.append(np.mean(chain[chain<=q]))
 
-print(' This is the expectaton > 0 for model 3 : {0} \n This i the expectation < 0 for model 2 : {1}'.format(means_gt_0_model2, means_lte_0_model2))
+print(' This is the expectaton > {2} for model 2 : {0} \n This i the expectation <= {2} for model 2 : {1}'.format(means_gt_0_model2, means_lte_0_model2, means_))
+
