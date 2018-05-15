@@ -1,10 +1,16 @@
-(let [z (sample (normal 0 1))
-      q (sample (normal 0 1))
-      y (if (< z q )
-          (sample (normal 0 1))
-          (sample (normal 0 2))) ]
-  (observe (normal y 1 ) 7)
-  z q y)
+;(let [x (sample (uniform 0 1))
+;      q 0.5
+;      y 0.25]
+;  (if (< (- q x) 0)
+;    (observe (normal 1 1) y)
+;    (observe (normal 0 1) y))
+;  (< (- q x) 0))
+(let [x (sample (normal 0 1))
+      y 1]
+  (if ((> x 0))
+    (observe (normal (+ x 1) 1) y)
+    (observe (normal (- x 1) 1) y))
+  )
 
 ;Equivilent stan model
 ;q ~ normal(0, 1);
