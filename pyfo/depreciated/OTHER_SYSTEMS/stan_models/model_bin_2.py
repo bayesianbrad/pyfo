@@ -13,8 +13,8 @@ import numpy as np
 
 np.random.seed(1234)
 import pystan
-
-
+import time
+start = time.time()
 """A
 
 FOPPL Code:
@@ -28,18 +28,17 @@ FOPPL Code:
       x)
 """
 
-model_bin_2 = '''
+model_2 = '''
 
 data {
     real y;
-    real p;
+    real q;
 
 
 }
 
 parameters {
 
-// real<lower=0, upper=1> x;
  real<lower=0, upper=1> z;
 }
 
@@ -47,34 +46,67 @@ model {
 
     z ~ uniform(0,1);
 
-    if (z<p) {
+    if (z<q) {
         y ~ normal(0,1);
-      //  x ~ normal(0,0.00001);
     } else { 
         y ~ normal(1,1);
-      //  x ~ normal(1,0.00001);
+    }
+}
+'''
+
+
+model_3 ='''
+
+data {
+        real y;
+        }
+parameters {
+
+real x;
+}
+model {
+    x ~ normal(0,1);
+    
+    if (x > 0) {
+        y ~ normal(x+1,1);
+            }
+    else {
+    y ~ normal(x - 1,1);
     }
 }
 '''
 
 def initfun():
-    return dict(y=7, p=0.5)
-model = pystan.stan(model_code=model_bin_2, data=initfun(), iter=6000, chains=4)
-print(model)
-trace = model.extract()
+    return dict(y=0.25, q=0.5)
+# def initfun():
+#     return dict(y=1)
+model = pystan.StanModel(model_code=model_2)
+fit = model.sampling(data=initfun(), iter=10000, warmup=1000, chains=1)
+trace = fit.extract()['z']
+end= time.time()
+print(fit)
 
-plt.figure(figsize=(10, 4))
-plt.hist(trace['z'][:], bins='auto', normed=1)
-plt.savefig('stan_7.png')
-print('Completed plots')
+chains = [trace]
+for i in range(4):
+    fit = model.sampling(data=initfun())
+    trace = fit.extract()['z']
+    chains.append(trace)
+
+with open('model_2_samples.pkl', 'wb') as f:
+    pickle.dump(chains, f, protocol=pickle.HIGHEST_PROTOCOL)
+fit.plot()
+
+# print('The total time taken is : {0}'.format(end-start))
+# # plt.figure(figsize=(10, 4))
+# # plt.hist(trace['x'][:], bins='auto', normed=1)
+# # plt.savefig('stan_1.png')
+# print('Completed plots')
+# # plt.figure(figsize=(10, 4))
+# # plt.hist(trace['x'][:], bins='auto', normed=1)
+# # plt.savefig('model_2_x.png')
+# print('Completed plots')
 # plt.figure(figsize=(10, 4))
-# plt.hist(trace['x'][:], bins='auto', normed=1)
-# plt.savefig('model_2_x.png')
-print('Completed plots')
-plt.figure(figsize=(10, 4))
-plt.plot(trace['z'][:])
-plt.savefig('model_2_z_trace.png')
-print('Completed plots')
+
 # plt.figure(figsize=(10, 4))
 # plt.plot(trace['x'][:])
 # plt.savefig('model_2_x_trace.png')
