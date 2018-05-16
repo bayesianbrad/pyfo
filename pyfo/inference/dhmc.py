@@ -313,7 +313,7 @@ class DHMCSampler(object):
         time_elapsed = toc - tic
         n_feval_per_itr = n_feval / (n_samples + burn_in)
         n_fupdate_per_itr = n_fupdate / (n_samples + burn_in)
-
+        end_time = time.time()
         if print_stats:
             if self._disc_keys is not None and self._if_keys is not None:
                 print('Each iteration of DHMC on average required '
@@ -353,7 +353,7 @@ class DHMCSampler(object):
             self.create_plots(stats['samples'], stats['samples_wo_burin'], keys=stats['param_names'],lag=lag, burn_in=plot_burnin, ac=plot_ac)
         if plot_graphmodel:
             self.model_graph.display_graph()
-        return stats  #dict
+        return stats, end_time  #dict
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
