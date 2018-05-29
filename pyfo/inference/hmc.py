@@ -64,7 +64,7 @@ class HMC(MCMC):
 
         return 0.5 * torch.sum(torch.stack([torch.mm(p[key].t(), p[key]) for key in self._cont_latents]))
 
-    def _potential_energy(self, state, set_leafs=False):
+    def _potential_energy(self, state, set_leafs=True):
         state_constrained = state.copy()
         if set_leafs:
             state_constrained = _to_leaf(state=state_constrained,latent_vars=self._all_vars)
@@ -82,7 +82,7 @@ class HMC(MCMC):
 
         potential_energy, state_constrained = self._potential_energy(state)
 
-        return self._kinetic_energy(p) + potential_energy
+        return self._kinetic_energy(p) + potential_energy, potential_energy, state_constrained
 
     def momentum_sample(self, state):
         """
@@ -107,20 +107,28 @@ class HMC(MCMC):
         self.step_size = np.random.uniform(0.05, 0.18)
         self.num_steps = int(np.random.uniform(10, 20))
         p0 = self.momentum_sample(state)
-        energy_current = self._energy(state, p0)
-        state_new, p_new, logp = self._leapfrog_step(state, p0)
+        energy_current,logp, state_constrained = self._energy(state, p0)
+        state_new, p_new, logp = self._leapfrog_step(state_constrained, p0, logp)
         # apply Metropolis correction.
         energy_proposal = logp + self._kinetic_energy(p_new)
-        delta_energy = energy_proposal - energy_current
-        rand = torch.rand(1)
-        accept = torch.lt(rand, (-delta_energy).exp()).byte().any().item()
-        if accept:
-            # print('Debug statement in hmc.sample() : \n Printing : state accepted')
+        # delta_energy = energy_proposal - energy_current
+        alpha = torch.min(torch.exp(energy_current - energy_proposal)).detach().numpy()
+        p_accept = min(1, alpha)
+        print('Debug statement in hmc.sample.\n Printing orginal state: {0} \n Printing proposed state : {1} \n'
+              'printing new accpet prob {2} \n Printing logp : {3} \n Printing logp requires grad {4}'.format(state, state_new, p_accept, logp, logp.requires_grad))
+        if p_accept > np.random.uniform():
             self._accept_cnt += 1
-            state = state_new
-        print('Acceptance : {0}'.format(self._accept_cnt))
-        return state
-    def _leapfrog_step(self, state, p):
+            state_constrained = state_new
+            print('Acceptance : {0}'.format(self._accept_cnt))
+        rand = torch.tensor(np.random.uniform(0,1))
+        # accept = torch.lt(rand, torch.exp(-delta_energy)).byte().any().item()
+        # if accept:
+        #     # print('Debug statement in hmc.sample() : \n Printing : state accepted')
+        #     self._accept_cnt += 1
+        #     state = state_new
+        # print('Acceptance : {0}'.format(self._accept_cnt))
+        return state_constrained
+    def _leapfrog_step(self, state, p, logp):
         """
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
@@ -130,15 +138,23 @@ class HMC(MCMC):
         :param p: type: dictionary descript: represents the momentum for each latent variable
         :return: x, p the proposed values as dict.
         """
-
+        # Radford neal implementation
+        # logp, state = self._potential_energy(state, set_leafs=True)
+        grads = _grad_logp(input=logp, parameters=state, latents=self._cont_latents)
+        for key in self._cont_latents:
+            p[key] = p[key] -  0.5 * self.step_size * grads[key]
         for i in range(self.num_steps):
-            logp, state = self._potential_energy(state, set_leafs=True)
-            grads = _grad_logp(input=logp, parameters=state, latents=self._cont_latents)
+            #should be able to make this more efficient]
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5 * self.step_size * grads
                 state[key] = state[key] + self.step_size * p[key]  # full step for postions
             logp, state = self._potential_energy(state, set_leafs=True)
             grads = _grad_logp(input=logp, parameters=state, latents=self._cont_latents)
-            for key in self._cont_latents:
-                p[key] = p[key] + 0.5 * self.step_size * grads
+            if i == self.num_steps-1:
+                break
+            else:
+                for key in self._cont_latents:
+                    p[key] = p[key] - self.step_size * grads[key]
+        # final half step for momentum
+        for key in self._cont_latents:
+            p[key] = p[key] - 0.5 * self.step_size * grads[key]
         return state, p, logp

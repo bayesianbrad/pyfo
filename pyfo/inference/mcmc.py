@@ -257,11 +257,13 @@ class MCMC(Inference):
             samples_dict.append(sample)
             snamepick = snamepick + str(UNIQUE_ID) + '_chain_' + str(chain) + '.pickle'
             snamepd = snamepd + str(UNIQUE_ID) + '_chain_' + str(chain) + '.csv'
-            with open(snamepick, 'wb') as fout:
-                for ii in tqdm(range(nsamples + burnin - 1)):
-                    sample = self._instance_of_kernel.sample(sample)
-                    samples_dict.append(sample)
-                    pickle.dump(samples_dict, fout)
+            # with open(snamepick, 'wb') as fout:
+            for _ in tqdm(range(nsamples + burnin - 1)):
+                # print('Debug statement in run_sampler \n Printing initial sample :\n {}'.format(sample))
+                sample = self._instance_of_kernel.sample(sample)
+                # print('Debug statement in run_sampler \n Printing proposed sample :\n {}'.format(sample))
+                samples_dict.append(sample)
+                    # pickle.dump(samples_dict, fout)
 
                 # samples = pd.DataFrame.from_dict(samples_dict, orient='columns').rename(columns=self._instance_of_kernel._names, inplace=True)
 

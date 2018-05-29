@@ -302,10 +302,22 @@ def _grad_logp(input, parameters, latents):
     """
     # print(50 *'=')
     # print('Debug statement in _grad_logp \n '+50*'='+'\nChecking gradient flag. \n Printing input : {0} \n Printing parameters : {1} \n Checking if gradient turned on: {2} '.format(input, parameters, parameters.requires_grad))
-    gradient_of_param = torch.autograd.grad(outputs=input.sum(), inputs=latents, retain_graph=True)
-    # print('Debug statement in _grad_logp. Printing gradient : {}'.format(gradient_of_param))
+    gradient_of_params = {}
+    # dict([[key, torch.autograd.grad(outputs=input.sum(), inputs=parameters[key], retain_graph=True)][0] for key in
+    #       latents])
+    for key in latents:
+        gradient_of_params[key] =  torch.autograd.grad(outputs=input.sum(), inputs=parameters[key], retain_graph=True)[0]
+
+    # For debugging only, when using simple normal model .
+    # -log(N(0,1)) =  -log(c1) + (x^{2}/ 2)
+    # dlog / d
+    true_gradient = {}
+    for key in latents:
+        true_gradient[key] = parameters[key]
+    # print(50*'=')
+    # print('Debug statement in _grad_logp. Printing torch gradient : {0} \n and True gradient {1}'.format(gradient_of_params, true_gradient))
     # print(50 * '=')
-    return gradient_of_param[0]
+    return gradient_of_params
 
 
 def _to_leaf(state, latent_vars):
@@ -315,7 +327,7 @@ def _to_leaf(state, latent_vars):
     :param state:
     :return:
     """
-    for key in state:
+    for key in latent_vars:
         state[key] = torch.tensor(state[key], requires_grad=True)
     return state
 
