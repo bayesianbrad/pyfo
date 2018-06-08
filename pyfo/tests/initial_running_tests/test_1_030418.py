@@ -156,5 +156,5 @@ for i in range(samples):
 """
 
 model_compiled = MCMC(model_code=model_normal,model_name='normal', generate_graph=True, debug_on=True)
-all_samples = model_compiled.run_inference(kernel=HMC,  nsamples=100, burnin=100, chains=4)
+all_samples = model_compiled.run_inference(kernel=HMC,  nsamples=1000, burnin=100, chains=1)
 samples, means, variances, std = model_compiled.return_statistics()

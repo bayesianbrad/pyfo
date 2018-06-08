@@ -114,12 +114,9 @@ class HMC(MCMC):
         # delta_energy = energy_proposal - energy_current
         alpha = torch.min(torch.exp(energy_current - energy_proposal)).detach().numpy()
         p_accept = min(1, alpha)
-        print('Debug statement in hmc.sample.\n Printing orginal state: {0} \n Printing proposed state : {1} \n'
-              'printing new accpet prob {2} \n Printing logp : {3} \n Printing logp requires grad {4}'.format(state, state_new, p_accept, logp, logp.requires_grad))
         if p_accept > np.random.uniform():
             self._accept_cnt += 1
             state_constrained = state_new
-            print('Acceptance : {0}'.format(self._accept_cnt))
         rand = torch.tensor(np.random.uniform(0,1))
         # accept = torch.lt(rand, torch.exp(-delta_energy)).byte().any().item()
         # if accept:
