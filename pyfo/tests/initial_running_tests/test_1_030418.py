@@ -67,6 +67,24 @@ y = torch.rand((n,d))
 observe(normal(x2, torch.ones(n,d)), y)
 y
 """
+model_lr="""import torch
+
+# def observe_data(data, slope, bias):
+#     xn = data[0]
+#     yn = data[1]
+#     zn = slope * xn + bias
+#     observe(normal(zn, 1.0), yn)
+
+# instead of a function we can write this in torch as follows:
+
+slope = sample(normal(torch.tensor(0.0), torch.tensor(10.0)))
+bias  = sample(normal(torch.tensor(0.0), torch.tensor(10.0)))
+y  = torch.tensor([[1.0, 2.1], [2.0, 3.9], [3.0, 5.3]])
+zn = slope*data[:,0] + bias # y  = mx + c
+observe(normal(zn, torch.ones(len(zn))),data[:,1])
+
+[slope, bias]
+"""
 model_if_nd ="""
 import torch
 
@@ -138,5 +156,5 @@ for i in range(samples):
 """
 
 model_compiled = MCMC(model_code=model_normal,model_name='normal', generate_graph=True, debug_on=True)
-all_samples = model_compiled.run_inference(kernel=HMC,  nsamples=600, burnin=100, chains=1)
+all_samples = model_compiled.run_inference(kernel=HMC,  nsamples=100, burnin=100, chains=4)
 samples, means, variances, std = model_compiled.return_statistics()

@@ -44,118 +44,31 @@ class HMC(MCMC):
     '''
     def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None, **kwargs):
         super(HMC, self).__init__()
-        # self.step_size = step_size if step_size is not None else 2
-        # if trajectory_length is not None:
-        #     self.trajectory_length = trajectory_length
-        # elif num_steps is not None:
-        #     self.trajectory_length = self.step_size * num_steps
-        # else:
-        #     self.trajectory_length = 2 * math.pi  # from Stan
-        # self.num_steps = max(1, int(self.trajectory_length  / self.step_size))
-        # self._target_accept_prob = 0.8
+
         self.model_code = model_code
-        self.adapt_step_size = adapt_step_size
         self._accept_cnt = 0
         self.__dict__.update(kwargs)
-        # need to make calling these functions concrete, as all classes that inherit from
-        # this must inherit the output of the two functions below.
+
         self.generate_latent_vars()
         self.initialize()
 
 
-
-    def _find_reasonable_step_size(self, state, warmup):
-        print(50*'-')
-        print('{0} Tuning inference hyperparameters {0}'.format('-' * 5))
-        print(50*'-')
-        # optionally tune epsilon
-
-        # from gretta
-        # if (tune) {
-        #
-        # adapt_epsilon < - in_periods(i, n_samples, epsilon_periods)
-        # if (adapt_epsilon) {
-        #
-        # # acceptance rate over the last accept_group runs
-        # start < - max(1, i - accept_group)
-        # end < - i
-        # accept_rate < - mean(accept_trace[start:end], na.rm = TRUE)
-        #
-        # # decrease the adaptation rate as we go
-        # adapt_rate < - min(1, gamma * i ^ (-kappa))
-        #
-        # # shift epsilon in the right direction, making sure it never goes negative
-        # epsilon < - epsilon + pmax(-(epsilon + sqrt(.Machine$double.eps)),
-        # adapt_rate * (accept_rate - target_acceptance))
-        #
-        # # keep track of epsilon
-        # epsilon_trace[i] < - epsilon
-
-        #     # TODO: make thresholds for too small step_size or too large step_size
-    #return step_size
-
-    # def _adapt_step_size(self, accept_prob):
-    #     # calculate a statistic for Dual Averaging scheme
-    #     H = self._target_accept_prob - accept_prob
-    #     self._adapted_scheme.step(H)
-    #     log_step_size, _ = self._adapted_scheme.get_state()
-    #     self.step_size = math.exp(log_step_size)
-    #     self.num_steps = max(1, int(self.trajectory_length / self.step_size))
-
-    def setup(self, state, warmup):
-        #TODO: Implelement adaptive tuning of parameters.
-        # warmup = warmup redunedent for now. Until tuning is added back in.
-        # if self.adapt_step_size:
-        #     self._adapt_phase = True
-        #     for name, transform in self.transforms.items():
-        #         if transform is not constraints.real:
-        #             state[name] = transform(state[name])
-        #         else:
-        #             continue
-            # self.step_size = self._find_reasonable_step_size(state, warmup)
-            # self.num_steps = max(1, int(self.trajectory_length / self.step_size))
-            # # make prox-center for Dual Averaging scheme
-            # loc = math.log(10 * self.step_size)
-            # self._adapted_scheme = DualAveraging(prox_center=loc)
-
-        # def end_warmup(self):
-        #     if self.adapt_step_size:
-        #         self.adapt_step_size = False
-        #         _, log_step_size_avg = self._adapted_scheme.get_state()
-        #         self.step_size = math.exp(log_step_size_avg)
-        #         self.num_steps = max(1, int(self.trajectory_length / self.step_size))
-        #         print(10 * '-')
-        #         print('{} Tuning of hyperparameters now completed {}'.format(5*'*'))
-        #         print(10 * '-')
-        return 0
     def _kinetic_energy(self, p):
         """
 
         :param p: type: torch.tensor descrip: momentum
 
         :return: scalar of kinetic energy
-        TODO Implement for batching chains
         """
         # print('Debug statement in _kinetic_energy : printing momentum p : {0}'.format(p[self._cont_latents[0]]))
 
         return 0.5 * torch.sum(torch.stack([torch.mm(p[key].t(), p[key]) for key in self._cont_latents]))
 
-    def _potential_energy(self, state, set_leafs=False):
+    def _potential_energy(self, state, set_leafs=True):
         state_constrained = state.copy()
-        transform_keys = []
-        for key, transform in self.transforms.items():
-            if transform is constraints.real:
-                continue
-            else:
-                transform_keys.append(key)
-                state_constrained[key] = transform.inv(state_constrained[key])
         if set_leafs:
             state_constrained = _to_leaf(state=state_constrained,latent_vars=self._all_vars)
         potential_energy = -_generate_log_pdf(model=self.model,state=state_constrained)
-        # adjust by the jacobian for this transformation.
-        for key in transform_keys:
-            potential_energy = potential_energy + self.transforms[key].log_abs_det_jacobian(state_constrained[key],
-                                                                                     state[key]).sum()
         return potential_energy, state_constrained
 
     def _energy(self, state, p):
@@ -167,9 +80,9 @@ class HMC(MCMC):
         :return: Tensor
         """
 
-        potential_energy, _ = self._potential_energy(state)
+        potential_energy, state_constrained = self._potential_energy(state)
 
-        return self._kinetic_energy(p) + potential_energy
+        return self._kinetic_energy(p) + potential_energy, potential_energy, state_constrained
 
     def momentum_sample(self, state):
         """
@@ -177,7 +90,7 @@ class HMC(MCMC):
         and for continous keys we have gaussian
         :return:
         """
-        p = dict([[key, torch.randn(state[key].size()[0], state[key].size()[1], requires_grad=False)] for key in self._cont_latents])
+        p = dict([[key, torch.randn(state[key].size()[0], 1, requires_grad=False)] for key in self._cont_latents])
         return p
 
     def sample(self, state):
@@ -193,39 +106,29 @@ class HMC(MCMC):
         # automatically transform `state` to unconstrained space, if needed
         self.step_size = np.random.uniform(0.05, 0.18)
         self.num_steps = int(np.random.uniform(10, 20))
-        for key, transform in self.transforms.items():
-            # print('Debug statement in HMC.sample \n Printing transform : {0} '.format(transform))
-            if transform is not constraints.real:
-                state[key] = transform(state[key])
-            else:
-                continue
         p0 = self.momentum_sample(state)
-        energy_current = self._energy(state, p0)
-        state_new, p_new, logp = self._leapfrog_step(state, p0)
+        energy_current,logp, state_constrained = self._energy(state, p0)
+        state_new, p_new, logp = self._leapfrog_step(state_constrained, p0, logp)
         # apply Metropolis correction.
         energy_proposal = logp + self._kinetic_energy(p_new)
-        delta_energy = energy_proposal - energy_current
-        rand = torch.rand(1)
-        accept = torch.lt(rand, (-delta_energy).exp()).byte().any().item()
-        if accept:
-            # print('Debug statement in hmc.sample() : \n Printing : state accepted')
+        # delta_energy = energy_proposal - energy_current
+        alpha = torch.min(torch.exp(energy_current - energy_proposal)).detach().numpy()
+        p_accept = min(1, alpha)
+        print('Debug statement in hmc.sample.\n Printing orginal state: {0} \n Printing proposed state : {1} \n'
+              'printing new accpet prob {2} \n Printing logp : {3} \n Printing logp requires grad {4}'.format(state, state_new, p_accept, logp, logp.requires_grad))
+        if p_accept > np.random.uniform():
             self._accept_cnt += 1
-            state = state_new
-
-        # if self.adapt_step_size:
-        #     accept_prob = (-delta_energy).exp().clamp(max=1).item()
-        #     self._adapt_step_size(accept_prob)
-        #
-        # self._adapted_scheme._t += 1
-
-        # Return the unconstrained values for `state` to the constrianed values for 'state'.
-        for key, transform in self.transforms.items():
-            if transform is constraints.real:
-                continue
-            else:
-                state[key] = transform.inv(state[key])
-        return state
-    def _leapfrog_step(self, state, p):
+            state_constrained = state_new
+            print('Acceptance : {0}'.format(self._accept_cnt))
+        rand = torch.tensor(np.random.uniform(0,1))
+        # accept = torch.lt(rand, torch.exp(-delta_energy)).byte().any().item()
+        # if accept:
+        #     # print('Debug statement in hmc.sample() : \n Printing : state accepted')
+        #     self._accept_cnt += 1
+        #     state = state_new
+        # print('Acceptance : {0}'.format(self._accept_cnt))
+        return state_constrained
+    def _leapfrog_step(self, state, p, logp):
         """
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
@@ -235,18 +138,23 @@ class HMC(MCMC):
         :param p: type: dictionary descript: represents the momentum for each latent variable
         :return: x, p the proposed values as dict.
         """
-
-        # number of function evaluations and fupdates for discrete parameters
-        n_feval = 0
-        n_fupdate = 0
-        # print('Debug statement in leapfrog_step: printing step size : {0}'.format(self.step_size))
-        # perform first step of leapfrog integrators
+        # Radford neal implementation
+        # logp, state = self._potential_energy(state, set_leafs=True)
+        grads = _grad_logp(input=logp, parameters=state, latents=self._cont_latents)
+        for key in self._cont_latents:
+            p[key] = p[key] -  0.5 * self.step_size * grads[key]
         for i in range(self.num_steps):
-            logp, state = self._potential_energy(state, set_leafs=True)
+            #should be able to make this more efficient]
             for key in self._cont_latents:
-                p[key] = p[key] + 0.5*self.step_size*_grad_logp(input=logp,parameters=state[key])
-                state[key] = state[key] + self.step_size * p[key] # full step for postions
+                state[key] = state[key] + self.step_size * p[key]  # full step for postions
             logp, state = self._potential_energy(state, set_leafs=True)
-            for key in self._cont_latents:
-                p[key] = p[key] + 0.5*self.step_size*_grad_logp(input=logp,parameters=state[key])
+            grads = _grad_logp(input=logp, parameters=state, latents=self._cont_latents)
+            if i == self.num_steps-1:
+                break
+            else:
+                for key in self._cont_latents:
+                    p[key] = p[key] - self.step_size * grads[key]
+        # final half step for momentum
+        for key in self._cont_latents:
+            p[key] = p[key] - 0.5 * self.step_size * grads[key]
         return state, p, logp
