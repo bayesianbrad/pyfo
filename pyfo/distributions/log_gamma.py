@@ -8,9 +8,9 @@ Date created:  26/01/2018
 License: MIT
 '''
 import torch
-from pyfo.distributions.distribution_wrapper import TorchDistribution
+from distributions.distribution_wrapper import TorchDistribution
 import torch.distributions as dists
-from pyfo.utils.core import VariableCast as vc
+from utils.core import VariableCast as vc
 class LogGamma():
     """
     Implements a log gamma distribution

@@ -10,7 +10,7 @@ License: MIT
 
 
 import torch
-from pyfo.utils.core import VariableCast
+from utils.core import VariableCast
 
 class TorchDistribution():
     """

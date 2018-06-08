@@ -8,7 +8,7 @@ Date created:  26/01/2018
 License: MIT
 '''
 import torch.nn as nn
-from pyfo.distributions.distribution_pyro import Distribution
+from distributions.distribution_pyro import Distribution
 import numbers
 class TransformedDistribution(Distribution):
     """

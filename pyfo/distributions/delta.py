@@ -3,8 +3,8 @@ from __future__ import absolute_import, division, print_function
 import torch
 from torch.autograd import Variable
 
-from pyfo.distributions.distribution_pyro import Distribution
-from pyfo.utils.core import VariableCast
+from distributions.distribution_pyro import Distribution
+from utils.core import VariableCast
 
 
 class Delta(Distribution):

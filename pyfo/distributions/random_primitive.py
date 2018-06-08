@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from pyfo.distributions.distribution_pyro import Distribution
+from distributions.distribution_pyro import Distribution
 
 
 class RandomPrimitive(Distribution):

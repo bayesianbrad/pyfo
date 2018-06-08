@@ -1,8 +1,8 @@
 import torch
 
-from pyfo.distributions.distribution_wrapper import TorchDistribution
-from pyfo.utils.core import VariableCast as vc
-from pyfo.distributions.log_gamma import LogGamma
+from distributions.distribution_wrapper import TorchDistribution
+from utils.core import VariableCast as vc
+from distributions.log_gamma import LogGamma
 
 class Gamma(TorchDistribution):
     r"""

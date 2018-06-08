@@ -1,6 +1,6 @@
 import torch
-from pyfo.distributions.distribution_wrapper import TorchDistribution
-from pyfo.utils.core import VariableCast as vc
+from distributions.distribution_wrapper import TorchDistribution
+from utils.core import VariableCast as vc
 
 class Poisson(TorchDistribution):
     r""" Creates a Poisson distribution parameterized by `rate`, the rate parameter.

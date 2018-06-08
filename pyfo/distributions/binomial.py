@@ -1,6 +1,6 @@
 import torch
-from pyfo.distributions.distribution_wrapper import TorchDistribution
-from pyfo.utils.core import VariableCast
+from distributions.distribution_wrapper import TorchDistribution
+from utils.core import VariableCast
 
 
 class Binomial(TorchDistribution):
