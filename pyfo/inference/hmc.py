@@ -17,10 +17,10 @@ import pandas as pd
 import torch
 import torch.distributions as dists
 from torch.distributions import constraints
-import pyfo.distributions as dist
+import distributions as dist
 
-from pyfo.inference.mcmc import MCMC
-from pyfo.utils.core import DualAveraging, _generate_log_pdf, _grad_logp, _to_leaf
+from inference.mcmc import MCMC
+from utils.core import DualAveraging, _generate_log_pdf, _grad_logp, _to_leaf
 
 class HMC(MCMC):
     '''

@@ -11,9 +11,9 @@ import torch
 import copy
 import math
 import torch.distributions as dist
-from pyfo.utils.unembed import Unembed
-from pyfo.inference.hmc import HMC
-from pyfo.utils.core import _to_leaf, VariableCast
+from ..utils.unembed import Unembed
+from ..inference.hmc import HMC
+from ..utils.core import _to_leaf, VariableCast
 class dhmc(HMC):
 
     def __init__(self, support_size):

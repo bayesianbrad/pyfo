@@ -12,10 +12,11 @@ import math
 import inspect
 import warnings
 import pandas as pd
-from pyfo.inference.inference import Inference
-from pyfo.pyfoppl.pyppl import compile_model
-from pyfo.utils.core import transform_latent_support as tls
-from pyfo.utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
+from  .inference import Inference
+from  pyfoppl.pyppl import compile_model
+
+from utils.core import transform_latent_support as tls
+from utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
 from tqdm import tqdm
 import torch.distributions as dists_
 from torch.multiprocessing import cpu_count
@@ -23,7 +24,7 @@ import torch.multiprocessing as mp
 import numpy as np
 import sys
 import os
-from pyfo.utils.eval_stats import data_summary as ds
+from utils.eval_stats import data_summary as ds
 import pickle
 import pathlib
 import time
@@ -87,7 +88,7 @@ class MCMC(Inference):
                           'that your model complies with the standard compiler output.\n '
                           'In regard to the unique parameter names. If you need to determine\n '
                           'what these are. compile_model(model_code).<methods> and choose the appropriate \n'
-                          'method. See pyfo.pyfoppl.pyppl.ppl_base_model for more info on method names')
+                          'method. See ..pyfoppl.pyppl.ppl_base_model for more info on method names')
             end = time.time()
         else:
             start = time.time()

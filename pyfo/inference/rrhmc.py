@@ -22,9 +22,9 @@ import math
 import numpy as np
 import torch.distributions as dist
 from torch.distributions.transforms import constraints
-from pyfo.utils.unembed import Unembed
-from pyfo.inference.hmc import HMC
-from pyfo.utils.core import _to_leaf, _grad_logp, _generate_log_pdf
+from ..utils.unembed import Unembed
+from ..inference.hmc import HMC
+from ..utils.core import _to_leaf, _grad_logp, _generate_log_pdf
 
 
 class rrhmc(HMC):
