@@ -16,10 +16,10 @@ import sys
 DISTNAME = 'pyfo'
 DESCRIPTION = "Python for FOPPL"
 LONG_DESCRIPTION =  open('README.md').read()
-MAINTAINER = 'Bradley Gram-hansen, Tobias Kohn, Yuan Zhang'
-MAINTAINER_EMAIL = 'bradleygramhansen@gmail.com'
-AUTHOR = 'Bradley Gram-Hansen, Yuan Zhang and Tobias Kohn'
-AUTHOR_EMAIL = 'bradley@robots.ox.ac.uk'
+MAINTAINER = 'Bradley Gram-hansen, Tobias Kohn'
+MAINTAINER_EMAIL = 'bradleygramhansen@gmail.com, webmaster@tobiaskohn.ch '
+AUTHOR = 'Bradley Gram-Hansen, Tobias Kohn'
+AUTHOR_EMAIL = 'bradley@robots.ox.ac.uk, webmaster@tobiaskohn.ch '
 URL = "http://github.com/bradleygramhansen/pyfo"
 LICENSE = 'LICENSE.txt'
 VERSION = "0.1.0"

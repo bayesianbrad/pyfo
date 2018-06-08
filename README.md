@@ -28,9 +28,10 @@ discontinuities. This allows one to perform inference in models containing discr
 
 # Installation instructions
  * Instructions for pytorch can be found here: [http://pytorch.org/] ( You will need the distribution classes and will have to install from source (for now))
- * Pyfo can be installed via pip.
+ * Pyfo can be installed via pip as follows:
   ```python
-    pip install pyfo
+    cd <to_dir_above_repo>
+    pip install -e pyfo
    ```
 
 
