@@ -12,10 +12,10 @@ from torch.autograd import Variable
 from collections import deque
 import copy
 import math
-from pyfo.utils.core import VariableCast
-from pyfo.utils.unembed import Unembed
+from ..utils.core import VariableCast
+from ..utils.unembed import Unembed
 #for debugging
-# fromm pyfo.pyfoppl import Options
+# fromm ..pyfoppl import Options
 
 
 """

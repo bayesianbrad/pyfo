@@ -9,7 +9,7 @@ License: MIT
 '''
 import math
 import torch
-from pyfo.utils.core import VariableCast
+from ..utils.core import VariableCast
 from torch.autograd import Variable
 import time
 #TODO: Ensure the correctness of this.
