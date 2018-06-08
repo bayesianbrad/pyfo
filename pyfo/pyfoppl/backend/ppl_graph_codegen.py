@@ -7,8 +7,8 @@
 # 19. Mar 2018, Tobias Kohn
 #
 import datetime
-from pyfo.pyfoppl.pyppl.graphs import *
-from pyfo.pyfoppl.pyppl.ppl_ast import *
+from pyfoppl.pyppl.graphs import *
+from pyfoppl.pyppl.ppl_ast import *
 
 
 class GraphCodeGenerator(object):
@@ -22,7 +22,7 @@ class GraphCodeGenerator(object):
                             class_name: str='Model',
                             base_class: str='',
                             imports: str='') -> str:
-w
+
         if self.imports is not None:
             imports = self.imports + "\n" + imports
         if base_class is None:

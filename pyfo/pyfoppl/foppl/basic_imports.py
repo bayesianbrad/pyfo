@@ -12,6 +12,6 @@ model.
 """
 import torch
 from torch.autograd import Variable
-import pyfo.distributions as dist
+import distributions as dist
 # from .test_distributions import dist
 from . import foppl_linalg as matrix
