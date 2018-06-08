@@ -5,8 +5,8 @@ import math
 import numpy as np
 import torch
 from torch.autograd import Variable
-import pyfo.distributions as dist
-from pyfo.utils.interface import interface
+import distribution as dist
+from ..utils.interface import interface
 
 
 class model(interface):

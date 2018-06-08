@@ -56,8 +56,8 @@ The loader method has a few responsibilities to filL:
 
 '''
 
-from pyfo.models.onedgaussmodel import model
-from pyfo.inference.bhmc import BHMCSampler as dhmc
+from ..models.onedgaussmodel import model
+from ..inference.bhmc import BHMCSampler as dhmc
 dhmc_ = dhmc(model)
 burn_in = 100
 n_sample = 10 ** 3

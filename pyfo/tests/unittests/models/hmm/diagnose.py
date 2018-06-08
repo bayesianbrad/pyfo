@@ -1,8 +1,8 @@
-from pyfo.pyfoppl.foppl import imports
+from ..pyfoppl.foppl import imports
 import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns
 # sns.set_context('paper')
 # sns.set_style('white')
-from pyfo.utils.eval_stats import *
+from ..utils.eval_stats import *
 import sys
 
 PATH  = sys.path[0]

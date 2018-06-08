@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from pyfo.pyfoppl.foppl import imports
+from ..pyfoppl.foppl import imports
 import pandas as pd
-from pyfo.utils.eval_stats import *
+from ..utils.eval_stats import *
 
 PATH  = sys.path[0]
 n_chain = 3

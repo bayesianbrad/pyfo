@@ -7,11 +7,11 @@ Date created:  27/01/2018
 
 License: MIT
 '''
-from pyfo.pyfoppl.foppl import imports
+from ..pyfoppl.foppl import imports
 import dirichlet as test
 
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
 burn_in = 300

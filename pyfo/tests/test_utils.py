@@ -14,7 +14,7 @@ import torch
 import time
 import numpy as np
 
-from pyfo.utils.core import VariableCast
+from ..utils.core import VariableCast
 
 
 class test_variable_cast(unittest.TestCase):

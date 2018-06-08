@@ -8,7 +8,7 @@ Date created:  15/11/2017
 License: MIT
 '''
 
-from pyfo.distributions import *
+from distribution import *
 import torch
 from torch.autograd import Variable
 torch.initial_seed()

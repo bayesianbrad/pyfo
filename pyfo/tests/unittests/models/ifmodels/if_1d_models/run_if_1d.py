@@ -1,6 +1,6 @@
 import tests.unittests.models.ifmodels.if_1d_models.if_1d as test
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 # model
 # print(test.model)

@@ -10,7 +10,7 @@ License: MIT
 import tests.unittests.models.gmm.gmm_1d_c as test
 
 # print(test.code)
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
 

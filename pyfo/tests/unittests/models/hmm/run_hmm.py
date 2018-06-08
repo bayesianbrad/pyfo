@@ -9,7 +9,7 @@ License: MIT
 '''
 import tests.unittests.models.hmm.hmm as test
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 ### model
 # test.model.display_graph()

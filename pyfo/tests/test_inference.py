@@ -14,9 +14,9 @@ import math
 import torch
 import time
 import numpy as np
-from pyfo.inference.dhmc import DHMCSampler as dhmc
-from pyfo.pyfoppl.foppl import imports
-from pyfo.pyfoppl.foppl import compilers
+from ..inference.dhmc import DHMCSampler as dhmc
+from ..pyfoppl.foppl import imports
+from ..pyfoppl.foppl import compilers
 
 # Global variables
 
@@ -64,7 +64,7 @@ class BinomialOneSuccessTestCase(unittest.TestCase):
 #         self.true_posterior_mean = np.array(self.probs)
 #
 #     def testrun(self):
-#         from pyfo.pyfoppl.foppl import imports
+#         from ..pyfoppl.foppl import imports
 #         import cat as test
 #         dhmc_ = dhmc(test)
 #         stats = dhmc_.sample(chain_num=0, n_samples=n_samples, burn_in=burn_in, stepsize_range=stepsize_range,
@@ -95,7 +95,7 @@ class ConjugateGaussianTestCase(unittest.TestCase):
 
 
     def testrun(self):
-        from pyfo.pyfoppl.foppl import imports
+        from ..pyfoppl.foppl import imports
         import gauss_1d as test
         dhmc_ = dhmc(test)
         stats = dhmc_.sample(chain_num=0, n_samples=n_samples, burn_in=burn_in, stepsize_range=stepsize_range,

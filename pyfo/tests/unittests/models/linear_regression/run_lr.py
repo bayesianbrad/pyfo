@@ -11,7 +11,7 @@ import tests.unittests.models.linear_regression.lr as test
 
 print(test)
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
 burn_in = 1000

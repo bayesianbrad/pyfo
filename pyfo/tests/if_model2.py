@@ -6,7 +6,7 @@ Time created:  14:26
 Date created:  13/03/2018
 License: MIT
 '''
-from pyfo.pyfoppl.pyppl import compile_model
+from ..pyfoppl.pyppl import compile_model
 model = """
 import torch
 

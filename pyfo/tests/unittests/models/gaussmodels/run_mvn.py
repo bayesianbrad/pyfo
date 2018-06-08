@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
-from pyfo.utils.eval_stats import *
+from ..inference.dhmc import DHMCSampler as dhmc
+from ..utils.eval_stats import *
 from tests.unittests.models import model
 
 dhmc_ = dhmc(model)

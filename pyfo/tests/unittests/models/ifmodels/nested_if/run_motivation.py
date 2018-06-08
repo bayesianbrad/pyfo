@@ -9,7 +9,7 @@ License: MIT
 '''
 import tests.unittests.models.ifmodels.nested_if.motivation as test
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 # model
 # print(test.model)

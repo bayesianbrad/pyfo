@@ -9,13 +9,13 @@ License: MIT
 '''
 
 import unittest
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 
 def base_continous_test():
-    from pyfo.pyfoppl.foppl import imports
+    from ..pyfoppl.foppl import imports
     import test_gauss_1d as test
-    from pyfo.inference.dhmc import DHMCSampler as dhmc
+    from ..inference.dhmc import DHMCSampler as dhmc
     burn_in = 100
     n_samples = 1000
     stepsize_range = [0.05, 0.25]

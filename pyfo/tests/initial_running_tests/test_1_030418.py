@@ -10,8 +10,8 @@ License: MIT
 
 import time
 
-from pyfo.inference.mcmc import MCMC
-from pyfo.inference.hmc import HMC
+from inference.mcmc import MCMC
+from inference.hmc import HMC
 
 model_gamma="""
 import torch

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import tests.unittests.models.gaussmodels.gauss_1d as test
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
-from pyfo.utils.eval_stats import *
+from ..inference.dhmc import DHMCSampler as dhmc
+from ..utils.eval_stats import *
 
 # model
 print(test.model)

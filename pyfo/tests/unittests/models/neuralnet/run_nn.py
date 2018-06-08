@@ -9,7 +9,7 @@ License: MIT
 '''
 import tests.unittests.models.neuralnet.nn_Frank as test
 
-from pyfo.inference.dhmc import DHMCSampler as dhmc
+from ..inference.dhmc import DHMCSampler as dhmc
 
 dhmc_ = dhmc(test)
 burn_in =100

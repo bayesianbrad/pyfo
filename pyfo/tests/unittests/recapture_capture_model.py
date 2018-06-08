@@ -8,7 +8,7 @@ Date created:  26/03/2018
 License: MIT
 '''
 
-from pyfo.pyfoppl.pyppl import compile_model
+from ..pyfoppl.pyppl import compile_model
 
 import torch
 # observed
