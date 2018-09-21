@@ -1,0 +1,296 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyfo.inference.inference &mdash; pyfo 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> pyfo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Pyfo Core:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Inference.html">Inference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../distributions.html">Distributions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyfo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyfo.inference.inference</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyfo.inference.inference</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Author: Bradley Gram-Hansen</span>
+<span class="sd">Time created:  16:01</span>
+<span class="sd">Date created:  06/03/2018</span>
+
+<span class="sd">License: MIT</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">abstractmethod</span>
+
+<div class="viewcode-block" id="Inference"><a class="viewcode-back" href="../../../inference_base.html#pyfo.inference.inference.Inference">[docs]</a><span class="k">class</span> <span class="nc">Inference</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Abstract base class for all inference methods. All inference methods will inherit from this class and will thus share</span>
+<span class="sd">    all common methods and attributes.</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="Inference.generate_model"><a class="viewcode-back" href="../../../inference_base.html#pyfo.inference.inference.Inference.generate_model">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">generate_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates the model code. This will interact with `pysppl` to generate a class, to compile the</span>
+<span class="sd">        probabilistic program generate a graph describing that model. This class, depending on what</span>
+<span class="sd">        compiler you use, should contains methods for extracting latent parameters and generating the `lod_Pdf`.</span>
+<span class="sd">        See `MCMC.py` for more details.</span>
+
+<span class="sd">        :param str model_code:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="Inference.generate_latent_vars"><a class="viewcode-back" href="../../../inference_base.html#pyfo.inference.inference.Inference.generate_latent_vars">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">generate_latent_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        See `MCMC.py` for ideas.</span>
+
+<span class="sd">        :param cls model: contains methods for extracting latent variables from the DAG directed acyclic graph.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">             Although the user can implement their own graph and pass that to this inference engine. Provided there</span>
+<span class="sd">             exists individual lists of the continuous, discrete and conditional variables as strings.</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">            &gt;&gt;&gt;cont_vars = [&#39;x1&#39;, &#39;x2&#39;] , disc_vars = [&#39;x3&#39;], cond_vars = [&#39;x4&#39;]</span>
+
+<span class="sd">        For each `cond_var` there exists a predicate which must also be handled correctly. You will need a dictionary</span>
+<span class="sd">        of pairs `{&#39;condition&quot;: boolean}` of the conditioning statement and the boolean value associated with that statement</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">             &gt;&gt;&gt;{&#39;cond101&#39;: True} comes from</span>
+<span class="sd">             &gt;&gt;&gt;x4 ~ sample(Normal(0,1))</span>
+<span class="sd">             &gt;&gt;&gt;if  x4 &gt; 0 :</span>
+<span class="sd">             &gt;&gt;&gt;    observe(N(1,0,1))</span>
+<span class="sd">             &gt;&gt;&gt;else:</span>
+<span class="sd">             &gt;&gt;&gt;    observe(N(-1,0,2))</span>
+<span class="sd">             &gt;&gt;&gt;</span>
+<span class="sd">             &gt;&gt;&gt;&#39;cond101&#39; == x4 - 0</span>
+<span class="sd">             &gt;&gt;&gt; Assume x4 = 1.73121, therefore {&#39;cond101&#39;: True}</span>
+
+
+
+<span class="sd">        .. note::</span>
+<span class="sd">            You will also need the len_of_support of the discrete parameters,</span>
+<span class="sd">            as pairs `{&#39;str_of_discrete_latent&#39; : len_of_support}`</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">            &gt;&gt;&gt;if x3 ~ sample(cat[0.1, 0.5, 0.4]) support = 3 ==&gt; x3 \in [0,2]</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            Depending on how you implement the unique names for generating your model and using those parameters in the</span>
+<span class="sd">            inference, you will need a dict of pairs `{&#39;original_name&#39;:&#39;inference_name&#39;}`.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="Inference.initialize"><a class="viewcode-back" href="../../../inference_base.html#pyfo.inference.inference.Inference.initialize">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="Inference.run_inference"><a class="viewcode-back" href="../../../inference_base.html#pyfo.inference.inference.Inference.run_inference">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">run_inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Bradley Gram-Hansen ; Tobias Kohn ; Yuan Zhou.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

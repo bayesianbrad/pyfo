@@ -29,7 +29,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Distributions" href="distributions.html" />
-    <link rel="prev" title="Inference" href="Inference.html" /> 
+    <link rel="prev" title="Inference Base Class" href="inference_base.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -81,6 +81,7 @@
               <p class="caption"><span class="caption-text">Pyfo Core:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="Inference.html">Inference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="inference_base.html">Inference Base Class</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Inference Algorithms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mcmc">MCMC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#hmc">HMC</a></li>
@@ -162,7 +163,7 @@
 <dl class="class">
 <dt id="pyfo.inference.mcmc.MCMC">
 <em class="property">class </em><code class="descname">MCMC</code><span class="sig-paren">(</span><em>model_code=None</em>, <em>generate_graph=False</em>, <em>debug_on=False</em>, <em>model_name=None</em>, <em>dir_name='/Users/bradley/Documents/Projects/Pyfo_project'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/mcmc.html#MCMC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.mcmc.MCMC" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pyfo.inference.inference.Inference</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="inference_base.html#pyfo.inference.inference.Inference" title="pyfo.inference.inference.Inference"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyfo.inference.inference.Inference</span></code></a></p>
 <p>General purpose MCMC inference base class</p>
 <dl class="method">
 <dt id="pyfo.inference.mcmc.MCMC.generate_latent_vars">
@@ -188,36 +189,32 @@ types</td>
 <dt id="pyfo.inference.mcmc.MCMC.generate_model">
 <code class="descname">generate_model</code><span class="sig-paren">(</span><em>model_code</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/mcmc.html#MCMC.generate_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.mcmc.MCMC.generate_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates an inference algorithm.</p>
-<dl class="docutils">
-<dt>:param model_code</dt>
-<dd>type: str
-description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>model_code</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – This will interact with pyfoppl to generate a class, to compile the probabilistic program
 generate a graph describing that model. This class contains many methods for extracting latent parameters
-and generating the lod_Pdf.</dd>
-</dl>
+and generating the lod_Pdf.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="pyfo.inference.mcmc.MCMC.initialize">
 <code class="descname">initialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/mcmc.html#MCMC.initialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.mcmc.MCMC.initialize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialize inference algorithm. It initializes hyperparameters
-, the initial density and the values of each of the latents.</p>
-<dl class="docutils">
-<dt>:param n_iters</dt>
-<dd>type: int
-description: Number of iterations for algorithm when calling ‘run()’.
-If called manually, it is the number of expected calls of ‘update()’;
-determines the tracking information during the print progress.</dd>
-<dt>:param n_chains</dt>
-<dd>type: int
-description: Number of chains for MCMC inference.</dd>
-</dl>
+<dd><p>Initialize inference algorithm. It initializes hyperparameters, the initial density and the values of each of the latents.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>debug</strong> – type: bool
-If true, prints out graphical model.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>n_iters</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of iterations for algorithm when calling <cite>run()</cite>. If called manually, it is the number of expected calls of <cite>update()</cite> determines the tracking information during the print progress.</li>
+<li><strong>n_chains</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of chains for MCMC inference.</li>
+<li><strong>debug</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – If true, prints out graphical model.</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -256,7 +253,7 @@ saving plots and samples generated.</p>
 </table>
 <p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hmc</span> <span class="o">=</span> <span class="n">MCMC</span><span class="p">(</span><span class="s1">&#39;HMC&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">hmc</span><span class="o">.</span><span class="n">run_inference</span><span class="p">(</span><span class="n">nsamples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span><span class="n">burnin</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">chains</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">warmup</span><span class="o">=</span> <span class="mi">100</span><span class="p">,</span><span class="n">step_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">num_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">adapt_step_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">trajectory_length</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dirname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">hmc</span><span class="o">.</span><span class="n">run_inference</span><span class="p">(</span><span class="n">nsamples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">burnin</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">chains</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">warmup</span><span class="o">=</span> <span class="mi">100</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">step_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">num_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">adapt_step_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">trajectory_length</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>            <span class="o">&gt;&gt;&gt;</span> <span class="n">dirname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -275,7 +272,7 @@ saving plots and samples generated.</p>
 <em class="property">class </em><code class="descname">DHMCSampler</code><span class="sig-paren">(</span><em>object</em>, <em>chains=0</em>, <em>scale=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/dhmc.html#DHMCSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.dhmc.DHMCSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
-will be stored. But for now, we will inherit the model from pyro.models.&lt;model_name&gt;</p>
+will be stored. But for now, we will inherit the model from <cite>pyro.models.&lt;model_name&gt;</cite></p>
 <dl class="method">
 <dt id="pyfo.inference.dhmc.DHMCSampler.coordInt">
 <code class="descname">coordInt</code><span class="sig-paren">(</span><em>x</em>, <em>x_embed</em>, <em>p</em>, <em>stepsize</em>, <em>key</em>, <em>unembed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/dhmc.html#DHMCSampler.coordInt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.dhmc.DHMCSampler.coordInt" title="Permalink to this definition">¶</a></dt>
@@ -286,15 +283,15 @@ variables are executed within the function.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>x</strong> – Dict of state of positions</li>
-<li><strong>p</strong> – Dict of state of momentum</li>
-<li><strong>stepsize</strong> – Float</li>
-<li><strong>key</strong> – unique parameter String</li>
-<li><strong>unembed</strong> – type: bool</li>
+<li><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – State of positions</li>
+<li><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – State of momentums</li>
+<li><strong>stepsize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – </li>
+<li><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Unique parameter string for latent variable</li>
+<li><strong>unembed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Whether to transfor discrete parameters or not.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Updated x and p indicies</p>
+<tr class="field-even field"><th class="field-name">Return x,p:</th><td class="field-body"><p class="first last">Updated x and p indicies</p>
 </td>
 </tr>
 </tbody>
@@ -304,13 +301,14 @@ variables are executed within the function.</p>
 <dl class="method">
 <dt id="pyfo.inference.dhmc.DHMCSampler.create_plots">
 <code class="descname">create_plots</code><span class="sig-paren">(</span><em>dataframe_samples</em>, <em>dataframe_samples_woburin</em>, <em>keys</em>, <em>lag</em>, <em>all_on_one=True</em>, <em>save_data=False</em>, <em>burn_in=False</em>, <em>ac=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/dhmc.html#DHMCSampler.create_plots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.dhmc.DHMCSampler.create_plots" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
+<dd><p>Creates all plots</p>
+<table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>keys</strong> – </li>
-<li><strong>ac</strong> – bool</li>
+<li><strong>keys</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – List of latent variable strings</li>
+<li><strong>ac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Plot autocorrelation plot</li>
 </ul>
 </td>
 </tr>
@@ -331,15 +329,15 @@ the standard integrator and the discrete parameters via the coordinate wie integ
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>x</strong> – Type dictionary</li>
-<li><strong>p</strong> – Type dictionary</li>
-<li><strong>stepsize</strong> – </li>
-<li><strong>log_grad</strong> – </li>
-<li><strong>n_disc</strong> – </li>
+<li><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – </li>
+<li><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – </li>
+<li><strong>stepsize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – </li>
+<li><strong>log_grad</strong> (<em>tensor</em>) – </li>
+<li><strong>n_disc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – </li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">x, p the proposed values as dict.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">x, p: the proposed values as dict.</p>
 </td>
 </tr>
 </tbody>
@@ -354,17 +352,14 @@ the standard integrator and the discrete parameters via the coordinate wie integ
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>stepsize_range</strong> – List</li>
-<li><strong>n_step_range</strong> – List</li>
-<li><strong>x0</strong> – </li>
-<li><strong>logp0</strong> – probably won’t require as will be handled by state self.log_posterior</li>
-<li><strong>grad0</strong> – probably won’t require as will be handled by state self._grad_log</li>
-<li><strong>aux0</strong> – </li>
+<li><strong>stepsize_range</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – List of stepsizes <cite>[0.01, 0.10]</cite></li>
+<li><strong>n_step_range</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – List of ints <cite>[5,10]</cite></li>
+<li><strong>x0</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Initial state.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
-</td>
+<tr class="field-even field"><th class="field-name" colspan="2">Return object hmc:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"></td>
 </tr>
 </tbody>
 </table>
@@ -381,28 +376,30 @@ and for continous keys we have gaussian
 <dl class="method">
 <dt id="pyfo.inference.dhmc.DHMCSampler.sample">
 <code class="descname">sample</code><span class="sig-paren">(</span><em>chain_num=0, n_samples=1000, burn_in=1000, stepsize_range=[0.05, 0.2], n_step_range=[5, 20], seed=None, n_update=10, lag=20, print_stats=False, plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/dhmc.html#DHMCSampler.sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.dhmc.DHMCSampler.sample" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
+<dd><p>Generates a dhmc sample</p>
+<table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>n_samples</strong> – number of samples to draw</li>
-<li><strong>burn_in</strong> – number of burn in samples, discard by default</li>
-<li><strong>stepsize_range</strong> – </li>
-<li><strong>n_step_range</strong> – trajectory length</li>
-<li><strong>seed</strong> – seed for generating random numbers, None by default</li>
-<li><strong>n_update</strong> – number of printing statement</li>
-<li><strong>lag</strong> – plot parameter</li>
-<li><strong>print_stats</strong> – print details of sampler</li>
-<li><strong>plot</strong> – whether generate posterior plots, False by default</li>
-<li><strong>plot_graphmodel</strong> – whether generate GM plot, False by default</li>
-<li><strong>save_samples</strong> – whether save posterior samples, False by default</li>
-<li><strong>plot_burnin</strong> – plot parameter</li>
-<li><strong>plot_ac</strong> – plot parameter</li>
+<li><strong>n_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – number of samples to draw</li>
+<li><strong>burn_in</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – number of burn in samples, discard by default</li>
+<li><strong>stepsize_range</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – </li>
+<li><strong>n_step_range</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – trajectory length</li>
+<li><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – seed for generating random numbers, None by default</li>
+<li><strong>n_update</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – number of printing statement</li>
+<li><strong>lag</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – plot parameter</li>
+<li><strong>print_stats</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – print details of sampler</li>
+<li><strong>plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – whether generate posterior plots, False by default</li>
+<li><strong>plot_graphmodel</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – whether generate GM plot, False by default</li>
+<li><strong>save_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – whether save posterior samples, False by default</li>
+<li><strong>plot_burnin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – plot parameter</li>
+<li><strong>plot_ac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – plot parameter</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">stats: dict of inference infomation. stats{‘samples’: df of posterior samples}</p>
+<tr class="field-even field"><th class="field-name" colspan="2">Return dict stats:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first last">dict of inference infomation.` stats{‘samples’: df of posterior samples}`</p>
 </td>
 </tr>
 </tbody>
@@ -412,14 +409,15 @@ and for continous keys we have gaussian
 <dl class="method">
 <dt id="pyfo.inference.dhmc.DHMCSampler.sample_multiple_chains">
 <code class="descname">sample_multiple_chains</code><span class="sig-paren">(</span><em>n_chains=1, n_samples=1000, burn_in=1000, stepsize_range=[0.05, 0.2], n_step_range=[5, 20], seed=None, n_update=10, lag=20, print_stats=False, plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/dhmc.html#DHMCSampler.sample_multiple_chains"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.dhmc.DHMCSampler.sample_multiple_chains" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
+<dd><p>Produces multiple chains of samples.</p>
+<table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>n_chains</strong> – number of chains to run</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>n_chains</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – number of chains to run</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">all_stats: dict of multiple chains, each chain contains one stats; stats the return of method sample
-eg. all_stats = {‘0’: stats}, where stats{‘samples’: df}</td>
+<tr class="field-even field"><th class="field-name" colspan="2">Return dict all_stats:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">Dict of multiple chains, each chain contains one stats; stats the return of method sample</td>
 </tr>
 </tbody>
 </table>
@@ -444,11 +442,11 @@ HMC algorithm.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>step_size</strong> – </li>
-<li><strong>step_range</strong> – </li>
-<li><strong>num_steps</strong> – </li>
-<li><strong>adapt_step_size</strong> – </li>
-<li><strong>transforms</strong> – Optional dictionary that specifies a transform for a latent variable with constrained support. The Transform must be invertible and implement <cite>log_abs_det_jacobian</cite>. If <cite>None</cite>, and latent variables with constrained support exist then the inference engine automatically takes advantage of <cite>torch.distributions.transforms</cite> to do the transformation automatically.</li>
+<li><strong>step_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – </li>
+<li><strong>step_range</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – </li>
+<li><strong>num_steps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – </li>
+<li><strong>adapt_step_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – </li>
+<li><strong>transforms</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Optional dictionary that specifies a transform for a latent variable with constrained support. The Transform must be invertible and implement <cite>log_abs_det_jacobian</cite>. If <cite>None</cite>, and latent variables with constrained support exist then the inference engine automatically takes advantage of <cite>torch.distributions.transforms</cite> to do the transformation automatically.</li>
 </ul>
 </td>
 </tr>
@@ -457,9 +455,7 @@ HMC algorithm.</p>
 <dl class="method">
 <dt id="pyfo.inference.hmc.HMC.momentum_sample">
 <code class="descname">momentum_sample</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/hmc.html#HMC.momentum_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.hmc.HMC.momentum_sample" title="Permalink to this definition">¶</a></dt>
-<dd><p>Constructs a momentum dictionary for contin
-and for continous keys we have gaussian
-:return:</p>
+<dd><p>Constructs a momentum dictionary for continuous parameters. Samples Gaussian momentum</p>
 </dd></dl>
 
 <dl class="method">
@@ -499,7 +495,7 @@ and for continous keys we have gaussian
         <a href="distributions.html" class="btn btn-neutral float-right" title="Distributions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Inference.html" class="btn btn-neutral" title="Inference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="inference_base.html" class="btn btn-neutral" title="Inference Base Class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

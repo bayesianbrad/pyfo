@@ -197,9 +197,7 @@
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Creates an inference algorithm.</span>
 
-<span class="sd">        :param model_code</span>
-<span class="sd">            type: str</span>
-<span class="sd">            description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program</span>
+<span class="sd">        :param str model_code: This will interact with pyfoppl to generate a class, to compile the probabilistic program</span>
 <span class="sd">            generate a graph describing that model. This class contains many methods for extracting latent parameters</span>
 <span class="sd">            and generating the lod_Pdf.</span>
 
@@ -300,21 +298,11 @@
 
 <div class="viewcode-block" id="MCMC.initialize"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Initialize inference algorithm. It initializes hyperparameters</span>
-<span class="sd">        , the initial density and the values of each of the latents.</span>
+<span class="sd">        Initialize inference algorithm. It initializes hyperparameters, the initial density and the values of each of the latents.</span>
 
-<span class="sd">        :param n_iters</span>
-<span class="sd">            type: int</span>
-<span class="sd">            description: Number of iterations for algorithm when calling &#39;run()&#39;.</span>
-<span class="sd">            If called manually, it is the number of expected calls of &#39;update()&#39;;</span>
-<span class="sd">            determines the tracking information during the print progress.</span>
-<span class="sd">        :param n_chains</span>
-<span class="sd">            type: int</span>
-<span class="sd">            description: Number of chains for MCMC inference.</span>
-
-<span class="sd">        :param debug:</span>
-<span class="sd">            type: bool</span>
-<span class="sd">            If true, prints out graphical model.</span>
+<span class="sd">        :param int n_iters:  Number of iterations for algorithm when calling `run()`. If called manually, it is the number of expected calls of `update()` determines the tracking information during the print progress.</span>
+<span class="sd">        :param int n_chains: Number of chains for MCMC inference.</span>
+<span class="sd">        :param bool debug: If true, prints out graphical model.</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
 
@@ -371,7 +359,16 @@
 <span class="sd">        Example:</span>
 
 <span class="sd">            &gt;&gt;&gt; hmc = MCMC(&#39;HMC&#39;)</span>
-<span class="sd">            &gt;&gt;&gt; samples = hmc.run_inference(nsamples=1000,burnin=100,chains=1,warmup= 100,step_size=None,num_steps=None,adapt_step_size=False, trajectory_length = None, dirname = None)</span>
+<span class="sd">            &gt;&gt;&gt; samples = hmc.run_inference(nsamples=1000,\</span>
+<span class="sd">            &gt;&gt;&gt; burnin=100,\</span>
+<span class="sd">            &gt;&gt;&gt; chains=1,\</span>
+<span class="sd">            &gt;&gt;&gt; warmup= 100,\</span>
+<span class="sd">            &gt;&gt;&gt; step_size=None,\</span>
+<span class="sd">            &gt;&gt;&gt; num_steps=None,\</span>
+<span class="sd">            &gt;&gt;&gt; adapt_step_size=False,\</span>
+<span class="sd">            &gt;&gt;&gt; trajectory_length = None,\</span>
+<span class="sd">            &gt;&gt;&gt; dirname = None)</span>
+
 
 <span class="sd">        &quot;&quot;&quot;</span>
 

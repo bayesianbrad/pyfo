@@ -188,7 +188,7 @@
 <div class="viewcode-block" id="DHMCSampler"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.dhmc.DHMCSampler">[docs]</a><span class="k">class</span> <span class="nc">DHMCSampler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    In general model will be the output of the foppl compiler, it is not entirely obvious yet where this</span>
-<span class="sd">    will be stored. But for now, we will inherit the model from pyro.models.&lt;model_name&gt;</span>
+<span class="sd">    will be stored. But for now, we will inherit the model from `pyro.models.&lt;model_name&gt;`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span><span class="n">chains</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -249,12 +249,12 @@
 <span class="sd">        Performs the coordinate wise update. The permutation is done before the</span>
 <span class="sd">        variables are executed within the function.</span>
 
-<span class="sd">        :param x: Dict of state of positions</span>
-<span class="sd">        :param p: Dict of state of momentum</span>
-<span class="sd">        :param stepsize: Float</span>
-<span class="sd">        :param key: unique parameter String</span>
-<span class="sd">        :param unembed: type: bool</span>
-<span class="sd">        :return: Updated x and p indicies</span>
+<span class="sd">        :param dict x: State of positions</span>
+<span class="sd">        :param dict p: State of momentums</span>
+<span class="sd">        :param float stepsize:</span>
+<span class="sd">        :param str key: Unique parameter string for latent variable</span>
+<span class="sd">        :param bool unembed: Whether to transfor discrete parameters or not.</span>
+<span class="sd">        :return x,p: Updated x and p indicies</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">x_star</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
@@ -281,12 +281,12 @@
 <span class="sd">        Performs the full DHMC update step. It updates the continous parameters using</span>
 <span class="sd">        the standard integrator and the discrete parameters via the coordinate wie integrator.</span>
 
-<span class="sd">        :param x: Type dictionary</span>
-<span class="sd">        :param p: Type dictionary</span>
-<span class="sd">        :param stepsize:</span>
-<span class="sd">        :param log_grad:</span>
-<span class="sd">        :param n_disc:</span>
-<span class="sd">        :return: x, p the proposed values as dict.</span>
+<span class="sd">        :param dict x:</span>
+<span class="sd">        :param dict p:</span>
+<span class="sd">        :param float stepsize:</span>
+<span class="sd">        :param tensor log_grad:</span>
+<span class="sd">        :param int n_disc:</span>
+<span class="sd">        :return: x, p: the proposed values as dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># number of function evaluations and fupdates for discrete parameters</span>
@@ -350,9 +350,9 @@
     <span class="k">def</span> <span class="nf">_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the hamiltonian for calculating the acceptance ration (detailed balance)</span>
-<span class="sd">        :param x:</span>
-<span class="sd">        :param p:</span>
-<span class="sd">        :return: Tensor</span>
+<span class="sd">        :param dict x:</span>
+<span class="sd">        :param dict p:</span>
+<span class="sd">        :return: energy</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disc_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">kinetic_disc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">name</span><span class="p">]),</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disc_keys</span><span class="p">]))</span>
@@ -374,13 +374,10 @@
 <div class="viewcode-block" id="DHMCSampler.hmc"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.dhmc.DHMCSampler.hmc">[docs]</a>    <span class="k">def</span> <span class="nf">hmc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stepsize</span><span class="p">,</span> <span class="n">n_step</span><span class="p">,</span> <span class="n">x0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="sd">        :param stepsize_range: List</span>
-<span class="sd">        :param n_step_range: List</span>
-<span class="sd">        :param x0:</span>
-<span class="sd">        :param logp0: probably won&#39;t require as will be handled by state self.log_posterior</span>
-<span class="sd">        :param grad0: probably won&#39;t require as will be handled by state self._grad_log</span>
-<span class="sd">        :param aux0:</span>
-<span class="sd">        :return:</span>
+<span class="sd">        :param list stepsize_range: List of stepsizes `[0.01, 0.10]`</span>
+<span class="sd">        :param list n_step_range: List of ints `[5,10]`</span>
+<span class="sd">        :param dict x0: Initial state.</span>
+<span class="sd">        :return object hmc:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_momentum</span><span class="p">()</span>
@@ -409,20 +406,24 @@
 <div class="viewcode-block" id="DHMCSampler.sample"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.dhmc.DHMCSampler.sample">[docs]</a>    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain_num</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">burn_in</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">stepsize_range</span><span class="o">=</span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">],</span> <span class="n">n_step_range</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
                <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_update</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">lag</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">print_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot_graphmodel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_samples</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot_burnin</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot_ac</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        :param n_samples:  number of samples to draw</span>
-<span class="sd">        :param burn_in: number of burn in samples, discard by default</span>
-<span class="sd">        :param stepsize_range:</span>
-<span class="sd">        :param n_step_range: trajectory length</span>
-<span class="sd">        :param seed: seed for generating random numbers, None by default</span>
-<span class="sd">        :param n_update: number of printing statement</span>
-<span class="sd">        :param lag: plot parameter</span>
-<span class="sd">        :param print_stats: print details of sampler</span>
-<span class="sd">        :param plot: whether generate posterior plots, False by default</span>
-<span class="sd">        :param plot_graphmodel: whether generate GM plot, False by default</span>
-<span class="sd">        :param save_samples: whether save posterior samples, False by default</span>
-<span class="sd">        :param plot_burnin: plot parameter</span>
-<span class="sd">        :param plot_ac: plot parameter</span>
-<span class="sd">        :return: stats: dict of inference infomation. stats{&#39;samples&#39;: df of posterior samples}</span>
+<span class="sd">        Generates a dhmc sample</span>
+
+<span class="sd">        :param int n_samples:  number of samples to draw</span>
+<span class="sd">        :param int burn_in: number of burn in samples, discard by default</span>
+<span class="sd">        :param list stepsize_range:</span>
+<span class="sd">        :param list n_step_range: trajectory length</span>
+<span class="sd">        :param int seed: seed for generating random numbers, None by default</span>
+<span class="sd">        :param int n_update: number of printing statement</span>
+<span class="sd">        :param int lag: plot parameter</span>
+<span class="sd">        :param bool print_stats: print details of sampler</span>
+<span class="sd">        :param bool plot: whether generate posterior plots, False by default</span>
+<span class="sd">        :param bool plot_graphmodel: whether generate GM plot, False by default</span>
+<span class="sd">        :param bool save_samples: whether save posterior samples, False by default</span>
+<span class="sd">        :param bool plot_burnin: plot parameter</span>
+<span class="sd">        :param bool plot_ac: plot parameter</span>
+
+<span class="sd">        :return dict stats: dict of inference infomation.` stats{&#39;samples&#39;: df of posterior samples}`</span>
+
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
@@ -501,9 +502,10 @@
 
 <div class="viewcode-block" id="DHMCSampler.create_plots"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.dhmc.DHMCSampler.create_plots">[docs]</a>    <span class="k">def</span> <span class="nf">create_plots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataframe_samples</span><span class="p">,</span><span class="n">dataframe_samples_woburin</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">lag</span><span class="p">,</span> <span class="n">all_on_one</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_data</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">burn_in</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ac</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates all plots</span>
 
-<span class="sd">        :param keys:</span>
-<span class="sd">        :param ac: bool</span>
+<span class="sd">        :param list keys: List of latent variable strings</span>
+<span class="sd">        :param bool ac: Plot autocorrelation plot</span>
 <span class="sd">        :return: Generates plots</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -518,11 +520,12 @@
 <div class="viewcode-block" id="DHMCSampler.sample_multiple_chains"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.dhmc.DHMCSampler.sample_multiple_chains">[docs]</a>    <span class="k">def</span> <span class="nf">sample_multiple_chains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_chains</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">burn_in</span><span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">stepsize_range</span><span class="o">=</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="mf">0.20</span><span class="p">],</span> <span class="n">n_step_range</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">20</span><span class="p">],</span><span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_update</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">lag</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
                <span class="n">print_stats</span><span class="o">=</span><span class="kc">False</span> <span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot_graphmodel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_samples</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot_burnin</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot_ac</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Produces multiple chains of samples.</span>
 
-<span class="sd">        :param n_chains: number of chains to run</span>
+<span class="sd">        :param int n_chains: number of chains to run</span>
 
-<span class="sd">        :return: all_stats: dict of multiple chains, each chain contains one stats; stats the return of method sample</span>
-<span class="sd">               eg. all_stats = {&#39;0&#39;: stats}, where stats{&#39;samples&#39;: df}</span>
+<span class="sd">        :return dict all_stats: Dict of multiple chains, each chain contains one stats; stats the return of method sample</span>
+
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="n">all_stats</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_chains</span><span class="p">):</span>

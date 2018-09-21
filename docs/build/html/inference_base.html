@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Inference Base Class &mdash; pyfo 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Inference Algorithms" href="mcmc.html" />
+    <link rel="prev" title="Inference" href="Inference.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pyfo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Pyfo Core:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="Inference.html">Inference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Inference Base Class</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#base-class">Base Class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="mcmc.html">Inference Algorithms</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="distributions.html">Distributions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyfo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="Inference.html">Inference</a> &raquo;</li>
+        
+      <li>Inference Base Class</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/inference_base.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="inference-base-class">
+<h1>Inference Base Class<a class="headerlink" href="#inference-base-class" title="Permalink to this headline">¶</a></h1>
+<p>All inference methods inherit from this api.</p>
+<div class="section" id="base-class">
+<h2>Base Class<a class="headerlink" href="#base-class" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyfo.inference.inference.Inference">
+<em class="property">class </em><code class="descname">Inference</code><a class="reference internal" href="_modules/pyfo/inference/inference.html#Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.inference.Inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Abstract base class for all inference methods. All inference methods will inherit from this class and will thus share
+all common methods and attributes.</p>
+<dl class="method">
+<dt id="pyfo.inference.inference.Inference.generate_latent_vars">
+<code class="descname">generate_latent_vars</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/inference.html#Inference.generate_latent_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.inference.Inference.generate_latent_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <cite>MCMC.py</cite> for ideas.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>model</strong> (<em>cls</em>) – contains methods for extracting latent variables from the DAG directed acyclic graph.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Although the user can implement their own graph and pass that to this inference engine. Provided there
+exists individual lists of the continuous, discrete and conditional variables as strings.</p>
+</div>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;cont_vars = [&#39;x1&#39;, &#39;x2&#39;] , disc_vars = [&#39;x3&#39;], cond_vars = [&#39;x4&#39;]</span>
+</pre></div>
+</div>
+<p>For each <cite>cond_var</cite> there exists a predicate which must also be handled correctly. You will need a dictionary
+of pairs <cite>{‘condition”: boolean}</cite> of the conditioning statement and the boolean value associated with that statement</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;{&#39;cond101&#39;: True} comes from</span>
+<span class="go">&gt;&gt;&gt;x4 ~ sample(Normal(0,1))</span>
+<span class="go">&gt;&gt;&gt;if  x4 &gt; 0 :</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">observe</span><span class="p">(</span><span class="n">N</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+<span class="go">&gt;&gt;&gt;else:</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">observe</span><span class="p">(</span><span class="n">N</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="go">&gt;&gt;&gt;&#39;cond101&#39; == x4 - 0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Assume</span> <span class="n">x4</span> <span class="o">=</span> <span class="mf">1.73121</span><span class="p">,</span> <span class="n">therefore</span> <span class="p">{</span><span class="s1">&#39;cond101&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You will also need the len_of_support of the discrete parameters,
+as pairs <cite>{‘str_of_discrete_latent’ : len_of_support}</cite></p>
+</div>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;if x3 ~ sample(cat[0.1, 0.5, 0.4]) support = 3 ==&gt; x3 \in [0,2]</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Depending on how you implement the unique names for generating your model and using those parameters in the
+inference, you will need a dict of pairs <cite>{‘original_name’:’inference_name’}</cite>.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyfo.inference.inference.Inference.generate_model">
+<code class="descname">generate_model</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/inference.html#Inference.generate_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.inference.Inference.generate_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the model code. This will interact with <cite>pysppl</cite> to generate a class, to compile the
+probabilistic program generate a graph describing that model. This class, depending on what
+compiler you use, should contains methods for extracting latent parameters and generating the <cite>lod_Pdf</cite>.
+See <cite>MCMC.py</cite> for more details.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>model_code</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyfo.inference.inference.Inference.initialize">
+<code class="descname">initialize</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/inference.html#Inference.initialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.inference.Inference.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyfo.inference.inference.Inference.run_inference">
+<code class="descname">run_inference</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/inference.html#Inference.run_inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.inference.Inference.run_inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="mcmc.html" class="btn btn-neutral float-right" title="Inference Algorithms" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Inference.html" class="btn btn-neutral" title="Inference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Bradley Gram-Hansen ; Tobias Kohn ; Yuan Zhou.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

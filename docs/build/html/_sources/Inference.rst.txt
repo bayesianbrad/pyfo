@@ -13,4 +13,5 @@ usually involves some sort of optimization.
    :maxdepth: 2
    :caption: Contents:
 
+   inference_base
    mcmc
