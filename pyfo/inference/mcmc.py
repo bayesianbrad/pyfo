@@ -52,9 +52,7 @@ class MCMC(Inference):
         '''
         Creates an inference algorithm.
 
-        :param model_code
-            type: str
-            description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program
+        :param str model_code: This will interact with pyfoppl to generate a class, to compile the probabilistic program
             generate a graph describing that model. This class contains many methods for extracting latent parameters
             and generating the lod_Pdf.
 
@@ -155,21 +153,11 @@ class MCMC(Inference):
 
     def initialize(self):
         '''
-        Initialize inference algorithm. It initializes hyperparameters
-        , the initial density and the values of each of the latents.
+        Initialize inference algorithm. It initializes hyperparameters, the initial density and the values of each of the latents.
 
-        :param n_iters
-            type: int
-            description: Number of iterations for algorithm when calling 'run()'.
-            If called manually, it is the number of expected calls of 'update()';
-            determines the tracking information during the print progress.
-        :param n_chains
-            type: int
-            description: Number of chains for MCMC inference.
-
-        :param debug:
-            type: bool
-            If true, prints out graphical model.
+        :param int n_iters:  Number of iterations for algorithm when calling `run()`. If called manually, it is the number of expected calls of `update()` determines the tracking information during the print progress.
+        :param int n_chains: Number of chains for MCMC inference.
+        :param bool debug: If true, prints out graphical model.
 
         '''
 
@@ -226,7 +214,16 @@ class MCMC(Inference):
         Example:
 
             >>> hmc = MCMC('HMC')
-            >>> samples = hmc.run_inference(nsamples=1000,burnin=100,chains=1,warmup= 100,step_size=None,num_steps=None,adapt_step_size=False, trajectory_length = None, dirname = None)
+            >>> samples = hmc.run_inference(nsamples=1000,\
+            >>> burnin=100,\
+            >>> chains=1,\
+            >>> warmup= 100,\
+            >>> step_size=None,\
+            >>> num_steps=None,\
+            >>> adapt_step_size=False,\
+            >>> trajectory_length = None,\
+            >>> dirname = None)
+
 
         """
 

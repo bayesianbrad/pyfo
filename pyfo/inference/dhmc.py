@@ -43,7 +43,7 @@ in BHMC this will be different
 class DHMCSampler(object):
     """
     In general model will be the output of the foppl compiler, it is not entirely obvious yet where this
-    will be stored. But for now, we will inherit the model from pyro.models.<model_name>
+    will be stored. But for now, we will inherit the model from `pyro.models.<model_name>`
     """
 
     def __init__(self, object,chains=0, scale=None):
@@ -104,12 +104,12 @@ class DHMCSampler(object):
         Performs the coordinate wise update. The permutation is done before the
         variables are executed within the function.
 
-        :param x: Dict of state of positions
-        :param p: Dict of state of momentum
-        :param stepsize: Float
-        :param key: unique parameter String
-        :param unembed: type: bool
-        :return: Updated x and p indicies
+        :param dict x: State of positions
+        :param dict p: State of momentums
+        :param float stepsize:
+        :param str key: Unique parameter string for latent variable
+        :param bool unembed: Whether to transfor discrete parameters or not.
+        :return x,p: Updated x and p indicies
         """
 
         x_star = copy.copy(x)
@@ -136,12 +136,12 @@ class DHMCSampler(object):
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
 
-        :param x: Type dictionary
-        :param p: Type dictionary
-        :param stepsize:
-        :param log_grad:
-        :param n_disc:
-        :return: x, p the proposed values as dict.
+        :param dict x:
+        :param dict p:
+        :param float stepsize:
+        :param tensor log_grad:
+        :param int n_disc:
+        :return: x, p: the proposed values as dict.
         """
 
         # number of function evaluations and fupdates for discrete parameters
@@ -205,9 +205,9 @@ class DHMCSampler(object):
     def _energy(self, x, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
-        :param x:
-        :param p:
-        :return: Tensor
+        :param dict x:
+        :param dict p:
+        :return: energy
         """
         if self._disc_keys is not None:
             kinetic_disc = torch.sum(torch.stack([self.M * torch.dot(torch.abs(p[name]),torch.abs(p[name])) for name in self._disc_keys]))
@@ -229,13 +229,10 @@ class DHMCSampler(object):
     def hmc(self, stepsize, n_step, x0):
         """
 
-        :param stepsize_range: List
-        :param n_step_range: List
-        :param x0:
-        :param logp0: probably won't require as will be handled by state self.log_posterior
-        :param grad0: probably won't require as will be handled by state self._grad_log
-        :param aux0:
-        :return:
+        :param list stepsize_range: List of stepsizes `[0.01, 0.10]`
+        :param list n_step_range: List of ints `[5,10]`
+        :param dict x0: Initial state.
+        :return object hmc:
         """
 
         p = self.random_momentum()
@@ -264,20 +261,24 @@ class DHMCSampler(object):
     def sample(self, chain_num=0, n_samples=1000, burn_in=1000, stepsize_range=[0.05, 0.20], n_step_range=[5, 20],
                seed=None, n_update=10, lag=20, print_stats=False, plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         '''
-        :param n_samples:  number of samples to draw
-        :param burn_in: number of burn in samples, discard by default
-        :param stepsize_range:
-        :param n_step_range: trajectory length
-        :param seed: seed for generating random numbers, None by default
-        :param n_update: number of printing statement
-        :param lag: plot parameter
-        :param print_stats: print details of sampler
-        :param plot: whether generate posterior plots, False by default
-        :param plot_graphmodel: whether generate GM plot, False by default
-        :param save_samples: whether save posterior samples, False by default
-        :param plot_burnin: plot parameter
-        :param plot_ac: plot parameter
-        :return: stats: dict of inference infomation. stats{'samples': df of posterior samples}
+        Generates a dhmc sample
+
+        :param int n_samples:  number of samples to draw
+        :param int burn_in: number of burn in samples, discard by default
+        :param list stepsize_range:
+        :param list n_step_range: trajectory length
+        :param int seed: seed for generating random numbers, None by default
+        :param int n_update: number of printing statement
+        :param int lag: plot parameter
+        :param bool print_stats: print details of sampler
+        :param bool plot: whether generate posterior plots, False by default
+        :param bool plot_graphmodel: whether generate GM plot, False by default
+        :param bool save_samples: whether save posterior samples, False by default
+        :param bool plot_burnin: plot parameter
+        :param bool plot_ac: plot parameter
+
+        :return dict stats: dict of inference infomation.` stats{'samples': df of posterior samples}`
+
         '''
         if seed is not None:
             torch.manual_seed(seed)
@@ -356,9 +357,10 @@ class DHMCSampler(object):
 
     def create_plots(self, dataframe_samples,dataframe_samples_woburin, keys, lag, all_on_one=True, save_data=False, burn_in=False, ac=False):
         """
+        Creates all plots
 
-        :param keys:
-        :param ac: bool
+        :param list keys: List of latent variable strings
+        :param bool ac: Plot autocorrelation plot
         :return: Generates plots
         """
 
@@ -373,11 +375,12 @@ class DHMCSampler(object):
     def sample_multiple_chains(self, n_chains = 1, n_samples= 1000, burn_in= 1000, stepsize_range= [0.05,0.20], n_step_range=[5,20],seed=None, n_update=10, lag=20,
                print_stats=False , plot=False, plot_graphmodel=False, save_samples=False, plot_burnin=False, plot_ac=False):
         '''
+        Produces multiple chains of samples.
 
-        :param n_chains: number of chains to run
+        :param int n_chains: number of chains to run
 
-        :return: all_stats: dict of multiple chains, each chain contains one stats; stats the return of method sample
-               eg. all_stats = {'0': stats}, where stats{'samples': df}
+        :return dict all_stats: Dict of multiple chains, each chain contains one stats; stats the return of method sample
+
         '''
         all_stats = {}
         for i in range(n_chains):

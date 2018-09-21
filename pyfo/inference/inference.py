@@ -20,51 +20,60 @@ class Inference(object):
     '''
     @abstractmethod
     def generate_model(self, *args, **kwargs):
-        '''
-        Creates an inference algorithm.
-        :param model_code
-            type: str
-            description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program
-            generate a graph describing that model. This class, depending on what compiler you use, should contains
-            methods for extracting latent parameters and generating the lod_Pdf. See MCMC.py for more details.
+        """
+        Creates the model code. This will interact with `pysppl` to generate a class, to compile the
+        probabilistic program generate a graph describing that model. This class, depending on what
+        compiler you use, should contains methods for extracting latent parameters and generating the `lod_Pdf`.
+        See `MCMC.py` for more details.
 
-        '''
+        :param str model_code:
+        """
         raise NotImplementedError
 
 
     @abstractmethod
     def generate_latent_vars(self, *args, **kwargs):
         '''
-        See MCMC.py for ideas.
+        See `MCMC.py` for ideas.
 
-        :param model: :Type cls  contains methods for extracting latent variables from the DAG directed acyclic graph.
+        :param cls model: contains methods for extracting latent variables from the DAG directed acyclic graph.
 
-        Although the user can implement their own graph and pass that to this inference engine. Provided
-        there exists  individual lists of the continuous, discrete and conditional variables as strings.
-        i.e. cont_vars = ['x1', 'x2'] , disc_vars = ['x3'], cond_vars = ['x4']
+        .. note::
+             Although the user can implement their own graph and pass that to this inference engine. Provided there
+             exists individual lists of the continuous, discrete and conditional variables as strings.
 
-        For each cond_var there exists a predicate which must also be handled correctly. You will need a dictionary
-        of pairs {'condition": boolean} of the conditioning statement and the boolean value associated with that statement
-        i.e  {'cond101': True} comes from
-        x4 ~ sample(Normal(0,1))
-        if  x4 > 0 :
-            observe(N(1,0,1))
-        else:
-            observe(N(-1,0,2))
+        Example::
 
-        'cond101' == x4 - 0
-        Assume x4 = 1.73121, therefore {'cond101': True}
+            >>>cont_vars = ['x1', 'x2'] , disc_vars = ['x3'], cond_vars = ['x4']
 
+        For each `cond_var` there exists a predicate which must also be handled correctly. You will need a dictionary
+        of pairs `{'condition": boolean}` of the conditioning statement and the boolean value associated with that statement
 
+        Example::
 
-        You will also need the len_of_support of the discrete parameters, as pairs {'str_of_discrete_latent' : len_of_support}
-        i.e. if x3 ~ sample(cat[0.1, 0.5, 0.4]) support = 3 ==> x3 \in [0,2]
-
-        Depending on how you implement the unique names for generating your model and using those parameters in the
-        inference, you will need a dict of pairs {'original_name':'inference_name'}
-
+             >>>{'cond101': True} comes from
+             >>>x4 ~ sample(Normal(0,1))
+             >>>if  x4 > 0 :
+             >>>    observe(N(1,0,1))
+             >>>else:
+             >>>    observe(N(-1,0,2))
+             >>>
+             >>>'cond101' == x4 - 0
+             >>> Assume x4 = 1.73121, therefore {'cond101': True}
 
 
+
+        .. note::
+            You will also need the len_of_support of the discrete parameters,
+            as pairs `{'str_of_discrete_latent' : len_of_support}`
+
+        Example::
+
+            >>>if x3 ~ sample(cat[0.1, 0.5, 0.4]) support = 3 ==> x3 \in [0,2]
+
+        .. note::
+            Depending on how you implement the unique names for generating your model and using those parameters in the
+            inference, you will need a dict of pairs `{'original_name':'inference_name'}`.
 
         '''
 

@@ -30,11 +30,11 @@ class HMC(MCMC):
     [1] Hybrid Monte Carlo Duane et. al 1987  https://www.sciencedirect.com/science/article/pii/037026938791197X
     [2] `MCMC Using Hamiltonian Dynamics`,Radford M. Neal, 2011
 
-    :param step_size:
-    :param step_range:
-    :param num_steps:
-    :param adapt_step_size:
-    :param transforms: Optional dictionary that specifies a transform for a latent variable with constrained support. The Transform must be invertible and implement `log_abs_det_jacobian`. If `None`, and latent variables with constrained support exist then the inference engine automatically takes advantage of `torch.distributions.transforms` to do the transformation automatically.
+    :param int step_size:
+    :param list step_range:
+    :param int num_steps:
+    :param bool adapt_step_size:
+    :param bool transforms: Optional dictionary that specifies a transform for a latent variable with constrained support. The Transform must be invertible and implement `log_abs_det_jacobian`. If `None`, and latent variables with constrained support exist then the inference engine automatically takes advantage of `torch.distributions.transforms` to do the transformation automatically.
 
     """
     def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None, **kwargs):
@@ -69,9 +69,9 @@ class HMC(MCMC):
     def _energy(self, state, p):
         """
         Calculates the hamiltonian for calculating the acceptance ration (detailed balance)
-        :param state:  Dictionary of full program state
-        :param p:  Dictionary of momentum
-        :param cont keys: list of continuous keys within state
+        :param dict state:  Dictionary of full program state
+        :param tensor p:  Dictionary of momentum
+        :param list cont_keys: list of continuous keys within state
         :return: Tensor
         """
 
@@ -81,9 +81,7 @@ class HMC(MCMC):
 
     def momentum_sample(self, state):
         """
-        Constructs a momentum dictionary for contin
-        and for continous keys we have gaussian
-        :return:
+        Constructs a momentum dictionary for continuous parameters. Samples Gaussian momentum
         """
         p = dict([[key, torch.randn(state[key].size()[0], 1, requires_grad=False)] for key in self._cont_latents])
         return p
@@ -127,10 +125,9 @@ class HMC(MCMC):
         Performs the full DHMC update step. It updates the continous parameters using
         the standard integrator and the discrete parameters via the coordinate wie integrator.
 
-        :param state: type: dictionary descript: represents the state of the system (all the latents variables and observable
-        quantities.
-        :param p: type: dictionary descript: represents the momentum for each latent variable
-        :return: x, p the proposed values as dict.
+        :param dict state: represents the state of the system (all the latents variables and observable quantities.
+        :param dict p: represents the momentum for each latent variable
+        :return x, p: the proposed values as dict.
         """
         # Radford neal implementation
         # logp, state = self._potential_energy(state, set_leafs=True)
