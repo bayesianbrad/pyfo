@@ -6,9 +6,9 @@ SPHINXOPTS    ?= -E -W
 SPHINXBUILD   = python -msphinx
 APIDOC        = sphinx-apidoc
 SPHINXPROJ    = Pyfo
-SOURCEDIR     = source
+SOURCEDIR     = .
 PROJECTDIR    = ../pyfo
-BUILDDIR      = source/ build
+BUILDDIR      = /build
 
 # Put it first so that "make" without argument is like "make help".
 help:
