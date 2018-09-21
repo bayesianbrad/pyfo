@@ -1,0 +1,557 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyfo.inference.mcmc &mdash; pyfo 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/pyfo.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/pyro.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> pyfo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyfo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyfo.inference.mcmc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyfo.inference.mcmc</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Author: Bradley Gram-Hansen</span>
+<span class="sd">Time created:  09:32</span>
+<span class="sd">Date created:  20/03/2018</span>
+
+<span class="sd">License: MIT</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span>  <span class="nn">..pyppl</span> <span class="k">import</span> <span class="n">compile_model</span>
+<span class="kn">from</span>  <span class="nn">.inference</span> <span class="k">import</span> <span class="n">Inference</span>
+<span class="kn">from</span> <span class="nn">..utils.core</span> <span class="k">import</span> <span class="n">transform_latent_support</span> <span class="k">as</span> <span class="n">tls</span>
+<span class="kn">from</span> <span class="nn">..utils.core</span> <span class="k">import</span> <span class="n">_to_leaf</span><span class="p">,</span> <span class="n">convert_dict_vars_to_numpy</span><span class="p">,</span> <span class="n">create_network_graph</span><span class="p">,</span> <span class="n">display_graph</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="k">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">torch.distributions</span> <span class="k">as</span> <span class="nn">dists_</span>
+<span class="kn">from</span> <span class="nn">torch.multiprocessing</span> <span class="k">import</span> <span class="n">cpu_count</span>
+<span class="kn">import</span> <span class="nn">torch.multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">..utils.eval_stats</span> <span class="k">import</span> <span class="n">data_summary</span> <span class="k">as</span> <span class="n">ds</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="c1"># import xarray</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<div class="viewcode-block" id="MCMC"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC">[docs]</a><span class="k">class</span> <span class="nc">MCMC</span><span class="p">(</span><span class="n">Inference</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    General purpose MCMC inference base class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_code</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">generate_graph</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug_on</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">model_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dir_name</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_graph</span> <span class="o">=</span> <span class="n">generate_graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug_on</span> <span class="o">=</span> <span class="n">debug_on</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_code</span> <span class="o">=</span> <span class="n">model_code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dir_name</span> <span class="o">=</span> <span class="n">dir_name</span>
+        <span class="k">if</span> <span class="n">model_name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="s1">&#39;unique&#39;</span>
+        <span class="c1"># warnings.warn(&#39;be careful about using input.sum() as model code should have .sum() in gen_log_pdf&#39;)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MCMC</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MCMC.generate_model"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC.generate_model">[docs]</a>    <span class="k">def</span> <span class="nf">generate_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_code</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates an inference algorithm.</span>
+
+<span class="sd">        :param model_code</span>
+<span class="sd">            type: str</span>
+<span class="sd">            description:  This will interact with pyfoppl to generate a class, to compile the probabilistic program</span>
+<span class="sd">            generate a graph describing that model. This class contains many methods for extracting latent parameters</span>
+<span class="sd">            and generating the lod_Pdf.</span>
+
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">compile_model</span><span class="p">(</span><span class="n">model_code</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MCMC.generate_latent_vars"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC.generate_latent_vars">[docs]</a>    <span class="k">def</span> <span class="nf">generate_latent_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        You receive all the information regarding the whole model,</span>
+<span class="sd">        including model elements that are not common among all inference</span>
+<span class="sd">        algorithms. This ensures flexibility, as all inference procedures</span>
+<span class="sd">        inherit from this class. It then allows them to manipulate</span>
+<span class="sd">        quantities as required. Doing this additional set-up has very</span>
+<span class="sd">        minimal computational cost.</span>
+
+
+<span class="sd">        :return: Attributes to the MCMC class all model parameters and</span>
+<span class="sd">                 types</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="s1">&#39; Compiling model &#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_code</span><span class="p">):</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="c1"># check to see if user has overrideded base class</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_code</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;You have overridden the base class, please ensure </span><span class="se">\n</span><span class="s1"> &#39;</span>
+                          <span class="s1">&#39;that your model complies with the standard compiler output.</span><span class="se">\n</span><span class="s1"> &#39;</span>
+                          <span class="s1">&#39;In regard to the unique parameter names. If you need to determine</span><span class="se">\n</span><span class="s1"> &#39;</span>
+                          <span class="s1">&#39;what these are. compile_model(model_code).&lt;methods&gt; and choose the appropriate </span><span class="se">\n</span><span class="s1">&#39;</span>
+                          <span class="s1">&#39;method. See ..pyfoppl.pyppl.ppl_base_model for more info on method names&#39;</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_model</span><span class="p">(</span><span class="n">model_code</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_code</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> Model complied in </span><span class="si">{0}</span><span class="s1"> seconds </span><span class="se">\n</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cont_latents</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_cont_vars</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_cont_vars</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disc_latents</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_disc_vars</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_disc_vars</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_if_latents</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_if_vars</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_if_vars</span><span class="p">()</span>
+        <span class="c1"># print(&#39;Debebug statement in MCMC.generate_latents() \n Printing if vars : {} &#39;.format(self._if_latents))</span>
+        <span class="c1"># each predicate has a cond boolean parameter, which represents the evaluated value of the predicate, whenever</span>
+        <span class="c1"># the log_pdf is calculated.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cond_bools</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_if_vars</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_cond_vars</span><span class="p">()</span>
+        <span class="c1"># all vertices of the graph are objects.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_vertices</span><span class="p">()</span>
+        <span class="c1"># A list of all observables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observables</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">vertex</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">vertex</span><span class="o">.</span><span class="n">observation</span><span class="p">)</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="k">if</span> <span class="n">vertex</span><span class="o">.</span><span class="n">is_observed</span><span class="p">])</span>
+        <span class="c1"># a list of all latent vars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">vertex</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="k">if</span> <span class="n">vertex</span><span class="o">.</span><span class="n">is_sampled</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_number_of_latents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_vars</span><span class="p">)</span>
+        <span class="c1"># distribution type of each latent variable, used for the bijections and embeddings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cont_dists</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">vertex</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">vertex</span><span class="o">.</span><span class="n">distribution_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="k">if</span>
+                                 <span class="p">(</span><span class="n">vertex</span><span class="o">.</span><span class="n">is_continuous</span> <span class="ow">and</span> <span class="n">vertex</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disc_dists</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">vertex</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">vertex</span><span class="o">.</span><span class="n">distribution_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="k">if</span>
+                                 <span class="p">(</span><span class="n">vertex</span><span class="o">.</span><span class="n">is_discrete</span> <span class="ow">and</span> <span class="n">vertex</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ancestors</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">is_sampled</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">ancestors</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ancestors</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span>  <span class="n">v</span><span class="o">.</span><span class="n">name</span>
+
+
+
+
+        <span class="c1"># original parameter names. Parameter names are transformed in the compiler to ensure uniqueness</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="p">[(</span><span class="n">vertex</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">vertex</span><span class="o">.</span><span class="n">original_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="k">if</span> <span class="n">vertex</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars</span><span class="p">])</span>
+        <span class="c1"># distribution arguments and names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dist_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">vertex</span><span class="o">.</span><span class="n">is_sampled</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dist_params</span><span class="p">[</span><span class="n">vertex</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">vertex</span><span class="o">.</span><span class="n">distribution_name</span><span class="p">:</span> <span class="n">vertex</span><span class="o">.</span><span class="n">distribution_arguments</span><span class="p">}</span>
+
+        <span class="c1"># TODO fix this function self._disc_support = dict()</span>
+        <span class="c1"># key: values of parameter name and string of distribution object.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disc_latents</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disc_latents</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">dist</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dist_params</span><span class="p">[</span><span class="n">param</span><span class="p">]:</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dist_params</span><span class="p">[</span><span class="n">param</span><span class="p">][</span><span class="n">dist</span><span class="p">]]:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;=&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dist_params</span><span class="p">[</span><span class="n">param</span><span class="p">][</span><span class="n">dist</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dist_params</span><span class="p">[</span><span class="n">param</span><span class="p">][</span><span class="n">dist</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dist_params</span><span class="p">[</span><span class="n">param</span><span class="p">][</span><span class="n">dist</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">dist</span> <span class="o">+</span> <span class="s1">&#39;( </span><span class="si">{0}</span><span class="s1"> )&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dist_obj</span><span class="p">[</span><span class="n">param</span><span class="p">])</span>
+            <span class="c1"># discrete support sizes using the self.__dist_obj get the support of each</span>
+            <span class="c1"># distribution by reconstructing it. Might be able to include this in the outer for loop.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_discrete_support</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="MCMC.initialize"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Initialize inference algorithm. It initializes hyperparameters</span>
+<span class="sd">        , the initial density and the values of each of the latents.</span>
+
+<span class="sd">        :param n_iters</span>
+<span class="sd">            type: int</span>
+<span class="sd">            description: Number of iterations for algorithm when calling &#39;run()&#39;.</span>
+<span class="sd">            If called manually, it is the number of expected calls of &#39;update()&#39;;</span>
+<span class="sd">            determines the tracking information during the print progress.</span>
+<span class="sd">        :param n_chains</span>
+<span class="sd">            type: int</span>
+<span class="sd">            description: Number of chains for MCMC inference.</span>
+
+<span class="sd">        :param debug:</span>
+<span class="sd">            type: bool</span>
+<span class="sd">            If true, prints out graphical model.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="s1">&#39; Intializing the inference &#39;</span> <span class="o">+</span> <span class="mi">5</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_on</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Debug function printing .....&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+                             <span class="s1">&#39;Now generating compiled model code output </span><span class="se">\n</span><span class="s1">&#39;</span>
+                             <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">code</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+                             <span class="s1">&#39;Now generating vertices </span><span class="se">\n</span><span class="s1">&#39;</span>
+                             <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;End of debug function printing .....&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_graph</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> Generating an a graph G(V,E) of your model </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">))</span>
+            <span class="n">create_network_graph</span><span class="p">(</span><span class="n">vertices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">)</span>
+            <span class="n">display_graph</span><span class="p">(</span><span class="n">vertices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_transform</span> <span class="o">=</span> <span class="kc">True</span>
+
+    
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cont_latents</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="n">tls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cont_latents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cont_dists</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MCMC.warmup"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC.warmup">[docs]</a>    <span class="k">def</span> <span class="nf">warmup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="MCMC.run_inference"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC.run_inference">[docs]</a>    <span class="k">def</span> <span class="nf">run_inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nsamples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">burnin</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">chains</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">num_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">adapt_step_size</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">trajectory_length</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The run inference method should be run externally once the class has been created.</span>
+<span class="sd">        I.e assume that they have not written there own model.</span>
+<span class="sd">        &gt;&gt;&gt; hmc = MCMC(&#39;HMC&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; samples = hmc.run_inference(nsamples=1000,\</span>
+<span class="sd">        &gt;&gt;&gt;                            burnin=100,\</span>
+<span class="sd">        &gt;&gt;&gt;                            chains=1,\</span>
+<span class="sd">        &gt;&gt;&gt;                            warmup= 100,\</span>
+<span class="sd">        &gt;&gt;&gt;                            step_size=None,\</span>
+<span class="sd">        &gt;&gt;&gt;                            num_steps=None,\</span>
+<span class="sd">        &gt;&gt;&gt;                            adapt_step_size=False,\</span>
+<span class="sd">        &gt;&gt;&gt;                            trajectory_length = None,\</span>
+<span class="sd">        &gt;&gt;&gt;                            dirname = None)</span>
+<span class="sd">        It then returns the samples generated from inference. Alternatively you can set a global directory for</span>
+<span class="sd">        saving plots and samples generated.</span>
+
+<span class="sd">        :param nsamples type: int descript: Specifies how many samples you would like to generate.</span>
+<span class="sd">        :param burnin: type: int descript: Specifies how many samples you would like to remove.</span>
+<span class="sd">        :param chains :type: int descript: Specifies the number of chains.</span>
+<span class="sd">        :param step_size: :type: float descript: Specifies the sized step in inference.</span>
+<span class="sd">        :param num_steps :type: int descript: The trajectory length of the inference algorithm</span>
+<span class="sd">        :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features</span>
+<span class="sd">        :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps</span>
+<span class="sd">        :param dirname :type: str descrip: Path to a directory, where data can be saved. Default is the directory in</span>
+<span class="sd">        which the code is run.</span>
+
+<span class="sd">        :return: samples, :type pandas.dataframe</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span> <span class="k">if</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;You must enter a valid kernel&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">burnin</span> <span class="o">=</span> <span class="n">burnin</span>
+        <span class="n">AVAILABLE_CPUS</span> <span class="o">=</span> <span class="n">cpu_count</span><span class="p">()</span>
+        
+        <span class="k">def</span> <span class="nf">run_sampler</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">burnin</span><span class="p">,</span> <span class="n">chain</span><span class="p">,</span> <span class="n">UNIQUE_ID</span><span class="p">,</span> <span class="n">snamepick</span><span class="p">,</span> <span class="n">snamepd</span><span class="p">):</span>
+            <span class="n">samples_dict</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dir_n</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">sample</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sample</span> <span class="o">=</span> <span class="n">state</span>
+            <span class="n">samples_dict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="n">snamepick</span> <span class="o">=</span> <span class="n">snamepick</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">UNIQUE_ID</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_chain_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.pickle&#39;</span>
+            <span class="n">snamepd</span> <span class="o">=</span> <span class="n">snamepd</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">UNIQUE_ID</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_chain_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.csv&#39;</span>
+            <span class="c1"># with open(snamepick, &#39;wb&#39;) as fout:</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nsamples</span> <span class="o">+</span> <span class="n">burnin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)):</span>
+                <span class="c1"># print(&#39;Debug statement in run_sampler \n Printing initial sample :\n {}&#39;.format(sample))</span>
+                <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instance_of_kernel</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+                <span class="c1"># print(&#39;Debug statement in run_sampler \n Printing proposed sample :\n {}&#39;.format(sample))</span>
+                <span class="n">samples_dict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+                    <span class="c1"># pickle.dump(samples_dict, fout)</span>
+
+                <span class="c1"># samples = pd.DataFrame.from_dict(samples_dict, orient=&#39;columns&#39;).rename(columns=self._instance_of_kernel._names, inplace=True)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="c1"># sys.stdout.write(&#39;The type of q is : {} &#39;.format(type(state)))</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">samples_dict</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># sys.stdout.write(&#39;The type of q is : {} &#39;.format(type(state)))</span>
+                <span class="k">return</span> <span class="n">samples_dict</span>
+
+        <span class="c1"># Generate instance of transition kernel</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_instance_of_kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">(</span><span class="n">model_code</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_code</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="n">step_size</span><span class="p">,</span> <span class="n">num_steps</span><span class="o">=</span><span class="n">num_steps</span><span class="p">,</span>
+                                               <span class="n">adapt_step_size</span><span class="o">=</span><span class="n">adapt_step_size</span><span class="p">,</span> <span class="n">trajectory_length</span><span class="o">=</span><span class="n">trajectory_length</span><span class="p">,</span> \
+                                               <span class="n">generate_graph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_graph</span><span class="p">,</span> <span class="n">debug_on</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug_on</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">chains</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_instance_of_kernel</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gen_prior_samples</span><span class="p">())</span>
+        <span class="c1"># save  samples paths</span>
+        <span class="n">dir_n</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dir_name</span><span class="p">,</span> <span class="s1">&#39;results&#39;</span><span class="p">)</span>
+        <span class="n">UNIQUE_ID</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="n">snamepick</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dir_n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s1">&#39;_samples_&#39;</span><span class="p">)</span>
+        <span class="n">snamepd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dir_n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s1">&#39;_samples_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">UNIQUE_ID</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving </span><span class="si">{0}</span><span class="s1"> model samples in:  </span><span class="si">{1}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">with unique ID: </span><span class="si">{2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span> <span class="n">dir_n</span><span class="p">,</span> <span class="n">UNIQUE_ID</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chains</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="s1">&#39; Generating samples for </span><span class="si">{0}</span><span class="s1"> chains </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="mi">5</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+            <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">rank</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">chains</span><span class="p">):</span>
+                <span class="n">q</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="n">rank</span><span class="p">])</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">run_sampler</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">burnin</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">UNIQUE_ID</span><span class="p">,</span> <span class="n">snamepick</span><span class="p">,</span> <span class="n">snamepd</span><span class="p">))</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="n">samples_</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">chains</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="s1">&#39; Generating samples for </span><span class="si">{0}</span><span class="s1"> chain </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="mi">5</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="mi">50</span> <span class="o">*</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="n">samples_</span> <span class="o">=</span> <span class="p">[</span><span class="n">run_sampler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="n">chains</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">burnin</span><span class="p">,</span> <span class="n">chains</span><span class="p">,</span> <span class="n">UNIQUE_ID</span><span class="p">,</span> <span class="n">snamepick</span><span class="p">,</span>
+                                   <span class="n">snamepd</span><span class="p">)]</span>  <span class="c1"># runs a single chain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instance_of_kernel</span><span class="o">.</span><span class="n">_names</span>
+        <span class="k">return</span> <span class="n">samples_</span></div>
+
+<div class="viewcode-block" id="MCMC.return_statistics"><a class="viewcode-back" href="../../../mcmc.html#pyfo.inference.mcmc.MCMC.return_statistics">[docs]</a>    <span class="k">def</span> <span class="nf">return_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; Returns dictionary of samples with burnin, a dictionary of means and a dictionary of variancea summary stats &#39;&#39;&#39;</span>
+
+        <span class="n">samples</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span>  <span class="n">ds</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span> <span class="n">burnin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">burnin</span><span class="p">,</span> <span class="n">true_names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_names</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="mi">70</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> Printing summary statistics </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="mi">70</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">texttable</span> <span class="k">as</span> <span class="nn">tt</span>
+        <span class="n">tab</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Texttable</span><span class="p">()</span>
+        <span class="n">headings</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Chain&#39;</span><span class="p">,</span> <span class="s1">&#39;Parameter&#39;</span><span class="p">,</span> <span class="s1">&#39;Mean&#39;</span><span class="p">,</span> <span class="s1">&#39;Variance&#39;</span><span class="p">,</span> <span class="s1">&#39;Std&#39;</span><span class="p">]</span>
+        <span class="n">tab</span><span class="o">.</span><span class="n">header</span><span class="p">(</span><span class="n">headings</span><span class="p">)</span>
+        <span class="n">chains</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">means_</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">vars_</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">std_</span> <span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">chain</span> <span class="ow">in</span> <span class="n">means</span><span class="p">:</span>
+            <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">means</span><span class="p">[</span><span class="n">chain</span><span class="p">]:</span>
+                <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">means_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">means</span><span class="p">[</span><span class="n">chain</span><span class="p">][</span><span class="n">key</span><span class="p">])</span>
+                <span class="n">vars_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variances</span><span class="p">[</span><span class="n">chain</span><span class="p">][</span><span class="n">key</span><span class="p">])</span>
+                <span class="n">std_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">std</span><span class="p">[</span><span class="n">chain</span><span class="p">][</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">means_</span><span class="p">,</span> <span class="n">vars_</span><span class="p">,</span> <span class="n">std_</span><span class="p">):</span>
+            <span class="n">tab</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">tab</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">samples</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">std</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_pickle_method</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+    <span class="n">func_name</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">im_func</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">im_self</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">im_class</span>
+    <span class="k">return</span> <span class="n">_unpickle_method</span><span class="p">,</span> <span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_unpickle_method</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+    <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mro</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">func_name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Bradley Gram-Hansen ; Tobias Kohn ; Yuan Zhou.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
