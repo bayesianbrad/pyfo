@@ -84,6 +84,7 @@
 <li class="toctree-l2"><a class="reference internal" href="inference_base.html">Inference Base Class</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Inference Algorithms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mcmc">MCMC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dhmc">DHMC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#hmc">HMC</a></li>
 </ul>
 </li>
@@ -255,13 +256,21 @@ saving plots and samples generated.</p>
 <blockquote>
 <div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hmc</span> <span class="o">=</span> <span class="n">MCMC</span><span class="p">(</span><span class="s1">&#39;HMC&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">hmc</span><span class="o">.</span><span class="n">run_inference</span><span class="p">(</span><span class="n">nsamples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">burnin</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">chains</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">warmup</span><span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">step_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">num_steps</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">adapt_step_size</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">trajectory_length</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="n">dirname</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -275,8 +284,9 @@ saving plots and samples generated.</p>
 
 </dd></dl>
 
-<p>DHMC
-—</p>
+</div>
+<div class="section" id="dhmc">
+<h2>DHMC<a class="headerlink" href="#dhmc" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="pyfo.inference.dhmc.DHMCSampler">
 <em class="property">class </em><code class="descname">DHMCSampler</code><span class="sig-paren">(</span><em>object</em>, <em>chains=0</em>, <em>scale=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/inference/dhmc.html#DHMCSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.inference.dhmc.DHMCSampler" title="Permalink to this definition">¶</a></dt>

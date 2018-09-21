@@ -216,14 +216,14 @@ class MCMC(Inference):
             .. code-block:: python
 
                     >>> hmc = MCMC('HMC')
-                    >>> samples = hmc.run_inference(nsamples=1000,
-                    >>> burnin=100,
-                    >>> chains=1,
-                    >>> warmup= 100,
-                    >>> step_size=None,
-                    >>> num_steps=None,
-                    >>> adapt_step_size=False,
-                    >>> trajectory_length = None,
+                    >>> samples = hmc.run_inference(nsamples=1000,\n
+                    >>> burnin=100,\n
+                    >>> chains=1,\n
+                    >>> warmup= 100,\n
+                    >>> step_size=None,\n
+                    >>> num_steps=None,\n
+                    >>> adapt_step_size=False,\n
+                    >>> trajectory_length = None,\n
                     >>> dirname = None)
 
 

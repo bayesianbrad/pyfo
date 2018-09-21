@@ -9,7 +9,7 @@ MCMC
     :show-inheritance:
 
 DHMC
----
+----
 
 .. autoclass:: pyfo.inference.dhmc.DHMCSampler
     :members:
