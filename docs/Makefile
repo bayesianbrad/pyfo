@@ -8,7 +8,7 @@ APIDOC        = sphinx-apidoc
 SPHINXPROJ    = Pyfo
 SOURCEDIR     = source
 PROJECTDIR    = ../pyfo
-BUILDDIR      = build
+BUILDDIR      = source/ build
 
 # Put it first so that "make" without argument is like "make help".
 help:
