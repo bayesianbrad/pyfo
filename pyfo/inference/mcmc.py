@@ -12,11 +12,10 @@ import math
 import inspect
 import warnings
 import pandas as pd
+from  ..pyppl import compile_model
 from  .inference import Inference
-from  pyfoppl.pyppl import compile_model
-
-from utils.core import transform_latent_support as tls
-from utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
+from ..utils.core import transform_latent_support as tls
+from ..utils.core import _to_leaf, convert_dict_vars_to_numpy, create_network_graph, display_graph
 from tqdm import tqdm
 import torch.distributions as dists_
 from torch.multiprocessing import cpu_count
@@ -24,11 +23,11 @@ import torch.multiprocessing as mp
 import numpy as np
 import sys
 import os
-from utils.eval_stats import data_summary as ds
+from ..utils.eval_stats import data_summary as ds
 import pickle
 import pathlib
 import time
-import xarray
+# import xarray
 import warnings
 
 
@@ -128,14 +127,13 @@ class MCMC(Inference):
         # original parameter names. Parameter names are transformed in the compiler to ensure uniqueness
         self._names = dict(
             [(vertex.name, vertex.original_name) for vertex in self._vertices if vertex.name in self._all_vars])
-
         # distribution arguments and names
         self._dist_params = {}
         for vertex in self._vertices:
             if vertex.is_sampled:
                 self._dist_params[vertex.name] = {vertex.distribution_name: vertex.distribution_arguments}
 
-        # TODO fix this function self._disc_support = dict(
+        # TODO fix this function self._disc_support = dict()
         # key: values of parameter name and string of distribution object.
         self._dist_obj = {}
         if self._disc_latents:
@@ -143,7 +141,7 @@ class MCMC(Inference):
                 for dist in self._dist_params[param]:
                     i = 0
                     self._dist_obj[param] = ''
-                    for key in [*self._dist_params[param][dist]]:
+                    for key in [self._dist_params[param][dist]]:
                         self._dist_obj[param] = self._dist_obj[param] + key + '=' + self._dist_params[param][dist][key]
                         i += 1
                         if len(self._dist_params[param][dist].keys()) > 1 and i == 1:
@@ -210,38 +208,27 @@ class MCMC(Inference):
 
     def run_inference(self, kernel=None, nsamples=1000, burnin=100, chains=1, warmup=100, step_size=None,
                       num_steps=None, adapt_step_size=True, trajectory_length=None):
-        '''
+        """
         The run inference method should be run externally once the class has been created.
         I.e assume that they have not written there own model.
-
-        hmc = MCMC('HMC')
-        # all of the following kwargs are optional and kernel dependent.
-        samples = hmc.run_inference(nsamples=1000,
-                                    burnin=100,
-                                    chains=1,
-                                    warmup= 100,
-                                    step_size=None,
-                                    num_steps=None,
-                                    adapt_step_size=False,
-                                    trajectory_length = None,
-                                    dirname = None)
-
         It then returns the samples generated from inference. Alternatively you can set a global directory for
         saving plots and samples generated.
 
-        :param nsamples type: int descript: Specifies how many samples you would like to generate.
-        :param burnin: type: int descript: Specifies how many samples you would like to remove.
-        :param chains :type: int descript: Specifies the number of chains.
-        :param step_size: :type: float descript: Specifies the sized step in inference.
-        :param num_steps :type: int descript: The trajectory length of the inference algorithm
-        :param adapt_step_size :type: bool descript: Specifies whether you would like to use auto-tune features
-        :param trajectory_length :type int descript: Specfies the legnth of the leapfrog steps
-        :param dirname :type: str descrip: Path to a directory, where data can be saved. Default is the directory in
-        which the code is run.
+        :param int nsamples: Specifies how many samples you would like to generate.
+        :param int burnin: Specifies how many samples you would like to remove.
+        :param int chains: Specifies the number of chains.
+        :param float step_size: Specifies the sized step in inference.
+        :param int num_steps: The trajectory length of the inference algorithm
+        :param bool adapt_step_size: Specifies whether you would like to use auto-tune features
+        :param int trajectory_length: Specfies the legnth of the leapfrog steps
+        :param str dirname: Path to a directory, where data can be saved. Default is the directory in which the code is run.
 
-        :return: samples, :type pandas.dataframe
+        Example:
 
-        '''
+            >>> hmc = MCMC('HMC')
+            >>> samples = hmc.run_inference(nsamples=1000,burnin=100,chains=1,warmup= 100,step_size=None,num_steps=None,adapt_step_size=False, trajectory_length = None, dirname = None)
+
+        """
 
         self.kernel = kernel if not None else warnings.warn('You must enter a valid kernel')
         self.burnin = burnin

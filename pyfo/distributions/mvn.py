@@ -12,8 +12,8 @@ License: MIT
 
 import torch
 
-from distributions.distribution_wrapper import TorchDistribution
-from utils.core import VariableCast as vc
+from ..distributions.distribution_wrapper import TorchDistribution
+from ..utils.core import VariableCast as vc
 
 
 class MultivariateNormal(TorchDistribution):
@@ -48,7 +48,7 @@ class MultivariateNormal(TorchDistribution):
 # from torch.autograd import Variable
 #
 # from distribution.distribution_pyro import Distribution
-# from ..utils.core import VariableCast
+# from ....utils.core import VariableCast
 #
 #
 # def potri_compat(var):

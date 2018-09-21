@@ -5,7 +5,7 @@ import torch
 from torch.autograd import Variable
 
 from distributions.distribution_pyro import Distribution
-from utils.core import VariableCast
+from ..utils.core import VariableCast
 
 
 class LogNormal(Distribution):

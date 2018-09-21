@@ -1,7 +1,7 @@
 import torch
 
-from distributions.distribution_wrapper import TorchDistribution
-from utils.core import VariableCast as vc
+from ..distributions.distribution_wrapper import TorchDistribution
+from ..utils.core import VariableCast as vc
 
 
 class Exponential(TorchDistribution):
@@ -15,7 +15,7 @@ class Exponential(TorchDistribution):
          0.1046
         [torch.FloatTensor of size 1]
 
-    Args:
+    Parameters:
         rate (float or Tensor or Variable): rate = 1 / scale of the distribution
     """
     def __init__(self, rate, transformed=False):

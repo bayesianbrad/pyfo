@@ -7,3 +7,6 @@ Date created:  20/11/2017
 
 License: MIT
 '''
+from ..utils.core import DualAveraging, _generate_log_pdf, _grad_logp, _to_leaf
+
+all = ['DualAveraging','_generate_log_pdf','_grad_logp', '_to_leaf']

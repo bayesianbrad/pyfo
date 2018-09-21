@@ -1,7 +1,7 @@
 import torch
 
-from distributions.distribution_wrapper import TorchDistribution
-from utils.core import VariableCast as vc
+from ..distributions.distribution_wrapper import TorchDistribution
+from ..utils.core import VariableCast as vc
 
 
 class Bernoulli(TorchDistribution):
@@ -18,7 +18,7 @@ class Bernoulli(TorchDistribution):
          0.0
         [torch.FloatTensor of size 1]
 
-    Args:
+    Parameters:
         probs (Number, Tensor or Variable): the probabilty of sampling `1`
         logits (Number, Tensor or Variable): the log-odds of sampling `1`
     """

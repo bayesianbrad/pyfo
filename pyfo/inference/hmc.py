@@ -17,17 +17,15 @@ import pandas as pd
 import torch
 import torch.distributions as dists
 from torch.distributions import constraints
-import distributions as dist
-
-from inference.mcmc import MCMC
-from utils.core import DualAveraging, _generate_log_pdf, _grad_logp, _to_leaf
+from .mcmc import MCMC
+from ..utils.core import DualAveraging, _generate_log_pdf, _grad_logp, _to_leaf
 
 class HMC(MCMC):
-    '''
+    """
     Built on top the inference class. This is the base class for all HMC variants and implements the original
-    HMC algorithm .
+    HMC algorithm.
 
-    References:
+    **References**
 
     [1] Hybrid Monte Carlo Duane et. al 1987  https://www.sciencedirect.com/science/article/pii/037026938791197X
     [2] `MCMC Using Hamiltonian Dynamics`,Radford M. Neal, 2011
@@ -36,12 +34,9 @@ class HMC(MCMC):
     :param step_range:
     :param num_steps:
     :param adapt_step_size:
-    :param transforms: Optional dictionary that specifies a transform for a latent variable with constrained supporr.
-    The Transform must be invertible and implement `log_abs_det_jacobian'. If None, and latent variables with
-    constrained support exist then the inference engine automatically takes advantage of torch.distribtuions.transforms
-    to do the transformation automatically.
-    :return:
-    '''
+    :param transforms: Optional dictionary that specifies a transform for a latent variable with constrained support. The Transform must be invertible and implement `log_abs_det_jacobian`. If `None`, and latent variables with constrained support exist then the inference engine automatically takes advantage of `torch.distributions.transforms` to do the transformation automatically.
+
+    """
     def __init__(self, model_code=None, step_size=None,  num_steps=None, adapt_step_size=True, trajectory_length=None, **kwargs):
         super(HMC, self).__init__()
 
@@ -95,12 +90,14 @@ class HMC(MCMC):
 
     def sample(self, state):
         '''
-        :param nsamples type: int descript: Specifies how many samples you would like to generate.
-        :param burnin: type: int descript: Specifies how many samples you would like to remove.
-        :param chains :type: int descript: Specifies the number of chains.
-        :param save_data :type bool descrip: Specifies whether to save data and return data, or just return.
-        :param dirname :type: str descrip: Path to a directory, where data can be saved.
-        :return:
+        Generates a HMC sample.
+
+        :param int nsamples: Specifies how many samples you would like to generate.
+        :param int burnin: Specifies how many samples you would like to remove.
+        :param int chains: Specifies the number of chains.
+        :param bool save_data: Specifies whether to save data and return data, or just return.
+        :param str dirname: Path to a directory, where data can be saved.
+
         '''
 
         # automatically transform `state` to unconstrained space, if needed

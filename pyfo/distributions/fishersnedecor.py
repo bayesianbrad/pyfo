@@ -1,7 +1,7 @@
 import torch
 
-from distributions.distribution_wrapper import TorchDistribution
-from utils.core import VariableCast as vc
+from ..distributions.distribution_wrapper import TorchDistribution
+from ..utils.core import VariableCast as vc
 
 
 class FisherSnedecor(TorchDistribution):

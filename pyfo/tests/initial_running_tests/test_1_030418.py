@@ -24,8 +24,7 @@ x1
 """
 
 model_normal="""
-import torch 
-
+import torch
 n = 1
 d = 1
 x = sample(normal(torch.zeros(n,d), 5*torch.ones(n,d)))

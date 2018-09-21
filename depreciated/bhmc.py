@@ -27,11 +27,11 @@ import torch
 import copy
 from torch.autograd import Variable
 # the state interacts with the interface, where ever that is placed....
-from ..utils import state
-from ..utils.core import VariableCast
-from ..utils.eval_stats import extract_stats
-from ..utils.eval_stats import save_data
-from ..utils.plotting import Plotting as plot
+from utils import state
+from utils.core import VariableCast
+from utils.eval_stats import extract_stats
+from utils.eval_stats import save_data
+from utils.plotting import Plotting as plot
 
 class BHMCSampler(object):
     """

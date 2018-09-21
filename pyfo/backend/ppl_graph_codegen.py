@@ -7,9 +7,8 @@
 # 19. Mar 2018, Tobias Kohn
 #
 import datetime
-from pyfoppl.pyppl.graphs import *
-from pyfoppl.pyppl.ppl_ast import *
-
+from .pyppl.graphs import *
+from .pyppl.ppl_ast import *
 
 class GraphCodeGenerator(object):
 
