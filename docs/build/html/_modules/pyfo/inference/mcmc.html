@@ -80,6 +80,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../Inference.html">Inference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../distributions.html">Distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../PySPPL.html">PySPPL</a></li>
 </ul>
 
             
@@ -361,7 +362,8 @@
 <span class="sd">            .. code-block:: python</span>
 
 <span class="sd">                    &gt;&gt;&gt; hmc = MCMC(&#39;HMC&#39;)</span>
-<span class="sd">                    &gt;&gt;&gt; samples = hmc.run_inference(nsamples=1000,\n</span>
+<span class="sd">                    &gt;&gt;&gt; samples = hmc.run_inference(kernel=hmc,\n</span>
+<span class="sd">                    &gt;&gt;&gt;nsamples=1000,\n</span>
 <span class="sd">                    &gt;&gt;&gt; burnin=100,\n</span>
 <span class="sd">                    &gt;&gt;&gt; chains=1,\n</span>
 <span class="sd">                    &gt;&gt;&gt; warmup= 100,\n</span>

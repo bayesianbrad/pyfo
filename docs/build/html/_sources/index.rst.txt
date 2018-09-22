@@ -15,6 +15,7 @@ Pyfo Documentation
 
    Inference
    distributions
+   PySPPL
 
 
 

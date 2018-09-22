@@ -91,6 +91,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="distributions.html">Distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PySPPL.html">PySPPL</a></li>
 </ul>
 
             
@@ -255,7 +256,9 @@ saving plots and samples generated.</p>
 <p>Example:</p>
 <blockquote>
 <div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hmc</span> <span class="o">=</span> <span class="n">MCMC</span><span class="p">(</span><span class="s1">&#39;HMC&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">hmc</span><span class="o">.</span><span class="n">run_inference</span><span class="p">(</span><span class="n">nsamples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">hmc</span><span class="o">.</span><span class="n">run_inference</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="n">hmc</span><span class="p">,</span>
+
+<span class="go">&gt;&gt;&gt;nsamples=1000,</span>
 
 <span class="gp">&gt;&gt;&gt; </span><span class="n">burnin</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
 

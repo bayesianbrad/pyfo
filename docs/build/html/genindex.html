@@ -81,6 +81,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Inference.html">Inference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distributions.html">Distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PySPPL.html">PySPPL</a></li>
 </ul>
 
             
@@ -147,7 +148,8 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#B"><strong>B</strong></a>
+ <a href="#_"><strong>_</strong></a>
+ | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
@@ -161,8 +163,20 @@
  | <a href="#W"><strong>W</strong></a>
  
 </div>
+<h2 id="_">_</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="PySPPL.html#pyfo.pyppl.backend.ppl_graph_factory._ConditionCollector">_ConditionCollector (class in pyfo.pyppl.backend.ppl_graph_factory)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model">base_model (class in pyfo.pyppl.ppl_base_model)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="distributions.html#pyfo.distributions.Binomial">Binomial (class in pyfo.distributions)</a>
 </li>
@@ -172,10 +186,12 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="mcmc.html#pyfo.inference.dhmc.DHMCSampler.coordInt">coordInt() (DHMCSampler method)</a>
+      <li><a href="PySPPL.html#pyfo.pyppl.distributions.DistributionType.CONTINUOUS">CONTINUOUS (DistributionType attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="mcmc.html#pyfo.inference.dhmc.DHMCSampler.coordInt">coordInt() (DHMCSampler method)</a>
+</li>
       <li><a href="mcmc.html#pyfo.inference.dhmc.DHMCSampler.create_plots">create_plots() (DHMCSampler method)</a>
 </li>
   </ul></td>
@@ -185,6 +201,14 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="mcmc.html#pyfo.inference.dhmc.DHMCSampler">DHMCSampler (class in pyfo.inference.dhmc)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.distributions.DistributionType.DISCRETE">DISCRETE (DistributionType attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="PySPPL.html#pyfo.pyppl.distributions.Distribution">Distribution (class in pyfo.pyppl.distributions)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.distributions.DistributionType">DistributionType (class in pyfo.pyppl.distributions)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -202,6 +226,22 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="mcmc.html#pyfo.inference.dhmc.DHMCSampler.gauss_laplace_leapfrog">gauss_laplace_leapfrog() (DHMCSampler method)</a>
 </li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_cond_vars">gen_cond_vars() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_cont_vars">gen_cont_vars() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_disc_vars">gen_disc_vars() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_if_vars">gen_if_vars() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_log_pdf">gen_log_pdf() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_log_pdf_transformed">gen_log_pdf_transformed() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_prior_samples">gen_prior_samples() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.gen_prior_samples_transformed">gen_prior_samples_transformed() (base_model method)</a>
+</li>
       <li><a href="inference_base.html#pyfo.inference.inference.Inference.generate_latent_vars">generate_latent_vars() (Inference method)</a>
 
       <ul>
@@ -216,6 +256,22 @@
         <li><a href="mcmc.html#pyfo.inference.mcmc.MCMC.generate_model">(MCMC method)</a>
 </li>
       </ul></li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.get_arcs">get_arcs() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.get_arcs_names">get_arcs_names() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.get_conditions">get_conditions() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.get_vars">get_vars() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.get_vertices">get_vertices() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.ppl_base_model.base_model.get_vertices_names">get_vertices_names() (base_model method)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.backend.ppl_graph_codegen.GraphCodeGenerator">GraphCodeGenerator (class in pyfo.pyppl.backend.ppl_graph_codegen)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.backend.ppl_graph_factory.GraphFactory">GraphFactory (class in pyfo.pyppl.backend.ppl_graph_factory)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -236,14 +292,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="inference_base.html#pyfo.inference.inference.Inference">Inference (class in pyfo.inference.inference)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="inference_base.html#pyfo.inference.inference.Inference.initialize">initialize() (Inference method)</a>
 
       <ul>
         <li><a href="mcmc.html#pyfo.inference.mcmc.MCMC.initialize">(MCMC method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="PySPPL.html#pyfo.pyppl.distributions.Distribution.is_continuous">is_continuous (Distribution attribute)</a>
+</li>
+      <li><a href="PySPPL.html#pyfo.pyppl.distributions.Distribution.is_discrete">is_discrete (Distribution attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -262,7 +322,13 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="PySPPL.html#pyfo.pyppl.distributions.Distribution.parameter_count">parameter_count (Distribution attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="distributions.html#module-pyfo.distributions">pyfo.distributions (module)</a>
+</li>
+      <li><a href="PySPPL.html#module-pyfo.pyppl">pyfo.pyppl (module)</a>
 </li>
   </ul></td>
 </tr></table>

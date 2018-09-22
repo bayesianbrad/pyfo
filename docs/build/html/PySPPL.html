@@ -1,0 +1,438 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>PySPPL &mdash; pyfo 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Distributions" href="distributions.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pyfo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Pyfo Core:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Inference.html">Inference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distributions.html">Distributions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PySPPL</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-pyfo-language">The Pyfo Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sppl">SPPL</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#base-model">base model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#distribtuion-types-in-sppl">Distribtuion Types in SPPL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#distributions-in-sppl">Distributions in SPPL</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#backend">Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#computational-graph">Computational Graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#graph-factory">Graph Factory</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyfo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>PySPPL</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/PySPPL.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="pysppl">
+<h1>PySPPL<a class="headerlink" href="#pysppl" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="the-pyfo-language">
+<h2>The Pyfo Language<a class="headerlink" href="#the-pyfo-language" title="Permalink to this headline">¶</a></h2>
+<p><cite>Pyfo</cite> is built on top of a mathematically robust compiler for first-order graphical models.
+Models written in <cite>pyfo</cite> are checked by the simple probabilistic programming language (SPPL) to ensure that the model
+written is a valid model.</p>
+<span class="target" id="module-pyfo.pyppl"></span></div>
+<div class="section" id="sppl">
+<h2>SPPL<a class="headerlink" href="#sppl" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="base-model">
+<h3>base model<a class="headerlink" href="#base-model" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="pyfo.pyppl.ppl_base_model.base_model">
+<em class="property">class </em><code class="descname">base_model</code><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a></p>
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_cond_vars">
+<code class="descname">gen_cond_vars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_cond_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_cond_vars" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_cont_vars">
+<code class="descname">gen_cont_vars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_cont_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_cont_vars" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_disc_vars">
+<code class="descname">gen_disc_vars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_disc_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_disc_vars" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_if_vars">
+<code class="descname">gen_if_vars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_if_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_if_vars" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_log_pdf">
+<code class="descname">gen_log_pdf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_log_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_log_pdf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_log_pdf_transformed">
+<code class="descname">gen_log_pdf_transformed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_log_pdf_transformed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_log_pdf_transformed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_prior_samples">
+<code class="descname">gen_prior_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_prior_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_prior_samples" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.gen_prior_samples_transformed">
+<code class="descname">gen_prior_samples_transformed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.gen_prior_samples_transformed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.gen_prior_samples_transformed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.get_arcs">
+<code class="descname">get_arcs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.get_arcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.get_arcs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.get_arcs_names">
+<code class="descname">get_arcs_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.get_arcs_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.get_arcs_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.get_conditions">
+<code class="descname">get_conditions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.get_conditions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.get_conditions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.get_vars">
+<code class="descname">get_vars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.get_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.get_vars" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.get_vertices">
+<code class="descname">get_vertices</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.get_vertices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.get_vertices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyfo.pyppl.ppl_base_model.base_model.get_vertices_names">
+<code class="descname">get_vertices_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/ppl_base_model.html#base_model.get_vertices_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.ppl_base_model.base_model.get_vertices_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="distribtuion-types-in-sppl">
+<h3>Distribtuion Types in SPPL<a class="headerlink" href="#distribtuion-types-in-sppl" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="pyfo.pyppl.distributions.DistributionType">
+<em class="property">class </em><code class="descname">DistributionType</code><a class="reference internal" href="_modules/pyfo/pyppl/distributions.html#DistributionType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.distributions.DistributionType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="pyfo.pyppl.distributions.DistributionType.CONTINUOUS">
+<code class="descname">CONTINUOUS</code><em class="property"> = 'continuous'</em><a class="headerlink" href="#pyfo.pyppl.distributions.DistributionType.CONTINUOUS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyfo.pyppl.distributions.DistributionType.DISCRETE">
+<code class="descname">DISCRETE</code><em class="property"> = 'discrete'</em><a class="headerlink" href="#pyfo.pyppl.distributions.DistributionType.DISCRETE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="distributions-in-sppl">
+<h3>Distributions in SPPL<a class="headerlink" href="#distributions-in-sppl" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="pyfo.pyppl.distributions.Distribution">
+<em class="property">class </em><code class="descname">Distribution</code><span class="sig-paren">(</span><em>name: str</em>, <em>distributions_type: pyfo.pyppl.distributions.DistributionType = None</em>, <em>params: list = None</em>, <em>*</em>, <em>vector_sample: bool = False</em>, <em>foppl_name: str = None</em>, <em>python_name: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/distributions.html#Distribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.distributions.Distribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="attribute">
+<dt id="pyfo.pyppl.distributions.Distribution.is_continuous">
+<code class="descname">is_continuous</code><a class="headerlink" href="#pyfo.pyppl.distributions.Distribution.is_continuous" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyfo.pyppl.distributions.Distribution.is_discrete">
+<code class="descname">is_discrete</code><a class="headerlink" href="#pyfo.pyppl.distributions.Distribution.is_discrete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyfo.pyppl.distributions.Distribution.parameter_count">
+<code class="descname">parameter_count</code><a class="headerlink" href="#pyfo.pyppl.distributions.Distribution.parameter_count" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="backend">
+<h2>Backend<a class="headerlink" href="#backend" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="computational-graph">
+<h3>Computational Graph<a class="headerlink" href="#computational-graph" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="pyfo.pyppl.backend.ppl_graph_codegen.GraphCodeGenerator">
+<em class="property">class </em><code class="descname">GraphCodeGenerator</code><span class="sig-paren">(</span><em>nodes: list</em>, <em>state_object: Optional[str] = None</em>, <em>imports: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/backend/ppl_graph_codegen.html#GraphCodeGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.backend.ppl_graph_codegen.GraphCodeGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>In contrast to the more general code generator <cite>CodeGenerator</cite>, this class creates the code for a graph-based
+model. The output of the method <cite>generate_model_code()</cite> is therefore the code of a class <cite>Model</cite> with functions
+such as <cite>gen_log_pdf()</cite> or <cite>gen_prior_samples()</cite>, including all necessary imports.</p>
+<p>You want to change this class if you need additional (or adapted) methods in your model-class.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">..</span> <span class="n">code</span><span class="o">-</span><span class="n">block</span><span class="p">::</span> <span class="n">python</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">graph</span> <span class="o">=</span> <span class="o">...</span>   <span class="c1"># &lt;- actually generated by the graph-factory/generator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">graph_code_gen</span> <span class="o">=</span> <span class="n">GraphCodeGenerator</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">,</span> <span class="n">state_object</span><span class="o">=</span><span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="n">imports</span><span class="o">=</span><span class="s1">&#39;import distributions as dist&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">code</span> <span class="o">=</span> <span class="n">graph_code_gen</span><span class="o">.</span><span class="n">generate_model_code</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_globals</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">exec</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">my_globals</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Model</span> <span class="o">=</span> <span class="n">my_globals</span><span class="p">[</span><span class="s1">&#39;Model&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">vertices</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">arcs</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">conditionals</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The state-object specifies the actual name of the dictionary/map that holds the state, i. e. all the variables.
+When any state-object is given, the generated code reads, say, <cite>state[‘x’]</cite> instead of purely <cite>x</cite>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<blockquote>
+<div><blockquote>
+<div>The <cite>generate_model_code</cite>-method uses three fixed methods to generate the code for <cite>__init__</cite>, <cite>__repr__</cite> as
+well as the doc-string: <cite>_generate_doc_string</cite>, <cite>_generate_init_method</cite>, <cite>_generate_repr_method</cite>. After that,
+it scans the object instance of <cite>GraphCodeGenerator</cite> for public methods, and assumes that each method returns
+the code for the respective method.</div></blockquote>
+<p>Say, for instance, you wanted your Model-class to have a method <cite>get_all_nodes</cite> with the following code</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">get_all_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditionals</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>You then add the following method to the <cite>GraphCodeGenerator</cite> and be done</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">get_all_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="s2">&quot;return set.union(self.vertices, self.conditionals)&quot;</span>
+</pre></div>
+</div>
+<p>If, on the other hand, you need some additional parameters/arguments for your method, then you should return
+a tuple with the first element being the parameters as a string, and the second element being the code as before.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">get_all_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="k">return</span> <span class="s2">&quot;param1, param2&quot;</span><span class="p">,</span> <span class="s2">&quot;return set.union(self.vertices, self.conditionals)&quot;</span>
+</pre></div>
+</div>
+<p class="last">Of course, you do not need to actually change this class, but you can derive a new class from it, if you wish.</p>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="graph-factory">
+<h3>Graph Factory<a class="headerlink" href="#graph-factory" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="pyfo.pyppl.backend.ppl_graph_factory._ConditionCollector">
+<em class="property">class </em><code class="descname">_ConditionCollector</code><a class="reference internal" href="_modules/pyfo/pyppl/backend/ppl_graph_factory.html#_ConditionCollector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.backend.ppl_graph_factory._ConditionCollector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pyfo.pyppl.ppl_ast.Visitor</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pyfo.pyppl.backend.ppl_graph_factory.GraphFactory">
+<em class="property">class </em><code class="descname">GraphFactory</code><span class="sig-paren">(</span><em>code_generator=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyfo/pyppl/backend/ppl_graph_factory.html#GraphFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyfo.pyppl.backend.ppl_graph_factory.GraphFactory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="distributions.html" class="btn btn-neutral" title="Distributions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Bradley Gram-Hansen ; Tobias Kohn ; Yuan Zhou.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

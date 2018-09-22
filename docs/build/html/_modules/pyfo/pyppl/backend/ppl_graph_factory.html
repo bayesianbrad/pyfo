@@ -1,0 +1,356 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyfo.pyppl.backend.ppl_graph_factory &mdash; pyfo 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> pyfo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Pyfo Core:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../Inference.html">Inference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../distributions.html">Distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../PySPPL.html">PySPPL</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">pyfo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyfo.pyppl.backend.ppl_graph_factory</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyfo.pyppl.backend.ppl_graph_factory</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT (see LICENSE.txt)</span>
+<span class="c1">#</span>
+<span class="c1"># 12. Mar 2018, Tobias Kohn</span>
+<span class="c1"># 28. Mar 2018, Tobias Kohn</span>
+<span class="c1">#</span>
+<span class="kn">from</span> <span class="nn">..ppl_ast</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..graphs</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.ppl_code_generator</span> <span class="k">import</span> <span class="n">CodeGenerator</span>
+<span class="kn">from</span> <span class="nn">.ppl_graph_codegen</span> <span class="k">import</span> <span class="n">GraphCodeGenerator</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">distributions</span>
+
+
+<div class="viewcode-block" id="_ConditionCollector"><a class="viewcode-back" href="../../../../PySPPL.html#pyfo.pyppl.backend.ppl_graph_factory._ConditionCollector">[docs]</a><span class="k">class</span> <span class="nc">_ConditionCollector</span><span class="p">(</span><span class="n">Visitor</span><span class="p">):</span>
+
+    <span class="n">__visit_children_first__</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cond_nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">visit_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">AstSymbol</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">ConditionNode</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cond_nodes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">visit_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GraphFactory"><a class="viewcode-back" href="../../../../PySPPL.html#pyfo.pyppl.backend.ppl_graph_factory.GraphFactory">[docs]</a><span class="k">class</span> <span class="nc">GraphFactory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code_generator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">code_generator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">code_generator</span> <span class="o">=</span> <span class="n">CodeGenerator</span><span class="p">()</span>
+            <span class="n">code_generator</span><span class="o">.</span><span class="n">state_object</span> <span class="o">=</span> <span class="s1">&#39;state&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">=</span> <span class="mi">30000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code_generator</span> <span class="o">=</span> <span class="n">code_generator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cond_nodes_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_nodes_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">_generate_code_for_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">AstNode</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_generator</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">generate_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_counter</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">create_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parents</span><span class="p">:</span> <span class="nb">set</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">parents</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">set</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">create_condition_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test</span><span class="p">:</span> <span class="n">AstNode</span><span class="p">,</span> <span class="n">parents</span><span class="p">:</span> <span class="nb">set</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_symbol</span><span class="p">(</span><span class="s1">&#39;cond_&#39;</span><span class="p">)</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cond_nodes_map</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cond_nodes_map</span><span class="p">[</span><span class="n">code</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">AstCompare</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_zero</span><span class="p">(</span><span class="n">test</span><span class="o">.</span><span class="n">right</span><span class="p">)</span> <span class="ow">and</span> <span class="n">test</span><span class="o">.</span><span class="n">second_right</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">ConditionNode</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ancestors</span><span class="o">=</span><span class="n">parents</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">code</span><span class="p">,</span>
+                                   <span class="n">function</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">test</span><span class="o">.</span><span class="n">left</span><span class="p">),</span> <span class="n">op</span><span class="o">=</span><span class="n">test</span><span class="o">.</span><span class="n">op</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">AstCall</span><span class="p">)</span> <span class="ow">and</span> <span class="n">test</span><span class="o">.</span><span class="n">function_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;torch.&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_number</span><span class="p">(</span><span class="n">test</span><span class="o">.</span><span class="n">right</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">ConditionNode</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ancestors</span><span class="o">=</span><span class="n">parents</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">code</span><span class="p">,</span>
+                                   <span class="n">function</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">test</span><span class="o">.</span><span class="n">left</span><span class="p">),</span> <span class="n">op</span><span class="o">=</span><span class="n">test</span><span class="o">.</span><span class="n">function_name</span><span class="p">,</span>
+                                   <span class="n">compare_value</span><span class="o">=</span><span class="n">test</span><span class="o">.</span><span class="n">right</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">ConditionNode</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ancestors</span><span class="o">=</span><span class="n">parents</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">code</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cond_nodes_map</span><span class="p">[</span><span class="n">code</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">create_data_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">AstNode</span><span class="p">,</span> <span class="n">parents</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">set</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">parents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parents</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_nodes_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_nodes_cache</span><span class="p">[</span><span class="n">code</span><span class="p">]</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_symbol</span><span class="p">(</span><span class="s1">&#39;data_&#39;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">DataNode</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ancestors</span><span class="o">=</span><span class="n">parents</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">code</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_nodes_cache</span><span class="p">[</span><span class="n">code</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">create_observe_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dist</span><span class="p">:</span> <span class="n">AstNode</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">AstNode</span><span class="p">,</span> <span class="n">parents</span><span class="p">:</span> <span class="nb">set</span><span class="p">,</span> <span class="n">conditions</span><span class="p">:</span> <span class="nb">set</span><span class="p">):</span>
+        <span class="n">arg_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">AstCall</span><span class="p">):</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">function_name</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">dist</span><span class="o">.</span><span class="n">args</span><span class="p">]</span>
+            <span class="c1"># args = dist.add_keywords_to_args(args)</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_keyword_arg_value</span><span class="p">(</span><span class="s2">&quot;transform&quot;</span><span class="p">)</span>
+            <span class="n">distr</span> <span class="o">=</span> <span class="n">distributions</span><span class="o">.</span><span class="n">get_distribution_for_name</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">distr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">dist</span><span class="o">.</span><span class="n">pos_arg_count</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">distr</span><span class="o">.</span><span class="n">params</span><span class="p">):</span>
+                    <span class="n">arg_names</span> <span class="o">=</span> <span class="n">distr</span><span class="o">.</span><span class="n">params</span><span class="p">[:</span><span class="n">dist</span><span class="o">.</span><span class="n">pos_arg_count</span><span class="p">]</span> <span class="o">+</span> <span class="n">dist</span><span class="o">.</span><span class="n">keywords</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_symbol</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+        <span class="n">d_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span>
+        <span class="n">v_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">obs_value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="n">is_value</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">_ConditionCollector</span><span class="p">()</span>
+        <span class="n">cc</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Vertex</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ancestors</span><span class="o">=</span><span class="n">parents</span><span class="p">,</span> <span class="n">distribution_code</span><span class="o">=</span><span class="n">d_code</span><span class="p">,</span> <span class="n">distribution_name</span><span class="o">=</span><span class="n">_get_dist_name</span><span class="p">(</span><span class="n">dist</span><span class="p">),</span>
+                        <span class="n">distribution_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">distribution_func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span>
+                        <span class="n">distribution_transform</span><span class="o">=</span><span class="n">trans</span><span class="p">,</span> <span class="n">distribution_arg_names</span><span class="o">=</span><span class="n">arg_names</span><span class="p">,</span>
+                        <span class="n">observation</span><span class="o">=</span><span class="n">v_code</span><span class="p">,</span>
+                        <span class="n">observation_value</span><span class="o">=</span><span class="n">obs_value</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="n">conditions</span><span class="p">,</span>
+                        <span class="n">condition_nodes</span><span class="o">=</span><span class="n">cc</span><span class="o">.</span><span class="n">cond_nodes</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc</span><span class="o">.</span><span class="n">cond_nodes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">create_sample_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dist</span><span class="p">:</span> <span class="n">AstNode</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">parents</span><span class="p">:</span> <span class="nb">set</span><span class="p">,</span> <span class="n">original_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">arg_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">AstCall</span><span class="p">):</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">function_name</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">dist</span><span class="o">.</span><span class="n">args</span><span class="p">]</span>
+            <span class="c1"># args = dist.add_keywords_to_args(args)</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_keyword_arg_value</span><span class="p">(</span><span class="s2">&quot;transform&quot;</span><span class="p">)</span>
+            <span class="n">distr</span> <span class="o">=</span> <span class="n">distributions</span><span class="o">.</span><span class="n">get_distribution_for_name</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">distr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">dist</span><span class="o">.</span><span class="n">pos_arg_count</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">distr</span><span class="o">.</span><span class="n">params</span><span class="p">):</span>
+                    <span class="n">arg_names</span> <span class="o">=</span> <span class="n">distr</span><span class="o">.</span><span class="n">params</span><span class="p">[:</span><span class="n">dist</span><span class="o">.</span><span class="n">pos_arg_count</span><span class="p">]</span> <span class="o">+</span> <span class="n">dist</span><span class="o">.</span><span class="n">keywords</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_symbol</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_code_for_node</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Vertex</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ancestors</span><span class="o">=</span><span class="n">parents</span><span class="p">,</span> <span class="n">distribution_code</span><span class="o">=</span><span class="n">code</span><span class="p">,</span> <span class="n">distribution_name</span><span class="o">=</span><span class="n">_get_dist_name</span><span class="p">(</span><span class="n">dist</span><span class="p">),</span>
+                        <span class="n">distribution_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">distribution_func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="n">distribution_transform</span><span class="o">=</span><span class="n">trans</span><span class="p">,</span>
+                        <span class="n">distribution_arg_names</span><span class="o">=</span><span class="n">arg_names</span><span class="p">,</span>
+                        <span class="n">sample_size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">original_name</span><span class="o">=</span><span class="n">original_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">generate_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">class_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">imports</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">base_class</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">code_gen</span> <span class="o">=</span> <span class="n">GraphCodeGenerator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_generator</span><span class="o">.</span><span class="n">state_object</span><span class="p">,</span>
+                                      <span class="n">imports</span><span class="o">=</span><span class="n">imports</span> <span class="k">if</span> <span class="n">imports</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">code_gen</span><span class="o">.</span><span class="n">generate_model_code</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="n">class_name</span><span class="p">,</span> <span class="n">base_class</span><span class="o">=</span><span class="n">base_class</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_dist_name</span><span class="p">(</span><span class="n">dist</span><span class="p">:</span> <span class="n">AstNode</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">AstCall</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">function_name</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;dist.&#39;</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Bradley Gram-Hansen ; Tobias Kohn ; Yuan Zhou.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

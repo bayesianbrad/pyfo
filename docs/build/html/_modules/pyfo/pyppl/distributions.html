@@ -1,0 +1,295 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyfo.pyppl.distributions &mdash; pyfo 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> pyfo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Pyfo Core:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Inference.html">Inference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../distributions.html">Distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../PySPPL.html">PySPPL</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyfo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyfo.pyppl.distributions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyfo.pyppl.distributions</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of PyFOPPL, an implementation of a First Order Probabilistic Programming Language in Python.</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT (see LICENSE.txt)</span>
+<span class="c1">#</span>
+<span class="c1"># 17. Jan 2018, Tobias Kohn</span>
+<span class="c1"># 28. Mar 2018, Tobias Kohn</span>
+<span class="c1">#</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="c1">#########################################################################</span>
+
+<div class="viewcode-block" id="DistributionType"><a class="viewcode-back" href="../../../PySPPL.html#pyfo.pyppl.distributions.DistributionType">[docs]</a><span class="k">class</span> <span class="nc">DistributionType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+
+    <span class="n">CONTINUOUS</span> <span class="o">=</span> <span class="s2">&quot;continuous&quot;</span>
+    <span class="n">DISCRETE</span>   <span class="o">=</span> <span class="s2">&quot;discrete&quot;</span></div>
+
+
+<span class="c1">#########################################################################</span>
+
+<div class="viewcode-block" id="Distribution"><a class="viewcode-back" href="../../../PySPPL.html#pyfo.pyppl.distributions.Distribution">[docs]</a><span class="k">class</span> <span class="nc">Distribution</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">distributions_type</span><span class="p">:</span><span class="n">DistributionType</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span><span class="nb">list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">vector_sample</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">foppl_name</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">python_name</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">foppl_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="n">foppl_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">foppl_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">python_name</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="n">python_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">python_name</span>
+        <span class="k">if</span> <span class="n">distributions_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distribution_type</span> <span class="o">=</span> <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distribution_type</span> <span class="o">=</span> <span class="n">distributions_type</span>
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_sample</span> <span class="o">=</span> <span class="n">vector_sample</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_continuous</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_type</span> <span class="o">==</span> <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_discrete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_type</span> <span class="o">==</span> <span class="n">DistributionType</span><span class="o">.</span><span class="n">DISCRETE</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span></div>
+
+
+
+<span class="c1">#########################################################################</span>
+
+<span class="n">distributions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Bernoulli&#39;</span><span class="p">,</span>   <span class="n">DistributionType</span><span class="o">.</span><span class="n">DISCRETE</span><span class="p">,</span>   <span class="p">[</span><span class="s1">&#39;probs&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Beta&#39;</span><span class="p">,</span>        <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Binomial&#39;</span><span class="p">,</span>    <span class="n">DistributionType</span><span class="o">.</span><span class="n">DISCRETE</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;total_count&#39;</span><span class="p">,</span> <span class="s1">&#39;probs&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Categorical&#39;</span><span class="p">,</span> <span class="n">DistributionType</span><span class="o">.</span><span class="n">DISCRETE</span><span class="p">,</span>   <span class="p">[</span><span class="s1">&#39;probs&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Cauchy&#39;</span><span class="p">,</span>      <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Dirichlet&#39;</span><span class="p">,</span>   <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">],</span> <span class="n">vector_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Discrete&#39;</span><span class="p">,</span>    <span class="n">DistributionType</span><span class="o">.</span><span class="n">DISCRETE</span><span class="p">,</span>   <span class="kc">None</span><span class="p">),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Exponential&#39;</span><span class="p">,</span> <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;rate&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Gamma&#39;</span><span class="p">,</span>       <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;HalfCauchy&#39;</span><span class="p">,</span>  <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">],</span> <span class="n">foppl_name</span><span class="o">=</span><span class="s1">&#39;half_cauchy&#39;</span><span class="p">),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;LogGamma&#39;</span><span class="p">,</span>    <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;LogNormal&#39;</span><span class="p">,</span>   <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="s1">&#39;sigma&#39;</span><span class="p">],</span> <span class="n">foppl_name</span><span class="o">=</span><span class="s1">&#39;log_normal&#39;</span><span class="p">),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Multinomial&#39;</span><span class="p">,</span> <span class="n">DistributionType</span><span class="o">.</span><span class="n">DISCRETE</span><span class="p">,</span>   <span class="p">[</span><span class="s1">&#39;total_count&#39;</span><span class="p">,</span> <span class="s1">&#39;probs&#39;</span><span class="p">,</span> <span class="s1">&#39;n&#39;</span><span class="p">]),</span>
+    <span class="c1"># Distribution(&#39;MultivariateNormal&#39;,</span>
+    <span class="c1">#                             DistributionType.CONTINUOUS, [&#39;loc&#39;, &#39;covariance_matrix&#39;], vector_sample=True, foppl_name=&#39;mvn&#39;),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;MultivariateNormal&#39;</span><span class="p">,</span>
+                 <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">,</span> <span class="s1">&#39;covariance_matrix&#39;</span><span class="p">],</span> <span class="n">foppl_name</span><span class="o">=</span><span class="s1">&#39;mvn&#39;</span><span class="p">),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Normal&#39;</span><span class="p">,</span>      <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">,</span> <span class="s1">&#39;scale&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Poisson&#39;</span><span class="p">,</span>     <span class="n">DistributionType</span><span class="o">.</span><span class="n">DISCRETE</span><span class="p">,</span>   <span class="p">[</span><span class="s1">&#39;rate&#39;</span><span class="p">]),</span>
+    <span class="n">Distribution</span><span class="p">(</span><span class="s1">&#39;Uniform&#39;</span><span class="p">,</span>     <span class="n">DistributionType</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">])</span>
+<span class="p">}</span>
+
+<span class="n">namespace</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">foppl_name</span><span class="p">:</span> <span class="s1">&#39;dist.&#39;</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">python_name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">distributions</span>
+<span class="p">}</span>
+
+<span class="k">def</span> <span class="nf">get_distribution_for_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Distribution</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;dist.&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">get_distribution_for_name</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">5</span><span class="p">:])</span>
+    <span class="k">for</span> <span class="n">dist</span> <span class="ow">in</span> <span class="n">distributions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">dist</span><span class="o">.</span><span class="n">python_name</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">dist</span><span class="o">.</span><span class="n">foppl_name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dist</span>
+    <span class="k">return</span> <span class="kc">None</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Bradley Gram-Hansen ; Tobias Kohn ; Yuan Zhou.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
