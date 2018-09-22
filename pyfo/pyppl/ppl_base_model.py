@@ -14,10 +14,6 @@ from abc import ABC, abstractmethod, ABCMeta
 class base_model(ABC):
     @abstractmethod
     def get_vertices(self):
-        '''
-        Generates the vertices of the graphical model.
-        :return: Set of vertices
-        '''
         return NotImplementedError
 
     @abstractmethod
