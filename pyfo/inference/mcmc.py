@@ -216,7 +216,8 @@ class MCMC(Inference):
             .. code-block:: python
 
                     >>> hmc = MCMC('HMC')
-                    >>> samples = hmc.run_inference(nsamples=1000,\n
+                    >>> samples = hmc.run_inference(kernel=hmc,\n
+                    >>>nsamples=1000,\n
                     >>> burnin=100,\n
                     >>> chains=1,\n
                     >>> warmup= 100,\n
