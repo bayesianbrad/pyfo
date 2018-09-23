@@ -20,7 +20,7 @@ class GraphCodeGenerator(object):
 
     You want to change this class if you need additional (or adapted) methods in your model-class.
 
-    Example::
+    Example:
 
         .. code-block:: python
 
